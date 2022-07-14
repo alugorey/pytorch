@@ -102,17 +102,18 @@ std::tuple<at::Tensor,at::Tensor,at::Tensor> miopen_depthwise_convolution_backwa
   AT_ERROR("miopen_depthwise_convolution_backward: ATen not compiled with MIOpen support");
 }
 
-at::Tensor cudnn_convolution_add_relu(
+
+at::Tensor miopen_convolution_add_relu(
 	const at::Tensor& input, const at::Tensor& weight, const at::Tensor& z,
 	const c10::optional<Scalar>& alpha, const c10::optional<Tensor>& bias, IntArrayRef stride,
 	IntArrayRef padding, IntArrayRef dilation, int64_t groups) {
-  AT_ERROR("cudnn_convolution_add_relu: ATen not compiled with MIOpen support");
+  AT_ERROR("miopen_convolution_add_relu: ATen not compiled with MIOpen support");
 }
 
-at::Tensor cudnn_convolution_relu(
+at::Tensor miopen_convolution_relu(
 	const at::Tensor& input, const at::Tensor& weight, const c10::optional<Tensor>& bias,
 	IntArrayRef stride, IntArrayRef padding, IntArrayRef dilation, int64_t groups) {
-  AT_ERROR("cudnn_convolution_relu: ATen not compiled with MIOpen support");
+  AT_ERROR("miopen_convolution_relu: ATen not compiled with MIOpen support");
 }}
 
 #else  // AT_ROCM_ENABLED
@@ -1460,14 +1461,14 @@ Tensor miopen_convolution_transpose(
   return output_t;
 }
 
-Tensor cudnn_convolution_add_relu(
+Tensor miopen_convolution_add_relu(
 	const Tensor& input, const Tensor& weight, const Tensor& z,
 	const c10::optional<Scalar>& alpha, const c10::optional<Tensor>& bias, IntArrayRef stride,
 	IntArrayRef padding, IntArrayRef dilation, int64_t groups) {
 	return input;
 }
 
-Tensor cudnn_convolution_relu(
+Tensor miopen_convolution_relu(
 	const Tensor& input, const Tensor& weight, const c10::optional<Tensor>& bias,
 	IntArrayRef stride, IntArrayRef padding, IntArrayRef dilation, int64_t groups) {
 	return input;
@@ -1476,8 +1477,6 @@ Tensor cudnn_convolution_relu(
 REGISTER_CUDA_DISPATCH(miopen_convolution_backward_stub, &miopen_convolution_backward);
 REGISTER_CUDA_DISPATCH(miopen_convolution_transpose_backward_stub, &miopen_convolution_transpose_backward);
 REGISTER_CUDA_DISPATCH(miopen_depthwise_convolution_backward_stub, &miopen_depthwise_convolution_backward);
-REGISTER_CUDA_DISPATCH(cudnn_convolution_add_relu_stub, &cudnn_convolution_add_relu);
-REGISTER_CUDA_DISPATCH(cudnn_convolution_relu_stub, &cudnn_convolution_relu);
 }}  // namespace
 
 #endif
