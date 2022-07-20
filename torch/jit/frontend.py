@@ -463,6 +463,9 @@ def get_default_args(fn):
 
 
 def get_default_args_for_class(cls):
+    #print()
+    #print()
+    #print("INSIDE GET DEFAULT ARGS FOR CLASS")
     """
     Get default arguments for all methods in a class (except for static methods).
 
@@ -474,17 +477,32 @@ def get_default_args_for_class(cls):
     """
     # Get methods (except static methods because those are compiled separately as
     # if they were independent script functions).
+    #print(cls.__dict__)
+    #print(dir(cls))
+    #print("THE ORIGINAL DIR ^^^^")
+    #print()
+    #m = inspect.getmembers(cls)
+
+    # THIS FUNCTION IS WHEN cuda_stream GETS FILTERED OUT
     methods = inspect.getmembers(
         cls,
         predicate=lambda m: (inspect.ismethod(m) or inspect.isfunction(m))
         and not is_static_fn(cls, m.__name__)
         and m.__name__ in cls.__dict__
     )
+    
+    #print("OLD ONE")
+    #print(methods)
 
+    #print()
+    
+    
     # Get method defaults. Property defaults do not need to be considered
     # because setters cannot be invoked without a value.
     defaults = {method_name: get_default_args(method_impl) for method_name, method_impl in methods}
-
+    #print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+    #print()
+    #print()
     return defaults
 
 

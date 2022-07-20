@@ -1323,7 +1323,10 @@ def script(obj, optimize=None, _frames_up=0, _rcb=None,
         _compile_and_register_class(obj, _rcb, qualified_name)
         return obj
     elif inspect.isfunction(obj) or inspect.ismethod(obj):
+        print("**********************************************")
         qualified_name = _qualified_name(obj)
+        print(qualified_name)
+        print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
         # this is a decorated fn, and we need to the underlying fn and its rcb
         if hasattr(obj, "__script_if_tracing_wrapper"):
             obj = obj.__original_fn  # type: ignore[union-attr]
@@ -1332,22 +1335,25 @@ def script(obj, optimize=None, _frames_up=0, _rcb=None,
         # some functions are explicitly marked as not supported in script mode
         if hasattr(obj, "__script_unsupported"):
             raise RuntimeError("TorchScript error: " + obj.__script_unsupported)
-
+        print("CHECKPIONT 1")
         _check_directly_compile_overloaded(obj)
         maybe_already_compiled_fn = _try_get_jit_cached_function(obj)
         if maybe_already_compiled_fn:
             return maybe_already_compiled_fn
         ast = get_jit_def(obj, obj.__name__)
+        print(get_default_args(obj))
         if _rcb is None:
             _rcb = _jit_internal.createResolutionCallbackFromClosure(obj)
         fn = torch._C._jit_script_compile(
             qualified_name, ast, _rcb, get_default_args(obj)
         )
+        print("DID WE GET HERE??????????????????????????")
         # Forward docstrings
         fn.__doc__ = obj.__doc__
         _set_jit_function_cache(obj, fn)
         return fn
     else:
+        print("SHOULD NOT SEE THIS ANYWHERE ========================")
         return torch.jit._recursive.create_script_class(obj)
 
 
@@ -1459,10 +1465,18 @@ def interface(obj):
 
 def _recursive_compile_class(obj, loc):
     _qual_name = _qualified_name(obj)
+    print("MADE IT TO RECURSIVE")
+    print(obj)
+    #print(dir(obj))
+    print("=======================")
     # We're starting a new compilation, so update the error call stack in
     # case it fails
     error_stack = torch._C.CallStack(_qual_name, loc)
     rcb = _jit_internal.createResolutionCallbackForClassMethods(obj)
+    print("BLAHBLAHBLAHBLAHBLAHBLAH")
+    print(dir(obj))
+    print(_qual_name)
+    print("ABOUT TO RETURN FROM RECURSIVE COMPILE CLASS")
     return _compile_and_register_class(obj, rcb, _qual_name)
 
 CompilationUnit = torch._C.CompilationUnit

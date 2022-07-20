@@ -36,14 +36,37 @@ ignored_attributes = [
 ]
 
 def _compile_and_register_class(obj, rcb, qualified_name):
+    print("INSIDE COMPILE AND REGISTER CLASS")
+    #print(qualified_name)
+    #print(dir(obj))
+    print(dir(torch.cuda.streams.Stream))
+    print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
+    print()
+    print()
     script_class = _get_script_class(obj)
-
+    # PRINTS None
+    #print(script_class)
     if not script_class:
+        # AT THIS POINT, OBJ IS THE CORRECT STREAM OBJECT
+        # AND HAS cuda_stream AS ONE OF ITS ATTRIBUTES
+        print("STATE OF OBJECT BEFORE COMPILATION")
+        print(dir(obj))
+
+
+        print()
+        print()
         ast = get_jit_class_def(obj, obj.__name__)
+        
         defaults = torch.jit.frontend.get_default_args_for_class(obj)
+        print("DEFAULTS RETURNED BY FRONT END")
+        print(defaults)
+        #print(qualified_name)
+        print("END SO FAR")
         script_class = torch._C._jit_script_class_compile(qualified_name, ast, defaults, rcb)
         _add_script_class(obj, script_class)
-
+        
+        print()
+    
     return script_class
 
 def make_stub(func, name):
