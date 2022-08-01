@@ -1371,10 +1371,10 @@ class CudaMemoryLeakCheck():
                 driver_discrepancy = False
 
                 if caching_allocator_mem_allocated > self.caching_allocator_befores[i]:
-                caching_allocator_discrepancy = True
+                    caching_allocator_discrepancy = True
 
                 if driver_mem_allocated > self.driver_befores[i]:
-                driver_discrepancy = True
+                    driver_discrepancy = True
 
                 if not( caching_allocator_discrepancy or driver_discrepancy):
                     # Leak was false positive
