@@ -1379,6 +1379,7 @@ class CudaMemoryLeakCheck():
                 if not( caching_allocator_discrepancy or driver_discrepancy):
                     # Leak was false positive
                     discrepancy_detected = False
+                    break
 
             if not discrepancy_detected:
                 continue
@@ -1403,7 +1404,7 @@ class CudaMemoryLeakCheck():
                 warnings.warn(msg)
             elif caching_allocator_discrepancy and driver_discrepancy:
                 # A caching allocator discrepancy validated by the driver API is a
-                #   failure (except on ROCm, see below)
+                #   failure
                 msg = ("CUDA driver API confirmed a leak in {}! "
                        "Caching allocator allocated memory was {} and is now reported as {} "
                        "on device {}. "
