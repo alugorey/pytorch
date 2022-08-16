@@ -9,13 +9,6 @@
 
 #if defined(CUDART_VERSION) || defined(ROCM_VERSION) && ROCM_VERSION >= 50200
 
-#ifdef CUDART_VERSION
-#define CONST_QUALIFIER const
-#else
-// hipSOLVER functions in current ROCM (5.2) miss CONST_QUALIFIER qualifiers
-#define CONST_QUALIFIER
-#endif
-
 namespace at {
 namespace cuda {
 namespace solver {
@@ -315,7 +308,7 @@ void geqrf<c10::complex<double>>(
     CUDASOLVER_GEQRF_ARGTYPES(c10::complex<double>));
 
 #define CUDASOLVER_POTRS_ARGTYPES(Dtype)  \
-    cusolverDnHandle_t handle, cublasFillMode_t uplo, int n, int nrhs, CONST_QUALIFIER Dtype *A, int lda, Dtype *B, int ldb, int *devInfo
+    cusolverDnHandle_t handle, cublasFillMode_t uplo, int n, int nrhs, const Dtype *A, int lda, Dtype *B, int ldb, int *devInfo
 
 template<class Dtype>
 void potrs(CUDASOLVER_POTRS_ARGTYPES(Dtype)) {
@@ -349,8 +342,8 @@ void potrsBatched<c10::complex<double>>(CUDASOLVER_POTRS_BATCHED_ARGTYPES(c10::c
 
 
 #define CUDASOLVER_ORGQR_BUFFERSIZE_ARGTYPES(Dtype)                        \
-  cusolverDnHandle_t handle, int m, int n, int k, CONST_QUALIFIER Dtype *A, int lda, \
-      CONST_QUALIFIER Dtype *tau, int *lwork
+  cusolverDnHandle_t handle, int m, int n, int k, const Dtype *A, int lda, \
+      const Dtype *tau, int *lwork
 
 template <class Dtype>
 void orgqr_buffersize(CUDASOLVER_ORGQR_BUFFERSIZE_ARGTYPES(Dtype)) {
@@ -371,7 +364,7 @@ void orgqr_buffersize<c10::complex<double>>(CUDASOLVER_ORGQR_BUFFERSIZE_ARGTYPES
 
 #define CUDASOLVER_ORGQR_ARGTYPES(Dtype)                             \
   cusolverDnHandle_t handle, int m, int n, int k, Dtype *A, int lda, \
-      CONST_QUALIFIER Dtype *tau, Dtype *work, int lwork, int *devInfo
+      const Dtype *tau, Dtype *work, int lwork, int *devInfo
 
 template <class Dtype>
 void orgqr(CUDASOLVER_ORGQR_ARGTYPES(Dtype)) {
@@ -391,8 +384,8 @@ void orgqr<c10::complex<double>>(CUDASOLVER_ORGQR_ARGTYPES(c10::complex<double>)
 
 #define CUDASOLVER_ORMQR_BUFFERSIZE_ARGTYPES(Dtype)                          \
   cusolverDnHandle_t handle, cublasSideMode_t side, cublasOperation_t trans, \
-      int m, int n, int k, CONST_QUALIFIER Dtype *A, int lda, CONST_QUALIFIER Dtype *tau,        \
-      CONST_QUALIFIER Dtype *C, int ldc, int *lwork
+      int m, int n, int k, const Dtype *A, int lda, const Dtype *tau,        \
+      const Dtype *C, int ldc, int *lwork
 
 template <class Dtype>
 void ormqr_bufferSize(CUDASOLVER_ORMQR_BUFFERSIZE_ARGTYPES(Dtype)) {
@@ -414,7 +407,7 @@ void ormqr_bufferSize<c10::complex<double>>(
 
 #define CUDASOLVER_ORMQR_ARGTYPES(Dtype)                                     \
   cusolverDnHandle_t handle, cublasSideMode_t side, cublasOperation_t trans, \
-      int m, int n, int k, CONST_QUALIFIER Dtype *A, int lda, CONST_QUALIFIER Dtype *tau, Dtype *C,    \
+      int m, int n, int k, const Dtype *A, int lda, const Dtype *tau, Dtype *C,    \
       int ldc, Dtype *work, int lwork, int *devInfo
 
 template <class Dtype>
@@ -446,7 +439,7 @@ template<> cudaDataType get_cusolver_datatype<c10::complex<float>>();
 template<> cudaDataType get_cusolver_datatype<c10::complex<double>>();
 
 void xpotrf_buffersize(
-    cusolverDnHandle_t handle, cusolverDnParams_t params, cublasFillMode_t uplo, int64_t n, cudaDataType dataTypeA, CONST_QUALIFIER void *A,
+    cusolverDnHandle_t handle, cusolverDnParams_t params, cublasFillMode_t uplo, int64_t n, cudaDataType dataTypeA, const void *A,
     int64_t lda, cudaDataType computeType, size_t *workspaceInBytesOnDevice, size_t *workspaceInBytesOnHost);
 
 void xpotrf(
@@ -455,14 +448,14 @@ void xpotrf(
     int *info);
 
 void xpotrs(
-    cusolverDnHandle_t handle, cusolverDnParams_t params, cublasFillMode_t uplo, int64_t n, int64_t nrhs, cudaDataType dataTypeA, CONST_QUALIFIER void *A,
+    cusolverDnHandle_t handle, cusolverDnParams_t params, cublasFillMode_t uplo, int64_t n, int64_t nrhs, cudaDataType dataTypeA, const void *A,
     int64_t lda, cudaDataType dataTypeB, void *B, int64_t ldb, int *info);
 
 #endif // USE_CUSOLVER_64_BIT
 
 #define CUDASOLVER_SYEVD_BUFFERSIZE_ARGTYPES(scalar_t, value_t)             \
   cusolverDnHandle_t handle, cusolverEigMode_t jobz, cublasFillMode_t uplo, \
-      int n, CONST_QUALIFIER scalar_t *A, int lda, CONST_QUALIFIER value_t *W, int *lwork
+      int n, const scalar_t *A, int lda, const value_t *W, int *lwork
 
 template <class scalar_t, class value_t = scalar_t>
 void syevd_bufferSize(CUDASOLVER_SYEVD_BUFFERSIZE_ARGTYPES(scalar_t, value_t)) {
@@ -511,7 +504,7 @@ void syevd<c10::complex<double>, double>(
 
 #define CUDASOLVER_SYEVJ_BUFFERSIZE_ARGTYPES(scalar_t, value_t)             \
   cusolverDnHandle_t handle, cusolverEigMode_t jobz, cublasFillMode_t uplo, \
-      int n, CONST_QUALIFIER scalar_t *A, int lda, CONST_QUALIFIER value_t *W, int *lwork,      \
+      int n, const scalar_t *A, int lda, const value_t *W, int *lwork,      \
       syevjInfo_t params
 
 template <class scalar_t, class value_t = scalar_t>
@@ -561,7 +554,7 @@ void syevj<c10::complex<double>, double>(
 
 #define CUDASOLVER_SYEVJ_BATCHED_BUFFERSIZE_ARGTYPES(scalar_t, value_t)     \
   cusolverDnHandle_t handle, cusolverEigMode_t jobz, cublasFillMode_t uplo, \
-      int n, CONST_QUALIFIER scalar_t *A, int lda, CONST_QUALIFIER value_t *W, int *lwork,      \
+      int n, const scalar_t *A, int lda, const value_t *W, int *lwork,      \
       syevjInfo_t params, int batchsize
 
 template <class scalar_t, class value_t = scalar_t>
@@ -614,7 +607,7 @@ void syevjBatched<c10::complex<double>, double>(
 
 #define CUDASOLVER_XGEQRF_BUFFERSIZE_ARGTYPES(scalar_t)                       \
   cusolverDnHandle_t handle, cusolverDnParams_t params, int64_t m, int64_t n, \
-      CONST_QUALIFIER scalar_t *A, int64_t lda, CONST_QUALIFIER scalar_t *tau,                    \
+      const scalar_t *A, int64_t lda, const scalar_t *tau,                    \
       size_t *workspaceInBytesOnDevice, size_t *workspaceInBytesOnHost
 
 template <class scalar_t>
@@ -664,7 +657,7 @@ void xgeqrf<c10::complex<double>>(
 #define CUDASOLVER_XSYEVD_BUFFERSIZE_ARGTYPES(scalar_t, value_t) \
   cusolverDnHandle_t handle, cusolverDnParams_t params,          \
       cusolverEigMode_t jobz, cublasFillMode_t uplo, int64_t n,  \
-      CONST_QUALIFIER scalar_t *A, int64_t lda, CONST_QUALIFIER value_t *W,          \
+      const scalar_t *A, int64_t lda, const value_t *W,          \
       size_t *workspaceInBytesOnDevice, size_t *workspaceInBytesOnHost
 
 template <class scalar_t, class value_t = scalar_t>
