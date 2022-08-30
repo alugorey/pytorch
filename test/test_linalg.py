@@ -18,7 +18,8 @@ from torch.testing._internal.common_utils import \
     (TestCase, run_tests, TEST_SCIPY, IS_MACOS, IS_WINDOWS, slowTest,
      TEST_WITH_ASAN, TEST_WITH_ROCM, IS_FBCODE, IS_REMOTE_GPU, iter_indices,
      make_fullrank_matrices_with_distinct_singular_values,
-     freeze_rng_state, IS_ARM64, IS_SANDCASTLE, TEST_OPT_EINSUM)
+     freeze_rng_state, IS_ARM64, IS_SANDCASTLE, TEST_OPT_EINSUM,
+     setLinalgBackendsToDefaultFinally)
 from torch.testing._internal.common_device_type import \
     (instantiate_device_type_tests, dtypes, has_cusolver, has_hipsolver,
      onlyCPU, skipCUDAIf, skipCUDAIfNoMagma, skipCPUIfNoLapack, precisionOverride,
@@ -44,16 +45,6 @@ assert torch.get_default_dtype() is torch.float32
 if TEST_SCIPY:
     import scipy
 
-def setLinalgBackendsToDefaultFinally(fn):
-    @wraps(fn)
-    def _fn(*args, **kwargs):
-        try:
-            fn(*args, **kwargs)
-        finally:
-            # Set linalg backend back to default to make sure potential failures in one test
-            #   doesn't affect other linalg tests
-            torch.backends.cuda.preferred_linalg_library('default')
-    return _fn
 
 @unittest.skipIf(IS_ARM64, "Issue with numpy version on arm")
 class TestLinalg(TestCase):
