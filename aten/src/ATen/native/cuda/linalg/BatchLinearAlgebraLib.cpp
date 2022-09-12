@@ -741,12 +741,9 @@ inline static void apply_svd_cusolver_gesvdj(const Tensor& A, const Tensor& U, c
   gesvdjInfo_t gesvdj_params;
   TORCH_CUSOLVER_CHECK(cusolverDnCreateGesvdjInfo(&gesvdj_params));
 
-  // ROCM does not support those functions
-#ifdef CUDART_VERSION
   // Todo: expose the following two parameters to users
   TORCH_CUSOLVER_CHECK(cusolverDnXgesvdjSetTolerance(gesvdj_params, std::numeric_limits<scalar_t>::epsilon()));
   TORCH_CUSOLVER_CHECK(cusolverDnXgesvdjSetMaxSweeps(gesvdj_params, cusolver_gesvdj_max_sweeps));
-#endif
 
   int lwork = -1;
   at::cuda::solver::gesvdj_buffersize<scalar_t>(
@@ -820,13 +817,10 @@ inline static void apply_svd_cusolver_gesvdjBatched(const Tensor& A, const Tenso
   gesvdjInfo_t gesvdj_params;
   TORCH_CUSOLVER_CHECK(cusolverDnCreateGesvdjInfo(&gesvdj_params));
 
-  // ROCM does not support those functions
-#ifdef CUDART_VERSION
   // Todo: expose the following two parameters to users
   TORCH_CUSOLVER_CHECK(cusolverDnXgesvdjSetTolerance(gesvdj_params, std::numeric_limits<scalar_t>::epsilon()));
   TORCH_CUSOLVER_CHECK(cusolverDnXgesvdjSetMaxSweeps(gesvdj_params, cusolver_gesvdj_max_sweeps));
   TORCH_CUSOLVER_CHECK(cusolverDnXgesvdjSetSortEig(gesvdj_params, 1));
-#endif
 
   auto handle = at::cuda::getCurrentCUDASolverDnHandle();
   auto jobz = compute_uv ? CUSOLVER_EIG_MODE_VECTOR : CUSOLVER_EIG_MODE_NOVECTOR;
@@ -1017,11 +1011,10 @@ void svd_cusolver(const Tensor& A,
 
   static const char* check_svd_doc = "Check doc at https://pytorch.org/docs/stable/generated/torch.linalg.svd.html";
 
-#ifdef ROCM_VERSION
-  // ROCM only has gesvd implemented
-  const auto driver_v = c10::string_view("gesvd");
-#else
   // The default heuristic is to use gesvdj driver
+#ifdef ROCM_VERSION
+  const auto driver_v = c10::string_view("gesvdj");
+#else
   const auto driver_v = driver.value_or("gesvdj");
 #endif
 
