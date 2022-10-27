@@ -60,12 +60,6 @@ static Tensor get_device_pointers(const Tensor& input) {
 
 template <typename scalar_t>
 void apply_geqrf_batched(const Tensor& input, const Tensor& tau) {
-// AMD ROCm backend is implemented via rewriting all CUDA calls to HIP
-// rocBLAS does not implement BLAS-like extensions of cuBLAS, they're in rocSOLVER
-// rocSOLVER is currently not used in ATen, therefore we raise an error in this case
-#ifndef CUDART_VERSION
-  TORCH_CHECK(false, "geqrf: Batched version is supported only with cuBLAS backend.")
-#else
   auto batch_size = cuda_int_cast(batchCount(input), "batch_size");
   auto m = cuda_int_cast(input.size(-2), "m");
   auto n = cuda_int_cast(input.size(-1), "n");
@@ -84,7 +78,6 @@ void apply_geqrf_batched(const Tensor& input, const Tensor& tau) {
   // info only indicates wrong arguments to geqrfBatched call
   // info is a host variable, we can check it without device synchronization
   TORCH_INTERNAL_ASSERT(info == 0);
-#endif
 }
 
 void geqrf_batched_cublas(const Tensor& input, const Tensor& tau) {
@@ -121,14 +114,14 @@ void lu_factor_batched_cublas(const Tensor& A, const Tensor& pivots, const Tenso
 }
 
 template <typename scalar_t>
-static void apply_lu_solve_batched_cublas(const Tensor& LU, const Tensor& pivots, const Tensor& B, TransposeType transpose) {
-#ifndef CUDART_VERSION
-  TORCH_CHECK(false, "linalg.lu_solve: cuBLAS backend for linalg.lu_solve is not available.")
+static void apply_lu_solve_batched_cublas(const Tensor& B, const Tensor& LU, const Tensor& pivots, TransposeType transpose) {
+  TORCH_INTERNAL_ASSERT(batchCount(B) == batchCount(LU), "batch_size of b and lu must be the same");
+  TORCH_INTERNAL_ASSERT(batchCount(LU) == batchCount(pivots.unsqueeze(-1)), "batch_size of lu and pivots must be the same");
+#ifdef ROCM_VERSION
+  const auto trans = (hipblasOperation_t)to_cublas(transpose);
 #else
-  TORCH_INTERNAL_ASSERT(batchCount(LU) == batchCount(B), "batch_size of LU and B must be the same");
-  TORCH_INTERNAL_ASSERT(batchCount(LU) == batchCount(pivots.unsqueeze(-1)), "batch_size of LU and pivots must be the same");
   const auto trans = to_cublas(transpose);
-
+#endif
   auto pivots_data = pivots.data_ptr<int>();
   auto batch_size = cuda_int_cast(batchCount(LU), "batch_size");;
   auto m = cuda_int_cast(LU.size(-2), "m");
@@ -145,7 +138,6 @@ static void apply_lu_solve_batched_cublas(const Tensor& LU, const Tensor& pivots
   at::cuda::blas::getrsBatched(handle, trans, m, nrhs, lu_ptr_array_data,
     lda, pivots_data, b_ptr_array_data, lda, &info, batch_size);
   TORCH_INTERNAL_ASSERT_DEBUG_ONLY(info == 0);
-#endif
 }
 
 void lu_solve_batched_cublas(const Tensor& LU, const Tensor& pivots, const Tensor& B, TransposeType trans) {
@@ -413,19 +405,15 @@ void triangular_solve_batched_cublas(const Tensor& A, const Tensor& B, bool left
 
 template <typename scalar_t>
 inline void apply_gels_batched(const Tensor& A, Tensor& B, Tensor& infos) {
-// AMD ROCm backend is implemented via rewriting all CUDA calls to HIP
-// rocBLAS does not implement BLAS-like extensions of cuBLAS, they're in rocSOLVER
-// rocSOLVER is currently not used in ATen, therefore we raise an error in this case
-#ifndef CUDART_VERSION
-  TORCH_CHECK(false, "torch.linalg.lstsq: Batched version is supported only with cuBLAS backend.")
-#else
-#ifdef ROCM_VERSION
+#if defined(ROCM_VERSION) && (ROCM_VERSION >= 50400)
   // Cannot auto-hipifiy this piece of code, because in other functions
   // CUBLAS_OP_N must be translated to HIPSOLVER_OP_N
-  auto trans = rocblas_operation_none;
+  auto trans = HIPBLAS_OP_N;
 #else
   auto trans = CUBLAS_OP_N;
 #endif
+
+#if defined(CUDART_VERSION) || (defined(ROCM_VERSION) && (ROCM_VERSION >= 50400))
   auto m = cuda_int_cast(A.size(-2), "m");
   auto n = cuda_int_cast(A.size(-1), "n");
 
@@ -518,12 +506,9 @@ static void apply_batched_inverse_lib(Tensor& self, Tensor& self_inv, Tensor& in
 
   auto& allocator = *::c10::cuda::CUDACachingAllocator::get();
 
-  // at::cuda::blas::getr.Batched functions are only available with cuSPARSE
-#ifdef CUDART_VERSION
   // Heuristic: For small batch size or large matrix size, we use for-loop to iterate over the batches instead of
-  //            calling the batched cublas routine.
+  // calling the batched cublas routine.
   if (batch_size <= 8 || /* batch_size > 8 && */ n >= 512) {
-#endif
     for (int64_t i = 0; i < batch_size; i++) {
       auto dataPtr = allocator.allocate(sizeof(int) * lda);
       int* pivot = reinterpret_cast<int*>(dataPtr.get());
@@ -534,7 +519,6 @@ static void apply_batched_inverse_lib(Tensor& self, Tensor& self_inv, Tensor& in
       _apply_single_inverse_helper<scalar_t>(
         &self_data[i * self_mat_stride], &self_inv_data[i * self_inv_mat_stride], pivot, infos_getrf_working_ptr, infos_getrs_working_ptr, n, lda);
     }
-#ifdef CUDART_VERSION
   } else {
     // cublas batched kernels require input be "device array of device pointers"
     Tensor self_array = at::arange(
@@ -555,7 +539,6 @@ static void apply_batched_inverse_lib(Tensor& self, Tensor& self_inv, Tensor& in
     at::cuda::blas::getriBatched<scalar_t>(n, reinterpret_cast<scalar_t**>(self_array.data_ptr()), lda,
       ipiv_array, reinterpret_cast<scalar_t**>(self_inv_array.data_ptr()), lda, infos_getrs_data, batch_size);
   }
-#endif
 }
 
 template <typename scalar_t>
