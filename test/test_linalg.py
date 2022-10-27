@@ -3607,10 +3607,10 @@ class TestLinalg(TestCase):
                                     "The QR decomposition is not differentiable when mode='complete' and nrows > ncols"):
             b.backward()
 
-    @skipCUDAIfNoCusolver
     @skipCPUIfNoLapack
     @dtypes(torch.float, torch.double, torch.cfloat, torch.cdouble)
     def test_qr_batched(self, device, dtype):
+        torch.backends.cuda.preferred_linalg_library("cusolver")
         """
         test torch.linalg.qr vs numpy.linalg.qr. We need some special logic
         because numpy does not support batched qr
@@ -6914,6 +6914,7 @@ scipy_lobpcg  | {:10.2e}  | {:10.2e}  | {:6} | N/A
     @precisionOverride({torch.float32: 1e-3, torch.complex64: 1e-3,
                         torch.float64: 1e-8, torch.complex128: 1e-8})
     def test_lu_solve_batched(self, device, dtype):
+        torch.backends.cuda.preferred_linalg_library('cusolver')
         def sub_test(pivot):
             def lu_solve_batch_test_helper(A_dims, b_dims, pivot):
                 b, A, LU_data, LU_pivots = self.lu_solve_test_helper(A_dims, b_dims, pivot, device, dtype)
