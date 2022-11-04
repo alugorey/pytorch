@@ -9,6 +9,8 @@
 #include <c10/macros/Export.h>
 #include <c10/util/irange.h>
 
+#include <iostream>
+
 
 // cublasLT was introduced in CUDA 10.1 but we enable only for 11.1 that also
 // added bf16 support
@@ -1169,6 +1171,7 @@ void vdot<c10::complex<double>>(CUDABLAS_DOT_ARGTYPES(c10::complex<double>)) {
 
 template <>
 void getrsBatched<float>(HIPBLAS_GETRS_ARGTYPES(float)) {
+  std::cout << "getrsBatched(FLOAT)" << std::endl << std::endl;
   TORCH_HIPBLAS_CHECK(cublasSgetrsBatched(
       handle,
       trans,
@@ -1185,6 +1188,7 @@ void getrsBatched<float>(HIPBLAS_GETRS_ARGTYPES(float)) {
 
 template <>
 void getrsBatched<double>(HIPBLAS_GETRS_ARGTYPES(double)) {
+  std::cout << "getrsBatched(DOUBLE)" << std::endl << std::endl;
   TORCH_HIPBLAS_CHECK(cublasDgetrsBatched(
       handle,
       trans,
@@ -1236,6 +1240,7 @@ void getrsBatched<c10::complex<double>>(HIPBLAS_GETRS_ARGTYPES(c10::complex<doub
 
 template <>
 void getrsBatched<float>(CUDABLAS_GETRS_ARGTYPES(float)) {
+  std::cout << "CUDA getrsBatched(FLOAT)" << std::endl << std::endl;
   TORCH_CUDABLAS_CHECK(cublasSgetrsBatched(
       handle,
       trans,
@@ -1302,12 +1307,14 @@ void getrsBatched<c10::complex<double>>(CUDABLAS_GETRS_ARGTYPES(c10::complex<dou
 #ifdef USE_ROCM
 template <>
 void geqrfBatched<float>(HIPBLAS_GEQRF_BATCHED_ARGTYPES(float)) {
+  std::cout << "geqrfBatched(FLOAT)" << std::endl << std::endl;
   TORCH_HIPBLAS_CHECK(cublasSgeqrfBatched(
       handle, m, n, A_array, lda, tau_array, info, batchsize));
 }
 
 template <>
 void geqrfBatched<double>(HIPBLAS_GEQRF_BATCHED_ARGTYPES(double)) {
+  std::cout << "geqrfBatched(DOUBLE)" << std::endl << std::endl;
   TORCH_HIPBLAS_CHECK(cublasDgeqrfBatched(
       handle, m, n, A_array, lda, tau_array, info, batchsize));
 }
@@ -1345,6 +1352,7 @@ void geqrfBatched<c10::complex<double>>(
 #else
 template <>
 void geqrfBatched<float>(CUDABLAS_GEQRF_BATCHED_ARGTYPES(float)) {
+  std::cout << "CUDA geqrfBatched(FLOAT)" << std::endl << std::endl;
   TORCH_CUDABLAS_CHECK(cublasSgeqrfBatched(
       handle, m, n, A_array, lda, tau_array, info, batchsize));
 }
@@ -1389,6 +1397,7 @@ void geqrfBatched<c10::complex<double>>(
 template <>
 void getrfBatched<double>(
     HIPBLAS_GETRF_BATCHED_ARGTYPES(double)) {
+  std::cout << "getrfBatched(double)" << std::endl << std::endl;
   auto handle = at::cuda::getCurrentCUDABlasHandle();
   TORCH_HIPBLAS_CHECK(cublasDgetrfBatched(
       handle, n, dA_array, ldda, ipiv_array, info_array, batchsize));
@@ -1397,6 +1406,7 @@ void getrfBatched<double>(
 template <>
 void getrfBatched<float>(
     HIPBLAS_GETRF_BATCHED_ARGTYPES(float)) {
+  std::cout << "getrfBatched(FLOAT)" << std::endl << std::endl;
   auto handle = at::cuda::getCurrentCUDABlasHandle();
   TORCH_HIPBLAS_CHECK(cublasSgetrfBatched(
       handle, n, dA_array, ldda, ipiv_array, info_array, batchsize));
@@ -1435,6 +1445,7 @@ void getrfBatched<c10::complex<float>>(
 template <>
 void getrfBatched<double>(
     CUDABLAS_GETRF_BATCHED_ARGTYPES(double)) {
+  std::cout << "CUDA getrfBatched(FLOAT)" << std::endl << std::endl;
   auto handle = at::cuda::getCurrentCUDABlasHandle();
   TORCH_CUDABLAS_CHECK(cublasDgetrfBatched(
       handle, n, dA_array, ldda, ipiv_array, info_array, batchsize));
@@ -1481,6 +1492,7 @@ void getrfBatched<c10::complex<float>>(
 template <>
 void getriBatched<double>(
     HIPBLAS_GETRI_BATCHED_ARGTYPES(double)) {
+  std::cout << "getriBatched(FLOAT)" << std::endl << std::endl;
   auto handle = at::cuda::getCurrentCUDABlasHandle();
   TORCH_HIPBLAS_CHECK(cublasDgetriBatched(
       handle, n, dA_array, ldda, ipiv_array, dC_array, lddc, info_array, batchsize));
@@ -1513,6 +1525,7 @@ void getriBatched<c10::complex<double>>(
 template <>
 void getriBatched<c10::complex<float>>(
     HIPBLAS_GETRI_BATCHED_ARGTYPES(c10::complex<float>)) {
+  std::cout << "CUDA getriBatched(FLOAT)" << std::endl << std::endl;
   auto handle = at::cuda::getCurrentCUDABlasHandle();
   TORCH_HIPBLAS_CHECK(cublasCgetriBatched(
       handle,
@@ -1580,6 +1593,7 @@ void getriBatched<c10::complex<float>>(
 
 template <>
 void gelsBatched<double>(HIPBLAS_GELS_BATCHED_ARGTYPES(double)) {
+  std::cout << "gelsBatched(FLOAT)" << std::endl << std::endl;
   TORCH_HIPBLAS_CHECK(hipblasDgelsBatched(
       handle, trans, m, n, nrhs, dA_array, ldda, dC_array, lddc, info, devInfoArray, batchSize));
 }
@@ -1624,6 +1638,7 @@ void gelsBatched<c10::complex<float>>(HIPBLAS_GELS_BATCHED_ARGTYPES(c10::complex
 
 template <>
 void gelsBatched<double>(CUDABLAS_GELS_BATCHED_ARGTYPES(double)) {
+  std::cout << "CUDA gelsBatched(FLOAT)" << std::endl << std::endl;
   TORCH_CUDABLAS_CHECK(cublasDgelsBatched(
       handle, trans, m, n, nrhs, dA_array, ldda, dC_array, lddc, info, devInfoArray, batchSize));
 }

@@ -827,7 +827,8 @@ class TestMeta(TestCase):
     @setLinalgBackendsToDefaultFinally
     @ops(op_db)
     def test_meta(self, device, dtype, op):
-        torch.backends.cuda.preferred_linalg_library('magma')
+        torch.backends.cuda.preferred_linalg_library('cusolver')
+        print("TEST_META")
         # run the OpInfo sample inputs, cross-referencing them with the
         # meta implementation and check the results are the same.  All
         # the heavy lifting happens in MetaCrossRefFunctionMode
@@ -848,7 +849,7 @@ class TestMeta(TestCase):
     @setLinalgBackendsToDefaultFinally
     @ops(op_db)
     def test_dispatch_meta(self, device, dtype, op):
-        torch.backends.cuda.preferred_linalg_library('magma')
+        torch.backends.cuda.preferred_linalg_library('cusolver')
         func = op.get_op()
         samples = op.sample_inputs(device, dtype, requires_grad=False)
         for sample_input in samples:

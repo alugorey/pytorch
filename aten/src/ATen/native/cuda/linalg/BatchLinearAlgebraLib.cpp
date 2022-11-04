@@ -27,6 +27,9 @@
 #include <ATen/ops/zeros.h>
 #endif
 
+
+#include <iostream>
+
 namespace at {
 namespace native {
 
@@ -60,6 +63,7 @@ static Tensor get_device_pointers(const Tensor& input) {
 
 template <typename scalar_t>
 void apply_geqrf_batched(const Tensor& input, const Tensor& tau) {
+  std::cout << "apply_geqrf_batched RAN" << std::endl;
   auto batch_size = cuda_int_cast(batchCount(input), "batch_size");
   auto m = cuda_int_cast(input.size(-2), "m");
   auto n = cuda_int_cast(input.size(-1), "n");
@@ -68,13 +72,25 @@ void apply_geqrf_batched(const Tensor& input, const Tensor& tau) {
   // cuBLAS batched geqrf requires input to be the device array of pointers to device single matrices
   Tensor input_ptr_array = get_device_pointers<scalar_t>(input);
   Tensor tau_ptr_array = get_device_pointers<scalar_t>(tau.unsqueeze(-1));
+  std::cout << "about to call .data_ptr()" << std::endl;
   auto input_ptr_array_data = reinterpret_cast<scalar_t**>(input_ptr_array.data_ptr());
+  std::cout << "called .data_ptr()" << std::endl;
   auto tau_ptr_array_data = reinterpret_cast<scalar_t**>(tau_ptr_array.data_ptr());
+  std::cout << "after tau_ptr data_ptr()" << std::endl;
 
   int info;
   auto handle = at::cuda::getCurrentCUDABlasHandle();
   at::cuda::blas::geqrfBatched(handle, m, n, input_ptr_array_data, lda, tau_ptr_array_data, &info, batch_size);
 
+  std::cout << "m = " << m << std::endl;
+  std::cout << "n = " << n << std::endl;
+  std::cout << "bs= " << batch_size << std::endl;
+  std::cout << "INFO: " << info << std::endl;
+  std::cout << std::boolalpha;
+  std::cout << "num elements: " << input_ptr_array.numel() << std::endl;
+  std::cout << "input_ptr is NULL: " << (input_ptr_array_data == NULL) << std::endl;
+  std::cout << "tau_ptr is NULL  : " << (tau_ptr_array_data == NULL) << std::endl;
+  std::cout << input_ptr_array.layout() << std::endl;
   // info only indicates wrong arguments to geqrfBatched call
   // info is a host variable, we can check it without device synchronization
   TORCH_INTERNAL_ASSERT(info == 0);
@@ -88,9 +104,7 @@ void geqrf_batched_cublas(const Tensor& input, const Tensor& tau) {
 
 template <typename scalar_t>
 static void apply_lu_factor_batched_cublas(const Tensor& A, const Tensor& pivots, const Tensor& infos, bool get_pivots) {
-#ifndef CUDART_VERSION
-  TORCH_CHECK(false, "linalg.lu_factor: cuBLAS backend for linalg.lu_factor is not available.")
-#else
+  std::cout << "getrf: apply_lu_factor_batched_cublas RAN" << std::endl;
   // This function just works with square matrices
   TORCH_INTERNAL_ASSERT(A.size(-2) == A.size(-1));
 
@@ -104,7 +118,6 @@ static void apply_lu_factor_batched_cublas(const Tensor& A, const Tensor& pivots
   auto a_ptr_array_data = reinterpret_cast<scalar_t**>(a_ptr_array.data_ptr());
 
   at::cuda::blas::getrfBatched(n, a_ptr_array_data, lda, pivots_data, infos_data, batch_size);
-#endif
 }
 
 void lu_factor_batched_cublas(const Tensor& A, const Tensor& pivots, const Tensor& infos, bool get_pivots) {
@@ -114,7 +127,9 @@ void lu_factor_batched_cublas(const Tensor& A, const Tensor& pivots, const Tenso
 }
 
 template <typename scalar_t>
-static void apply_lu_solve_batched_cublas(const Tensor& B, const Tensor& LU, const Tensor& pivots, TransposeType transpose) {
+static void apply_lu_solve_batched_cublas(const Tensor& LU, const Tensor& pivots, const Tensor& B, TransposeType transpose) {
+
+  std::cout << "getrs: apply_lu_solve_batched_cublas RAN" << std::endl;
   TORCH_INTERNAL_ASSERT(batchCount(B) == batchCount(LU), "batch_size of b and lu must be the same");
   TORCH_INTERNAL_ASSERT(batchCount(LU) == batchCount(pivots.unsqueeze(-1)), "batch_size of lu and pivots must be the same");
 #ifdef ROCM_VERSION
@@ -123,7 +138,7 @@ static void apply_lu_solve_batched_cublas(const Tensor& B, const Tensor& LU, con
   const auto trans = to_cublas(transpose);
 #endif
   auto pivots_data = pivots.data_ptr<int>();
-  auto batch_size = cuda_int_cast(batchCount(LU), "batch_size");;
+  auto batch_size = cuda_int_cast(batchCount(LU), "batch_size");
   auto m = cuda_int_cast(LU.size(-2), "m");
   auto nrhs = cuda_int_cast(B.size(-1), "nrhs");
   auto lda = cuda_int_cast(std::max<int>(1, m), "lda");
@@ -414,6 +429,7 @@ inline void apply_gels_batched(const Tensor& A, Tensor& B, Tensor& infos) {
 #endif
 
 #if defined(CUDART_VERSION) || (defined(ROCM_VERSION) && (ROCM_VERSION >= 50400))
+  std::cout << "gels: apply_gels_batched" << std::endl;
   auto m = cuda_int_cast(A.size(-2), "m");
   auto n = cuda_int_cast(A.size(-1), "n");
 
@@ -533,9 +549,13 @@ static void apply_batched_inverse_lib(Tensor& self, Tensor& self_inv, Tensor& in
     auto dataPtr = allocator.allocate(sizeof(int)*batch_size*lda);
     int* ipiv_array = reinterpret_cast<int*>(dataPtr.get());
 
+	std::cout << "getrf: apply_batched_inverse_lib" << std::endl;
+
     at::cuda::blas::getrfBatched<scalar_t>(n, reinterpret_cast<scalar_t**>(self_array.data_ptr()), lda,
       ipiv_array, infos_getrf_data, batch_size);
 
+
+	std::cout << "getri: apply_batched_inverse_lib" << std::endl;
     at::cuda::blas::getriBatched<scalar_t>(n, reinterpret_cast<scalar_t**>(self_array.data_ptr()), lda,
       ipiv_array, reinterpret_cast<scalar_t**>(self_inv_array.data_ptr()), lda, infos_getrs_data, batch_size);
   }
