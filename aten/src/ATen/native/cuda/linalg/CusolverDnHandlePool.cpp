@@ -1,7 +1,7 @@
 #include <ATen/cuda/CUDAContext.h>
 #include <ATen/cuda/detail/DeviceThreadHandles.h>
 
-#if defined(CUDART_VERSION) || defined(ROCM_VERSION) && ROCM_VERSION >= 50200
+#if defined(CUDART_VERSION) || defined(ROCM_VERSION) && ROCM_VERSION >= 50300
 
 namespace at { namespace cuda {
 namespace {

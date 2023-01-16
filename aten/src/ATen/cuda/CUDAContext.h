@@ -10,7 +10,7 @@
 #include <cusolverDn.h>
 #endif
 
-#if defined(USE_ROCM) && ROCM_VERSION >= 50200
+#if defined(USE_ROCM) && ROCM_VERSION >= 50300
 #include <hipsolver/hipsolver.h>
 #endif
 
@@ -78,7 +78,7 @@ TORCH_CUDA_CPP_API cublasHandle_t getCurrentCUDABlasHandle();
 
 TORCH_CUDA_CPP_API void clearCublasWorkspaces();
 
-#if defined(CUDART_VERSION) || defined(USE_ROCM) && ROCM_VERSION >= 50200
+#if defined(CUDART_VERSION) || defined(USE_ROCM) && ROCM_VERSION >= 50300
 TORCH_CUDA_CPP_API cusolverDnHandle_t getCurrentCUDASolverDnHandle();
 #endif
 
