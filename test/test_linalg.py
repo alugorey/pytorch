@@ -3607,10 +3607,11 @@ class TestLinalg(TestCase):
                                     "The QR decomposition is not differentiable when mode='complete' and nrows > ncols"):
             b.backward()
 
-    
-    @skipIfRocm # ROCM does not support QR decomposition for complex types
     @skipCPUIfNoLapack
     @dtypes(torch.float, torch.double, torch.cfloat, torch.cdouble)
+    @dtypesIfCUDA(*floating_types_and(
+                  *[torch.cfloat] if not TEST_WITH_ROCM else [],
+                  *[torch.cdouble] if not TEST_WITH_ROCM else []))
     def test_qr_batched(self, device, dtype):
         torch.backends.cuda.preferred_linalg_library("cusolver")
         """
