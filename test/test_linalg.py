@@ -4453,6 +4453,9 @@ class TestLinalg(TestCase):
 
     @skipCPUIfNoLapack
     @skipCUDAIfNoCusolverAndNoHipsolver
+    @dtypesIfCUDA(*floating_types_and(
+                  *[torch.cfloat] if not TEST_WITH_ROCM else [],
+                  *[torch.cdouble] if not TEST_WITH_ROCM else []))
     @dtypes(*floating_and_complex_types())
     def test_ormqr(self, device, dtype):
 
@@ -4709,6 +4712,9 @@ class TestLinalg(TestCase):
 
     @skipCPUIfNoLapack
     @skipCUDAIfNoCusolverAndNoHipsolver
+    @dtypesIfCUDA(*floating_types_and(
+                  *[torch.cfloat] if not TEST_WITH_ROCM else [],
+                  *[torch.cdouble] if not TEST_WITH_ROCM else []))
     @dtypes(*floating_and_complex_types())
     def test_householder_product(self, device, dtype):
         def generate_reflectors_and_tau(A):
@@ -7186,6 +7192,9 @@ scipy_lobpcg  | {:10.2e}  | {:10.2e}  | {:6} | N/A
 
     @skipCUDAIfNoMagmaAndNoCusolver
     @skipCPUIfNoLapack
+    @dtypesIfCUDA(*floating_types_and(
+                  *[torch.cfloat] if not TEST_WITH_ROCM else [],
+                  *[torch.cdouble] if not TEST_WITH_ROCM else []))
     @dtypes(*floating_and_complex_types())
     def test_geqrf(self, device, dtype):
 
