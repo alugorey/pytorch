@@ -3093,6 +3093,8 @@ class TestCase(expecttest.TestCase):
 
         if error_metas:
             # TODO: compose all metas into one AssertionError
+            #print("A = ", x)
+            #print("B = ", y)
             raise error_metas[0].to_error(
                 # This emulates unittest.TestCase's behavior if a custom message passed and
                 # TestCase.longMessage (https://docs.python.org/3/library/unittest.html#unittest.TestCase.longMessage)

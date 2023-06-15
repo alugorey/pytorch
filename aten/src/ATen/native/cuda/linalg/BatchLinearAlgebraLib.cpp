@@ -27,6 +27,9 @@
 #include <ATen/ops/zeros.h>
 #endif
 
+
+#include <iostream>
+
 namespace at::native {
 
 cublasOperation_t to_cublas(TransposeType trans) {
@@ -322,6 +325,7 @@ void ldl_solve_cusolver(
 
 template <typename scalar_t>
 static void apply_triangular_solve(const Tensor& A, const Tensor& B, bool left, bool upper, TransposeType transpose, bool unitriangular) {
+  std::cout << "apply_triangular_solve" << std::endl;
 #ifdef ROCM_VERSION
   // Cannot auto-hipifiy this piece of code, because in other functions the uplo
   // and other variables need to be hipSOLVER's type.
@@ -365,6 +369,7 @@ void triangular_solve_cublas(const Tensor& A, const Tensor& B, bool left, bool u
 
 template <typename scalar_t>
 static void apply_triangular_solve_batched(const Tensor& A, const Tensor& B, bool left, bool upper, TransposeType transpose, bool unitriangular) {
+  std::cout << "apply_triangular_solve_batched" << std::endl;
 #ifdef ROCM_VERSION
   // Cannot auto-hipifiy this piece of code, because in other functions the uplo
   // and other variables need to be hipSOLVER's type.

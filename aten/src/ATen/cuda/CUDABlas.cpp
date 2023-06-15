@@ -9,6 +9,8 @@
 #include <c10/macros/Export.h>
 #include <c10/util/irange.h>
 
+#include <iostream>
+
 
 // cublasLT was introduced in CUDA 10.1 but we enable only for 11.1 that also
 // added bf16 support
@@ -1034,6 +1036,17 @@ void trsm<c10::complex<double>>(HIPBLAS_TRSM_ARGTYPES(c10::complex<double>)) {
 
 template <>
 void trsmBatched<float>(HIPBLAS_TRSM_BATCHED_ARGTYPES(float)) {
+  std::cout << "CALLING TRSMbATCHED (float)" << std::endl;
+  std::cout << "side  = " << side << std::endl;  // 141 - HIPBLAS_SIDE_LEFT
+  std::cout << "uplo  = " << uplo << std::endl;  // 122 - HIPBLAS_FILL_MODE_LOWER
+  std::cout << "trans = " << trans << std::endl; // 111 - HIPBLAS_OP_N
+  std::cout << "diag  = " << diag << std::endl;  // 131 - HIPBLAS_DIAG_NON_UNIT
+  std::cout << "m     = " << m << std::endl;     // 5
+  std::cout << "n     = " << n << std::endl;     // 1
+  std::cout << "lda   = " << lda << std::endl;   // 5
+  std::cout << "ldb   = " << ldb << std::endl;   // 5
+  std::cout << "batchCount = " << batchCount << std::endl; // 2
+
   TORCH_HIPBLAS_CHECK(cublasStrsmBatched(
       handle,
       side,

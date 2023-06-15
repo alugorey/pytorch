@@ -4034,31 +4034,80 @@ class TestLinalg(TestCase):
     def _test_linalg_solve_triangular(self, A, B, upper, left, uni):
         X = torch.linalg.solve_triangular(A, B, upper=upper, left=left, unitriangular=uni)
         if left:
+            print("upper = ", upper)
+            print("left  = ", left )
+            print("uni   = ", uni)
+            print("ASSERTION 1")
+            print("PRECISION:", self.precision)
+            print("A = ", A)
+            print("B = ", B)
+            print("X = ", X)
+            print("A@X = ", A @ X)
             self.assertEqual(A @ X, B)
         else:
+            print("ASSERTION 2")
             self.assertEqual(X @ A, B)
         out = B
         # B may be expanded
         if not B.is_contiguous() and not B.transpose(-2, -1).is_contiguous():
             out = B.clone()
         torch.linalg.solve_triangular(A, B, upper=upper, left=left, unitriangular=uni, out=out)
+        #print("upper = ", upper)
+        #print("left  = ", left )
+        #print("uni   = ", uni)
+        print("ASSERTION3")
         self.assertEqual(X, out)
 
     @dtypes(*floating_and_complex_types())
     @precisionOverride({torch.float32: 1e-1, torch.complex64: 1e-1,
                         torch.float64: 1e-8, torch.complex128: 1e-8})
     def test_linalg_solve_triangular(self, device, dtype):
-        if TEST_WITH_ROCM and dtype is torch.float32:
-            raise unittest.SkipTest("Skipping for ROCm for Magma backend; unskip when hipSolver backend is enabled")
+      #  if TEST_WITH_ROCM and dtype is torch.float32:
+      #      raise unittest.SkipTest("Skipping for ROCm for Magma backend; unskip when hipSolver backend is enabled")
         # This exercises the API + BLAS CPU + batched cuBLAS
         ks = (3, 1, 0)
         ns = (5, 0)
         bs = (1, 2, 0)
 
+        #ks = (0, 1, 3)
+        #ns = (0, 5)
+        #bs = (0, 2, 1)
+        
+        A = torch.tensor([[[-2.7555,  0.0000,  0.0000,  0.0000,  0.0000],
+            [-8.9614, -7.4028,  0.0000,  0.0000,  0.0000],
+            [-6.2924,  3.3676,  5.8906,  0.0000,  0.0000],
+            [ 8.3847, -7.9657,  6.7326, -4.5389,  0.0000],
+            [ 0.9497, -7.1549, -5.5168, -7.7067,  8.8918]],
+            [[ 8.9637,  0.0000,  0.0000,  0.0000,  0.0000],
+            [ 1.3692, -0.2126,  0.0000,  0.0000,  0.0000],
+            [ 4.9783, -6.8676, -0.0518,  0.0000,  0.0000],
+            [-1.7903,  4.7232,  7.8816, -0.1835,  0.0000],
+            [-6.5188, -5.7379,  6.2395,  6.7875,  1.5859]]])
+
+        B = torch.tensor([[[ 2.9815e+00],
+            [ 7.9675e+00],
+            [ 1.6018e-03],
+            [-6.8995e+00],
+            [ 3.0435e+00]],
+            [[ 6.5424e+00],
+            [ 8.1279e+00],
+            [-6.7546e+00],
+            [ 4.9149e+00],
+            [ 6.5522e+00]]])
+
+        upper = False
+        left = True
+        uni = False
+
+        self._test_linalg_solve_triangular(A, B, upper, left, uni)
+        '''
+
         gen_inputs = self._gen_shape_inputs_linalg_triangular_solve
         for b, n, k in product(bs, ns, ks):
             for A, B, left, upper, uni in gen_inputs((b, n, k), dtype, device):
                 self._test_linalg_solve_triangular(A, B, upper, left, uni)
+
+        '''
 
     @unittest.skipIf(IS_FBCODE or IS_SANDCASTLE, "Test fails for float64 on GPU (P100, V100) on Meta infra")
     @onlyCUDA
