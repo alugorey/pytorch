@@ -4043,6 +4043,20 @@ class TestLinalg(TestCase):
             print("B = ", B)
             print("X = ", X)
             print("A@X = ", A @ X)
+            print("device: ", A.device)
+            print("dtype: ", B.dtype)
+            '''
+            A_x_B =  tensor([[[ 2.9815e+00],
+                [ 7.9675e+00],
+                [ 1.6012e-03],
+                [-6.8995e+00],
+                [ 3.0435e+00]],
+                [[ 6.5424e+00],
+                [ 8.1279e+00],
+                [-6.7546e+00],
+                [ 4.9113e+00],
+                [ 6.7314e+00]]], device='cuda:0')
+            '''
             self.assertEqual(A @ X, B)
         else:
             print("ASSERTION 2")
@@ -4082,7 +4096,7 @@ class TestLinalg(TestCase):
             [ 1.3692, -0.2126,  0.0000,  0.0000,  0.0000],
             [ 4.9783, -6.8676, -0.0518,  0.0000,  0.0000],
             [-1.7903,  4.7232,  7.8816, -0.1835,  0.0000],
-            [-6.5188, -5.7379,  6.2395,  6.7875,  1.5859]]])
+            [-6.5188, -5.7379,  6.2395,  6.7875,  1.5859]]],dtype=torch.float32, device='cuda:0')
 
         B = torch.tensor([[[ 2.9815e+00],
             [ 7.9675e+00],
@@ -4093,7 +4107,7 @@ class TestLinalg(TestCase):
             [ 8.1279e+00],
             [-6.7546e+00],
             [ 4.9149e+00],
-            [ 6.5522e+00]]])
+            [ 6.5522e+00]]], dtype=torch.float32, device='cuda:0')
 
         upper = False
         left = True
