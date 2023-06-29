@@ -28,8 +28,33 @@ miopen_rnn(const Tensor & input_r,
 		   IntArrayRef fn_batch_sizes,
 		   const c10::optional<Tensor>& fn_dropout_state_opt) {
 
+#if AT_ROCM_ENABLED()
+
+	c10::impl::ExcludeDispatchKeyGuard no_autocast(DispatchKey::Autocast);
 
 
+	return at::miopen_rnn(
+				cached_cast(at::kHalf, input_r),
+				weight,
+				weight_stride0,
+				cached_cast(at::kHalf, hx),
+				cached_cast(at::kHalf, cx_opt),
+				fn_mode,
+				fn_hidden_size,
+				fn_num_layers,
+				batch_first,
+				fn_dropout,
+				fn_train,
+				fn_bidirectional,
+				fn_batch_sizes,
+				fn_dropout_state_opt);
+
+
+
+#else
+	AT_ERROR("autocast::miopen_rnn: ATen not compiled with ROCm enabled");
+	return {Tensor{}, Tensor{}, Tensor{}, Tensor{}, Tensor{}}; // placate the compiler
+#endif
 
 }
 
