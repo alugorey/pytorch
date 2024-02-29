@@ -1,7 +1,7 @@
 #include <ATen/ATen.h>
 #include <ATen/autocast_mode.h>
 #include <ATen/cuda/CUDAConfig.h>
-
+#include <torch/library.h>
 
 
 
