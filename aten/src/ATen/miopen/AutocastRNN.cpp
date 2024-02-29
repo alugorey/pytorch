@@ -4,7 +4,6 @@
 #include <torch/library.h>
 
 
-
 namespace at {
 namespace autocast {
 
@@ -32,10 +31,9 @@ miopen_rnn(const Tensor & input_r,
 
 	c10::impl::ExcludeDispatchKeyGuard no_autocast(DispatchKey::Autocast);
 
-
 	return at::miopen_rnn(
 				cached_cast(at::kHalf, input_r),
-				weight,
+				cached_cast(at::kHalf, weight),
 				weight_stride0,
 				cached_cast(at::kHalf, hx),
 				cached_cast(at::kHalf, cx_opt),
