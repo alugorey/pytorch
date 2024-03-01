@@ -2080,7 +2080,7 @@ torch.cuda.synchronize()
                 # Autocast wrapper requires at::_cudnn_rnn is autograd-exposed.  This check can't guarantee
                 # at::_cudnn_rnn is autograd-exposed, but if it fires, it indicates some funny business has
                 # occurred and we should double check that at::_cudnn_rnn remains autograd-exposed.
-                self.assertEqual(out.grad_fn.name(), "MiopenRnnBackward0" if TEST_WITH_ROCM else "CudnnRnnBackward0")
+                self.assertEqual(out.grad_fn.name(), "MiopenRnnBackward0" if torch.version.hip else "CudnnRnnBackward0")
                 out.sum().backward()
                 grads = [p.grad.clone() for p in rnn.parameters()]
 
