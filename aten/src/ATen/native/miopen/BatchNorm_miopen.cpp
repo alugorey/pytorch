@@ -2,6 +2,8 @@
 #include <ATen/core/Tensor.h>
 #include <ATen/Config.h>
 
+#include <iostream>
+
 #ifndef AT_PER_OPERATOR_HEADERS
 #include <ATen/Functions.h>
 #include <ATen/NativeFunctions.h>
@@ -67,11 +69,21 @@ std::tuple<Tensor, Tensor, Tensor> miopen_batch_norm(
   const Tensor& running_mean_t = c10::value_or_else(running_mean_t_opt, [] {return Tensor();});
   const Tensor& running_var_t = c10::value_or_else(running_var_t_opt, [] {return Tensor();});
 
+  //std::cout << "FIRST: " << input_t.is_contiguous() << std::endl;
+  /*if(!input_t.is_contiguous())
+  {
+  	std::cout << "MAKING CONTIGUOUS!" << std::endl;
+	std::cout << "smf: " << input_t.suggest_memory_format() << std::endl;
+    input_t.contiguous(input_t.suggest_memory_format());
+  }
+*/
+  //auto input_contig = input_t.contiguous(input_t.suggest_memory_format());
   TensorArg input{ input_t, "input", 1 },
             weight{ weight_t, "weight", 2 },
             bias{ bias_t, "bias", 3 },
             running_mean{ running_mean_t, "running_mean", 4 },
             running_var{ running_var_t, "running_var", 5 };
+  
   CheckedFrom c = "miopen_batch_norm";
 
   checkAllDefined(c, {input, weight, bias});
@@ -83,7 +95,24 @@ std::tuple<Tensor, Tensor, Tensor> miopen_batch_norm(
     checkAllSameType(c, {input, weight});
   }
   checkAllSameType(c, {weight, bias, running_mean, running_var});
-  checkAllContiguous(c, {input, weight, bias, running_mean, running_var});
+  /*
+  std::cout << "MINE" << std::endl;
+  std::cout << "input : " << input->is_contiguous() << std::endl;
+  std::cout << "weight: " << weight->is_contiguous() << std::endl;
+  std::cout << "bias  : " << bias->is_contiguous() << std::endl;
+  std::cout << "r_mean: " << running_mean->is_contiguous() << std::endl;
+  std::cout << "r_var : " << running_var->is_contiguous() << std::endl;
+
+
+
+  std::cout << "MIOPEN_BATCH_NORM" << std::endl;
+
+  */
+  checkAllContiguous(c, {weight, bias, running_mean, running_var});
+  //std::cout << "OTHER SIDE MIOPEN_BATCH_NORM" << std::endl;
+  //std::cout << "SUGGEST MEMORY_FORMAT" << input->suggest_memory_format() << std::endl;
+  TORCH_CHECK(input->is_contiguous(input->suggest_memory_format()));
+
   checkDimRange(c, input, 2, 6 /* exclusive */);
   auto num_features = input->size(1);
   for (auto t : {weight, bias, running_mean, running_var}) {

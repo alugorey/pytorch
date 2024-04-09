@@ -56,7 +56,7 @@ void checkDimRange(CheckedFrom c, const TensorGeometryArg& t, int64_t dim_start,
 void checkContiguous(CheckedFrom c, const TensorGeometryArg& t) {
   TORCH_CHECK(
     t->is_contiguous(),
-    "Expected contiguous tensor, but got non-contiguous tensor for ", t,
+    "ANDY: Expected contiguous tensor, but got non-contiguous tensor for ", t,
      " (while checking arguments for ", c, ")");
 }
 

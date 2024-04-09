@@ -349,8 +349,8 @@ def is_inplace(op, variant):
 
 vjp_fail = {
     xfail('tensor_split'),  # data_ptr composite compliance
-#    decorate('nn.functional.batch_norm', decorator=skipIfRocm),
-    decorate('nn.functional.instance_norm', decorator=skipIfRocm),
+    #decorate('nn.functional.batch_norm', decorator=skipIfRocm),
+    #decorate('nn.functional.instance_norm', decorator=skipIfRocm),
     # https://github.com/pytorch/pytorch/issues/96560
     decorate("nn.functional.scaled_dot_product_attention", decorator=skipIfRocm),
 }
@@ -1196,6 +1196,8 @@ class TestOperators(TestCase):
         ),
     )
     def test_vmapvjp(self, device, dtype, op):
+        print("GOT HERE WEEEEEEE!")
+        print(op)
         if not op.supports_autograd:
             self.skipTest("Skipped! Autograd not supported.")
             return
@@ -1210,6 +1212,7 @@ class TestOperators(TestCase):
             cotangents = get_sample_cotangents(op, sample)
             fn, args = get_vjp_fn_and_args_with_cotangents(op, sample, cotangents)
             is_batch_norm_and_training = is_batch_norm_training(op.name, sample.kwargs)
+            print("is_batch_norm_and_training: ", is_batch_norm_and_training)
             generator = get_fallback_and_vmap_exhaustive(
                 fn, args, {}, is_batch_norm_and_training=is_batch_norm_and_training
             )
