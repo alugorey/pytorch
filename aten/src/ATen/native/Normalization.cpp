@@ -61,6 +61,7 @@
 #include <c10/core/SymIntArrayRef.h>
 #include <utility>
 #include <vector>
+#include <iostream>
 
 static const int MIOPEN_DIM_MAX = 5;
 
@@ -600,16 +601,38 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, int64_t> _batch_norm_impl_index(
   Tensor reserve = at::empty({0}, input.options().dtype(kByte));
 
   if (backend == BatchNormBackend::Miopen) {
-    return std::tuple_cat(
+    auto input_c = input.contiguous(input.suggest_memory_format());
+    auto weight_c = weight.contiguous();
+    auto bias_c = bias.contiguous();
+    auto rmean_c = running_mean.defined() ? running_mean.contiguous() : running_mean;
+    auto rvar_c = running_var.defined() ? running_var.contiguous() : running_var;
+	std::cout << std::endl;
+	std::cout << "calling miopen_batch_norm call -> forward" << std::endl;
+	std::cout << "input.suggest_memory_format(): " << input.suggest_memory_format() << std::endl;
+	std::cout << "input_c.is_contiguous(): " << input_c.is_contiguous() << std::endl;
+	std::cout << "input.is_contiguous()  : " << input.is_contiguous() << std::endl;
+    
+	auto [output, save_mean, save_var] =
+		at::miopen_batch_norm(input_c,
+							  weight_c,
+							  bias_c,
+							  rmean_c,
+							  rvar_c,
+							  training,
+							  momentum,
+							  eps);
+	return std::tuple<Tensor, Tensor, Tensor,Tensor, int64_t>(
+		output, save_mean, save_var, reserve, 2);
+	/*
+	return std::tuple_cat(
              at::miopen_batch_norm(
-               input.contiguous(), weight.contiguous(), bias.contiguous(),
-               running_mean.defined() ? running_mean.contiguous() : running_mean,
-               running_var.defined() ? running_var.contiguous() : running_var,
+               input_c, weight_c, bias_c, rmean_c, rvar_c,
                training, momentum, eps),
              std::tuple<Tensor>(reserve),
              std::make_tuple(2));
+	*/
   }
-
+  std::cout << "NATIVE BATCH NORM CALLED" << std::endl;
   return std::tuple_cat(
            at::native_batch_norm(
              input, weight, bias, running_mean, running_var, training, momentum, eps),
@@ -658,6 +681,7 @@ std::tuple<Tensor, Tensor, Tensor> _batch_norm_impl_index_backward(
     // format conversion is done inside cudnn_batch_norm_backward instead
     return at::cudnn_batch_norm_backward(input, grad_output, weight, running_mean, running_var, save_mean, save_var_transform, epsilon, reservedSpace);
   } else if (impl_index == 2) {
+    std::cout << "BACKWARD!!!!" << std::endl;
     return at::miopen_batch_norm_backward(input, grad_output, weight, running_mean, running_var, save_mean, save_var_transform, epsilon);
   }
   TORCH_INTERNAL_ASSERT(false, "Unsupported impl_index in _batch_norm_impl_index_backward: ", impl_index);

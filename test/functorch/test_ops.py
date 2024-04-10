@@ -1197,7 +1197,7 @@ class TestOperators(TestCase):
     )
     def test_vmapvjp(self, device, dtype, op):
         print("GOT HERE WEEEEEEE!")
-        print(op)
+        #print(op)
         if not op.supports_autograd:
             self.skipTest("Skipped! Autograd not supported.")
             return
