@@ -41,6 +41,8 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
+#include <iostream>
+
 
 // A global boolean variable to control whether we free memory when a Tensor
 // is shrunk to a smaller size. As a result, a Tensor is always going to
@@ -811,33 +813,45 @@ struct C10_API TensorImpl : public c10::intrusive_ptr_target {
    */
   bool is_contiguous(
       at::MemoryFormat memory_format = at::MemoryFormat::Contiguous) const {
+	std::cout << "TensorImpl::is_contiguous" << std::endl;
+	std::cout << "memory_format: " << memory_format << std::endl;
     if (C10_UNLIKELY(matches_policy(SizesStridesPolicy::CustomStrides))) {
+	  std::cout << "custom_contig" << std::endl;
       return is_contiguous_custom(memory_format);
     }
+	std::cout << "default_contig" << std::endl;
     return is_contiguous_default(memory_format);
   }
 
   // These are factored into separate functions in case subclasses
   // want to use them
   bool is_contiguous_default(at::MemoryFormat memory_format) const {
+    std::cout << "inside is_contiguous_default" << std::endl;
     if (has_symbolic_sizes_strides_) {
       if (memory_format == at::MemoryFormat::ChannelsLast) {
+		std::cout << "FIRST" << std::endl;
         return symbolic_shape_meta().is_channels_last_contiguous().guard_bool(
             __FILE__, __LINE__);
       } else if (memory_format == at::MemoryFormat::ChannelsLast3d) {
+		std::cout << "SECOND" << std::endl;
         return symbolic_shape_meta()
             .is_channels_last_3d_contiguous()
             .guard_bool(__FILE__, __LINE__);
       }
+	  std::cout << "THIRD" << std::endl;
       return symbolic_shape_meta().is_contiguous().guard_bool(
           __FILE__, __LINE__);
     }
 
     if (memory_format == at::MemoryFormat::ChannelsLast) {
+    std::cout << "FOURTH" << std::endl;
       return is_channels_last_contiguous_;
     } else if (memory_format == at::MemoryFormat::ChannelsLast3d) {
+	  std::cout << "FIFTH" << std::endl;
       return is_channels_last_3d_contiguous_;
     }
+	std::cout << "SIXTH" << std::endl;
+	std::cout << "is_contiguous_default: is_contig: " << is_contiguous_ << std::endl;
     return is_contiguous_;
   }
 

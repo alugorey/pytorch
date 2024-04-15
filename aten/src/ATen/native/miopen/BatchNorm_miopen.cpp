@@ -63,10 +63,21 @@ std::tuple<Tensor, Tensor, Tensor> miopen_batch_norm(
     const Tensor& input_t, const Tensor& weight_t, const c10::optional<Tensor>& bias_t_opt, const c10::optional<Tensor>& running_mean_t_opt, const c10::optional<Tensor>& running_var_t_opt,
     bool training, double exponential_average_factor, double epsilon)
 {
-  
+
+  static int testCount = 0;
+  std::cout << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$MIOPEN_BATCH_NORM" << std::endl;
+  std::cout << "MIOPEN_BATCH_NORM TEST_COUNT: " << testCount << std::endl;
+  testCount++;
+ /* 
   std::cout << "inside miopen_batch_norm: " << std::endl;
-  std::cout << "input_t.is_contiguous: " << input_t.is_contiguous() << std::endl;
+  std::cout << "m_input_t.is_contiguous: " << input_t.is_contiguous() << std::endl;
+  std::cout << "m_input_t.sizes(): " << input_t.sizes() << std::endl;
+  std::cout << "m_input_t.strides(): " << input_t.strides() << std::endl;
+  std::cout << "batch_norm_miopen test_count: " << testCount << std::endl;
+  std::cout << input_t << std::endl;
   std::cout << std::endl;
+  testCount++;
+  */
   // See [Note: hacky wrapper removal for optional tensor]
   c10::MaybeOwned<Tensor> bias_t_maybe_owned = at::borrow_from_optional_tensor(bias_t_opt);
   const Tensor& bias_t = *bias_t_maybe_owned;
@@ -114,8 +125,10 @@ std::tuple<Tensor, Tensor, Tensor> miopen_batch_norm(
   */
   checkAllContiguous(c, {weight, bias, running_mean, running_var});
   //std::cout << "OTHER SIDE MIOPEN_BATCH_NORM" << std::endl;
-  //std::cout << "SUGGEST MEMORY_FORMAT" << input->suggest_memory_format() << std::endl;
+//  std::cout << "SUGGEST MEMORY_FORMAT" << input->suggest_memory_format() << std::endl;
+  std::cout << "CHECKING IF INPUT IS CONTIGUOUS" << std::endl;
   TORCH_CHECK(input->is_contiguous(input->suggest_memory_format()));
+  std::cout << " EXIT CHECKING IF INPUT IS CONTIGUOUS" << std::endl;
 
   checkDimRange(c, input, 2, 6 /* exclusive */);
   auto num_features = input->size(1);

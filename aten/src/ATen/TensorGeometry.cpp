@@ -2,12 +2,16 @@
 
 #include <limits>
 #include <cstddef>
+#include <iostream>
 
 namespace at {
 
 // See TensorGeometry.h on why this is useful now that we cache is_contiguous.
 template <typename T>
 bool _geometry_is_contiguous(ArrayRef<T> sizes, ArrayRef<T> strides) {
+  std::cout << "_GEOMETRY_IS_CONTIGUOUS" << std::endl;
+  std::cout << "sizes  : " << sizes << std::endl;
+  std::cout << "strides: " << strides << std::endl;
   assert(!overflows<std::int64_t>(sizes.size()));
   auto dim = static_cast<std::int64_t>(sizes.size());
   T expected_stride = 1;
@@ -23,6 +27,7 @@ bool _geometry_is_contiguous(ArrayRef<T> sizes, ArrayRef<T> strides) {
       expected_stride *= sizes[i];
     }
   }
+  std::cout << "CONTIG IF NONEMPTY: " << contig_if_nonempty << std::endl;
   return contig_if_nonempty;
 }
 

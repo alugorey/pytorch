@@ -50,6 +50,15 @@ batch_norm_batch_rule(
     const c10::optional<Tensor>& running_mean_opt, optional<int64_t> running_mean_bdim,
     const c10::optional<Tensor>& running_var_opt, optional<int64_t> running_var_bdim,
     bool training, double momentum, double eps) {
+  std::cout << "INSIDE BATCH_NORM_BATCH_RULE" << std::endl;
+  std::cout << "BEFORE:" << std::endl;
+  std::cout << "sizes  : " << input.sizes() << std::endl;
+  std::cout << "strides: " << input.strides() << std::endl;
+  if(input_bdim)
+  {
+    auto tmp_bdim = input_bdim;
+  	std::cout << "input_bdim: " << tmp_bdim.value() << std::endl;
+  }
   c10::MaybeOwned<Tensor> weight_maybe_owned = at::borrow_from_optional_tensor(weight_opt);
   const Tensor& weight = *weight_maybe_owned;
   c10::MaybeOwned<Tensor> bias_maybe_owned = at::borrow_from_optional_tensor(bias_opt);
@@ -68,6 +77,7 @@ batch_norm_batch_rule(
   Tensor mean;
   Tensor rstd;
   if (!input_bdim && !running_mean_bdim && !running_var_bdim) {
+    std::cout << "ALPHA" << std::endl;
     const auto dummy_weight = at::ones(input.size(1), input.options());  // cudnn and miopen require a weight
     const auto dummy_bias = at::zeros(input.size(1), input.options());   // without this, get "strides() called on undefined Tensor" on cuda
     const auto result = Func(input, dummy_weight, dummy_bias, running_mean_opt, running_var_opt, training, momentum, eps);
@@ -75,27 +85,41 @@ batch_norm_batch_rule(
     mean = std::get<1>(result);
     rstd = std::get<2>(result);
   } else {
+    std::cout << "BETA 0" << std::endl;
     bdim_size = get_bdim_size3(input, input_bdim, running_mean, running_mean_bdim, running_var, running_var_bdim);
+	std::cout << "bdim_size: " << bdim_size.value() << std::endl;
     auto input_ = moveBatchDimToFront(input, input_bdim);
+	std::cout << "moveBatchDimToFront() sizes  : " << input_.sizes() << std::endl;
+	std::cout << "moveBatchDimToFront() strides: " << input_.strides() << std::endl;
     input_ = ensure_has_bdim(input_, input_bdim.has_value(), bdim_size.value());
+    std::cout << "ensure_has_bdim() sizes  : " << input_.sizes() << std::endl;
+	std::cout << "ensure_has_bdim() strides: " << input_.strides() << std::endl;
     input_ = reshape_dim_into(0, /*channels dim*/1, input_);
-
+	std::cout << "BETA 1" << std::endl;
+    std::cout << "move reshape_dim_into sizes  : " << input_.sizes() << std::endl;
+    std::cout << "move reshape_dim_into strides: " << input_.strides() << std::endl;
     c10::optional<Tensor> running_mean_;
     c10::optional<Tensor> running_var_;
     if (running_mean.defined()) {
+    std::cout << "BETA 1.a" << std::endl;
       running_mean_ = moveBatchDimToFront(running_mean, running_mean_bdim);
       running_mean_ = ensure_has_bdim(*running_mean_, running_mean_bdim.has_value(), bdim_size.value());
       running_mean_ = reshape_dim_into(0, 0, *running_mean_).contiguous();
     }
     if (running_var.defined()) {
+      std::cout << "BETA 1.b" << std::endl;
       running_var_ = moveBatchDimToFront(running_var, running_var_bdim);
       running_var_ = ensure_has_bdim(*running_var_, running_var_bdim.has_value(), bdim_size.value());
       running_var_ = reshape_dim_into(0, 0, *running_var_).contiguous();
     }
-
+	std::cout << "BETA 2" << std::endl;
     const auto dummy_weight = at::ones(input_.size(1), input_.options());  // cudnn and miopen require a weight
     const auto dummy_bias = at::zeros(input_.size(1), input_.options());   // without this, get "strides() called on undefined Tensor" on cuda
+    std::cout << "AFTER:" << std::endl;
+    std::cout << "sizes  : " << input_.sizes() << std::endl;
+    std::cout << "strides: " << input_.strides() << std::endl;
     const auto result = Func(input_, dummy_weight, dummy_bias, running_mean_, running_var_, training, momentum, eps);
+	std::cout << "BETA 3" << std::endl;
     result0 = std::get<0>(result).transpose(0, 1);                // [(B0, C), B, *]
     result0 = reshape_dim_outof(0, bdim_size.value(), result0);   // [B0, C, B, *]
     mean = std::get<1>(result);

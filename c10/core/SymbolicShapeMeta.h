@@ -9,7 +9,7 @@
 #include <cstdint>
 #include <mutex>
 #include <utility>
-
+#include <iostream>
 namespace c10 {
 
 class C10_API SymbolicShapeMeta {
@@ -79,6 +79,7 @@ class C10_API SymbolicShapeMeta {
   }
 
   const SymBool& is_contiguous() const {
+    std::cout << "HERE MAYBE, AT THIS POINT IDK" << std::endl;
     if (C10_UNLIKELY(!has_is_contiguous())) {
       init_is_contiguous();
     }
