@@ -127,6 +127,7 @@ mm_kernel_configs = [
     {"config": (32, 32, 128, 2, 4), "cond": torch.version.hip is None},
     {"config": (64, 64, 16, 2, 4), "cond": True},
     {"config": (32, 32, 16, 1, 2), "cond": True},
+    {"config": (128, 128, 64, 2, 8), "cond": torch.version.hip is not None},
 ]
 
 int8_mm_kernel_configs = [
@@ -144,6 +145,7 @@ int8_mm_kernel_configs = [
     # {"config": (32, 32, 16, 1, 2), "cond": True},
     {"config": (128, 256, 128, 3, 8), "cond": torch.version.hip is None},
     {"config": (256, 128, 128, 3, 8), "cond": torch.version.hip is None},
+    {"config": (128, 128, 64, 2, 8), "cond": torch.version.hip is not None},
 ]
 
 # Create filtered list of configs based on cond evaluation
