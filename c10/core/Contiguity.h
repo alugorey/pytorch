@@ -15,22 +15,44 @@ namespace c10 {
 template <typename T>
 bool _compute_contiguous(ArrayRef<T> sizes, ArrayRef<T> strides, T numel) {
   bool is_contiguous = true;
+  // IF NUMBER OF ELEMENTS IS 0, RETURN TRUE
   if (TORCH_GUARD_SIZE_OBLIVIOUS(sym_eq(numel, 0))) {
     return is_contiguous;
   }
+  // Z IS EXPECTED STRIDE
   T z = 1;
   // NB: make sure we do signed arithmetic
+
+  // iterate backwards through the sizes
   for (int64_t d = int64_t(sizes.size()) - 1; d >= 0; d--) {
+    // size_d is equal to current size entry in iteration
     const auto& size_d = sizes[d];
+
+	// if size_d does NOT equal 1
     if (TORCH_GUARD_SIZE_OBLIVIOUS(sym_ne(size_d, 1))) {
+	// AND if current stride DOES equal expected stride (1 at first)
       if (TORCH_GUARD_SIZE_OBLIVIOUS(sym_eq(strides[d], z))) {
+	    // MULTIPLY EXPECTED STRIDE(Z) BY CURRENT SIZE
         z *= size_d;
       } else {
+	    // EXPECTED STRIDE DID NOT EQUAL CURRENT STRIDE
+		std::cout << "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv" << std::endl;
+		std::cout << "CONTIGUITY.H-> RETURNING NOT CONTIGUOUS" << std::endl;
+		std::cout << "sizes  : " << sizes << std::endl;
+		std::cout << "strides: " << strides << std::endl;
+		std::cout << "numel  : " << numel << std::endl;
         is_contiguous = false;
         break;
       }
     }
   }
+  if(!is_contiguous)
+  {
+  	std::cout << "CONTIGUITY.H -> IS_CONTIGUOUS IS RETURNING FALSE! " << is_contiguous << std::endl;
+
+    std::cout << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl;
+  }
+
   return is_contiguous;
 }
 

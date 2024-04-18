@@ -64,12 +64,11 @@ std::tuple<Tensor, Tensor, Tensor> miopen_batch_norm(
     bool training, double exponential_average_factor, double epsilon)
 {
 
+/*
   static int testCount = 0;
-  std::cout << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$MIOPEN_BATCH_NORM" << std::endl;
   std::cout << "MIOPEN_BATCH_NORM TEST_COUNT: " << testCount << std::endl;
   testCount++;
- /* 
-  std::cout << "inside miopen_batch_norm: " << std::endl;
+   std::cout << "inside miopen_batch_norm: " << std::endl;
   std::cout << "m_input_t.is_contiguous: " << input_t.is_contiguous() << std::endl;
   std::cout << "m_input_t.sizes(): " << input_t.sizes() << std::endl;
   std::cout << "m_input_t.strides(): " << input_t.strides() << std::endl;
@@ -106,7 +105,17 @@ std::tuple<Tensor, Tensor, Tensor> miopen_batch_norm(
     checkAllDefined(c, {running_mean, running_var});
   }
   checkAllSameGPU(c, {input, weight, bias, running_mean, running_var});
+  // OLD
+  /*
   if (input->scalar_type() != ScalarType::Half) {
+    checkAllSameType(c, {input, weight});
+  }
+  */
+  //////////////////////////////////////
+  if(input->scalar_type() == ScalarType::Half)
+  {
+    checkScalarType(c, weight, ScalarType::Float);
+  } else {
     checkAllSameType(c, {input, weight});
   }
   checkAllSameType(c, {weight, bias, running_mean, running_var});
@@ -127,6 +136,22 @@ std::tuple<Tensor, Tensor, Tensor> miopen_batch_norm(
   //std::cout << "OTHER SIDE MIOPEN_BATCH_NORM" << std::endl;
 //  std::cout << "SUGGEST MEMORY_FORMAT" << input->suggest_memory_format() << std::endl;
   std::cout << "CHECKING IF INPUT IS CONTIGUOUS" << std::endl;
+  std::cout << "training?: " << training << std::endl;
+  std::cout << "input->is_contiguous()" << input->is_contiguous() << std::endl;
+  if(!input->is_contiguous())
+  {
+    std::cout << "vvvvvvvvvvvvvvvvvvvvvvvvvvvvv" << std::endl;
+	std::cout << "BatchNorm_miopen.cpp" << std::endl;
+    std::cout << "BOUT TO FAIL, HERE IS THE ADDRESS" << std::endl;
+	std::cout << "batchnorm_miopen: " << input->unsafeGetTensorImpl() << std::endl;
+	std::cout << "sizes  : " << input->sizes() << std::endl;
+	std::cout << "strides: " << input->strides() << std::endl;
+	std::cout << "ndim   : " << input->ndimension() << std::endl;
+	std::cout << "numel  : " << input->numel() << std::endl;
+	std::cout << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl;
+  }
+  // NOTE: I ADDED A STRING TO THIS TO MAKE SURE IT WAS INDEED THE FAILURE I WAS LOOKING FOR
+  // - IT IS
   TORCH_CHECK(input->is_contiguous(input->suggest_memory_format()));
   std::cout << " EXIT CHECKING IF INPUT IS CONTIGUOUS" << std::endl;
 

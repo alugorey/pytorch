@@ -605,12 +605,12 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, int64_t> _batch_norm_impl_index(
 
   if (backend == BatchNormBackend::Miopen) {
     //auto input_c = input.contiguous(input.suggest_memory_format());
-	auto input_c = input;
+	auto input_c = input.contiguous(input.suggest_memory_format());
     auto weight_c = weight.contiguous();
     auto bias_c = bias.contiguous();
     auto rmean_c = running_mean.defined() ? running_mean.contiguous() : running_mean;
     auto rvar_c = running_var.defined() ? running_var.contiguous() : running_var;
-	/*
+	
 	std::cout << std::endl;
 	std::cout << "calling miopen_batch_norm call -> forward" << std::endl;
 	std::cout << "input.suggest_memory_format(): " << input.suggest_memory_format() << std::endl;
@@ -626,7 +626,7 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, int64_t> _batch_norm_impl_index(
 	}
 
 	testCount++;
-*/
+
 	auto [output, save_mean, save_var] =
 		at::miopen_batch_norm(input_c,
 							  weight_c,

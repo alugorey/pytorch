@@ -61,6 +61,10 @@ from torch.testing._internal.common_utils import (
 from torch.testing._internal.opinfo.core import SampleInput
 from torch.utils import _pytree as pytree
 from torch.utils._pytree import tree_flatten, tree_map, tree_unflatten
+from torch import vmap
+from functorch import vjp, grad, jacrev, jacfwd
+import torch.autograd.forward_ad as fwAD
+from torch._functorch.eager_transforms import _as_tuple, jvp
 
 aten = torch.ops.aten
 

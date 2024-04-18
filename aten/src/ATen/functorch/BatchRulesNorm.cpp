@@ -54,6 +54,7 @@ batch_norm_batch_rule(
   std::cout << "BEFORE:" << std::endl;
   std::cout << "sizes  : " << input.sizes() << std::endl;
   std::cout << "strides: " << input.strides() << std::endl;
+  std::cout << "inputAddress: " << input.unsafeGetTensorImpl() << std::endl;
   if(input_bdim)
   {
     auto tmp_bdim = input_bdim;
