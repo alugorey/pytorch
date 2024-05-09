@@ -893,7 +893,8 @@ _scaled_mm_out_cuda(const Tensor& mat1, const Tensor& mat2,
   const auto out_dtype_ = args.result->scalar_type();
   TORCH_CHECK(args.transa == 't' && args.transb == 'n', "Only multiplication of row-major and column-major matrices is supported by cuBLASLt");
 
-#if defined(USE_ROCM)
+#if defined(USE_ROCM) && ROCM_VERSION >= 60200
+  // hipBlasLT requires scaleD to be set to something in order to use AMAX
   auto dummy_options = TensorOptions().dtype(kFloat).device(kCUDA);
   auto dummy_scale = at::ones(1, dummy_options);
 #endif
@@ -917,7 +918,7 @@ _scaled_mm_out_cuda(const Tensor& mat1, const Tensor& mat2,
       args.result->data_ptr(),
 #if !defined(USE_ROCM)
       scale_result ? scale_result->data_ptr() : nullptr,
-#else
+#elif defined(USE_ROCM) && ROCM_VERSION >= 60200
       scale_result ? scale_result->data_ptr() : dummy_scale.data_ptr(),
 #endif
       args.result_ld,
@@ -928,8 +929,8 @@ _scaled_mm_out_cuda(const Tensor& mat1, const Tensor& mat2,
   TORCH_CHECK(false, "_scaled_mm_out_cuda is not compiled for this platform.");
 #endif
 
-#if defined(USE_ROCM) && ROCM_VERSION >= 60000
-  // rocm's hipblaslt does not yet support amax, so calculate separately
+#if defined(USE_ROCM) && ROCM_VERSION >= 60000 && ROCM_VERSION < 60200
+  // ROCm's hipBLASLt does not support amax before 6.2, so calculate separately
   amax = at::max(at::abs(out.to(kFloat)));
 #endif
 
