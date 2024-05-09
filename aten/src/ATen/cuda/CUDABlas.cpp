@@ -12,7 +12,7 @@
 #include <c10/cuda/CUDAFunctions.h>
 #include <c10/macros/Export.h>
 #include <c10/util/irange.h>
-
+#include <iostream>
 #ifdef USE_ROCM
 #if ROCM_VERSION >= 60000
 #include <hipblaslt/hipblaslt-ext.hpp>
@@ -1551,8 +1551,11 @@ void scaled_gemm(
     }
     // pick first valid solution
     bool found = false;
+	std::cout << "HERE" << std::endl;
+	std::cout << "all solutions count: " << all_algos.size() << std::endl;
     for (size_t i = 0; i < all_algos.size(); i++) {
         size_t ret_workspace_size = 0;
+		std::cout << "algo: " << i << std::endl;
         auto is_valid_status = hipblaslt_ext::matmulIsAlgoSupported(
                 ltHandle,
                 computeDesc.descriptor(),
@@ -1565,13 +1568,17 @@ void scaled_gemm(
                 all_algos[i].algo,
                 ret_workspace_size);
         if (is_valid_status == HIPBLAS_STATUS_SUCCESS) {
+			std::cout << "IS VALID STATUS WAS SUCCESS" << std::endl;
             if (ret_workspace_size <= workspaceSize) {
                 heuristicResult = all_algos[i];
                 found = true;
                 break;
             }
         }
+
     }
+	std::cout << "hipblasLT solution found?: " << found << std::endl;
+	std::cout << "output Dtype: " << result_dtype << std::endl;
     TORCH_CHECK(found, "could not find valid hipblaslt solution");
 #endif
   }

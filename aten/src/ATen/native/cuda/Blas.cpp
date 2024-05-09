@@ -36,6 +36,9 @@
 #include <ATen/ops/vdot_native.h>
 #endif
 
+#include <iostream>
+
+
 namespace at::native {
 
 namespace {
@@ -863,17 +866,72 @@ _scaled_mm_out_cuda(const Tensor& mat1, const Tensor& mat2,
   TORCH_CHECK(mat1.scalar_type() != ScalarType::Float8_e5m2 || mat2.scalar_type() != ScalarType::Float8_e5m2,
         "Multiplication of two Float8_e5m2 matrices is not supported");
   if (bias) {
+    // THIS FAILS IF OUTPUT TENSOR DTYPE == FLOAT BECAUSE IT CAN'T BE FLOAT WHEN BIAS IS GIVEN
     TORCH_CHECK(out.scalar_type() != kFloat, "Bias is not supported when out_dtype is set to Float32");
+
+	// BIAS MUST BE BFLOAT16 OR HALF
     TORCH_CHECK(bias->scalar_type() == ScalarType::BFloat16 || bias->scalar_type() == ScalarType::Half,
          "Bias must be either Half or BFloat16, but got ", bias->scalar_type());
+
+
+	// OUTPUT DTYPE CANNOT BE FLOAT/BFLOAT16 ORRR BIAS HAS TO BE BFLOAT16
+	// SO IF THE FIRST COMPARISON HOLDS TRUE i.e. OUTPUT TENSOR IS A FLOAT OR BFLOAT
+	// THEN, BIAS HAS TO BE BFLOAT16
+	//
+	// SHOULDN'T MATTER TO US BECAUSE OUT DTYPE IS F8
     TORCH_CHECK((out.scalar_type() != kFloat && out.scalar_type() != ScalarType::BFloat16) ||
           bias->scalar_type() == ScalarType::BFloat16,
           "Bias must be BFloat16 to compute ", out.scalar_type(), " output, but got ", bias->scalar_type());
+
+	// OUTPUT DTYPE CANNOT BE HALF BUT IF IT IS HALF, THEN THE BIAS DTYPE HAS TO BE HALF
+	// SO IF OUTPUT TENSOR DTYPE IS HALF, THEN THE BIAS HAS TO BE HALF
     TORCH_CHECK(out.scalar_type() != ScalarType::Half || bias->scalar_type() == ScalarType::Half,
           "Bias must be Float16 to compute ", out.scalar_type(), " output, but got ", bias->scalar_type());
   }
-  {
-    auto bias_ = bias.value_or(Tensor());
+  //{
+#if defined(USE_ROCM)
+	// hipblasLT only supports bias dtype Float and BFloat16 so if it's half, convert to float
+	//Tensor float_bias;
+	bool cast_to_float = false;
+	if(bias)
+	{
+		if(bias->scalar_type() == ScalarType::Half)
+		{
+			std::cout << "CONVERTING BIAS FROM HALF TO FLOAT" << std::endl;
+			std::cout << "OUT Dtype : " << out.scalar_type() << std::endl;
+			std::cout << "bias stype: " << bias->scalar_type() << std::endl;
+			std::cout << "bias dtype: " << bias->dtype() << std::endl;
+			if(isFloat8Type(out.scalar_type()))
+			{
+				std::cout << "CASTING TO FLOAT" << std::endl;
+				//std::cout << typeid(bias.value()).name() << std::endl;
+				//std::cout << "===========" << std::endl;
+				//auto float_bias = bias.value_or(Tensor()).to(kFloat).to(kCUDA);
+				//auto float_bias = bias.value_or(Tensor()).clone().to(kFloat);
+				//std::cout << "float_bias type: " << typeid(float_bias).name() << std::endl;
+				//std::cout << "float_bias stype: " << float_bias.scalar_type() << std::endl;
+				//std::cout << "float_bias dtype: " << float_bias.dtype() << std::endl;
+				//std::cout << "float_bias sizes: " << float_bias.sizes() << std::endl;
+				//std::cout << float_bias << std::endl;
+				cast_to_float = true;
+
+			}
+		}
+	}
+#endif
+	auto float_bias = cast_to_float ? bias.value_or(Tensor()).to(kFloat).to(kCUDA) : bias.value_or(Tensor());
+	// PROVEN THAT FLOAT_BIAS EXISTS HERE
+	//std::cout << "EUREKA dtype: " << float_bias.dtype() << std::endl;
+	//std::cout << "device: " << float_bias.device() << std::endl;
+	//std::cout << "stype: " << float_bias.scalar_type() << std::endl;
+    //std::cout << "float_bias sizes: " << float_bias.sizes() << std::endl;
+	//std::cout << "device: " << float_bias.device() << std::endl;
+    // if bias exists
+#if defined(USE_ROCM)
+    auto bias_ = cast_to_float ? float_bias : bias.value_or(Tensor());
+#else
+	auto bias_ = bias.value_or(Tensor());
+#endif
     auto scale_a_ = scale_a.value_or(Tensor());
     auto scale_b_ = scale_b.value_or(Tensor());
     auto scale_result_ = scale_result.value_or(Tensor());
@@ -881,7 +939,7 @@ _scaled_mm_out_cuda(const Tensor& mat1, const Tensor& mat2,
                       {bias_, "bias", 4}, {scale_a_, "scale_a", 5}, {scale_b_, "scale_b", 6},
                       {scale_result_, "scale_result", 7}};
     checkAllSameGPU(__func__, targs);
-  }
+  //}
 
   IntArrayRef mat1_sizes = mat1.sizes();
   IntArrayRef mat2_sizes = mat2.sizes();
@@ -894,6 +952,7 @@ _scaled_mm_out_cuda(const Tensor& mat1, const Tensor& mat2,
   TORCH_CHECK(args.transa == 't' && args.transb == 'n', "Only multiplication of row-major and column-major matrices is supported by cuBLASLt");
 
 #if defined(USE_ROCM)
+  std::cout << "NEW OUT_DTYPE_: " << out_dtype_ << std::endl;
   auto dummy_options = TensorOptions().dtype(kFloat).device(kCUDA);
   auto dummy_scale = at::ones(1, dummy_options);
 #endif
@@ -912,13 +971,18 @@ _scaled_mm_out_cuda(const Tensor& mat1, const Tensor& mat2,
       scale_b ? scale_b->data_ptr() : nullptr,
       args.ldb,
       args.matb->scalar_type(),
+#if !defined(USE_ROCM)
       bias ? bias->data_ptr(): nullptr,
       bias ? bias->scalar_type() : isFloat8Type(out_dtype_) ? at::ScalarType::Half : out_dtype_,
+#else
+	  cast_to_float ? float_bias.data_ptr() : bias ? bias->data_ptr() : nullptr,
+	  cast_to_float ? float_bias.scalar_type() : bias ? bias->scalar_type() : isFloat8Type(out_dtype_) ? at::ScalarType::Half : out_dtype_,
+#endif
       args.result->data_ptr(),
 #if !defined(USE_ROCM)
       scale_result ? scale_result->data_ptr() : nullptr,
 #else
-      scale_result ? scale_result->data_ptr() : dummy_scale.data_ptr(),
+      scale_result ? scale_result->data_ptr() : (&dummy_scale)->data_ptr(),
 #endif
       args.result_ld,
       out_dtype_,
@@ -926,11 +990,6 @@ _scaled_mm_out_cuda(const Tensor& mat1, const Tensor& mat2,
       use_fast_accum);
 #else
   TORCH_CHECK(false, "_scaled_mm_out_cuda is not compiled for this platform.");
-#endif
-
-#if defined(USE_ROCM) && ROCM_VERSION >= 60000
-  // rocm's hipblaslt does not yet support amax, so calculate separately
-  amax = at::max(at::abs(out.to(kFloat)));
 #endif
 
   return {out, amax};
