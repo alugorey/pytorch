@@ -398,8 +398,7 @@ class TestFP8MatmulCuda(TestCase):
     def test_float8_scale(self, device) -> None:
         size = (16, 16)
         x = torch.full(size, .5, device=device, dtype=e4m3_type)
-        # hipblaslt does not yet support mixed e4m3_type input
-        y_type = e4m3_type if torch.version.hip else e5m2_type
+        y_type = e5m2_type
         y = torch.full(size, .5, device=device, dtype=y_type).t()
         scale_a = torch.tensor(1.5, device=device)
         scale_b = torch.tensor(0.66, device=device)
