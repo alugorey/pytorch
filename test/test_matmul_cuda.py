@@ -465,9 +465,7 @@ class TestFP8MatmulCuda(TestCase):
         bias = torch.full((m,), 4.0, device=device, dtype=torch.half)
         out_fp8, amax_fp8 = torch._scaled_mm(x, y)
         outb_fp8, amaxb_fp8 = torch._scaled_mm(x, y, bias=bias)
-        # this fails on ROCm currently because hipblaslt doesn't have amax op
-        if torch.version.hip is None:
-            self.assertEqual((amaxb_fp8 - amax_fp8).item(), 4.0)
+        self.assertEqual((amaxb_fp8 - amax_fp8).item(), 4.0)
 
     @unittest.skipIf(not scaled_mm_supported_device(), f8_msg)
     @parametrize("bias", [True, False])
