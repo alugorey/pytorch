@@ -42,15 +42,20 @@ def _to_fp8_saturated(x: Tensor, float8_dtype: torch.dtype) -> Tensor:
         x = x.clamp(min=-1 * E4M3_MAX_POS, max=E4M3_MAX_POS)
     elif float8_dtype == torch.float8_e5m2fnuz:
         x = x.clamp(min=-1 * E5M2_MAX_POS, max=E5M2_MAX_POS)
+    else:
+        raise TypeError(f"Unsupported float8_dtype: {float8_dtype}")
     return x.to(float8_dtype)
 
 
 @instantiate_parametrized_tests
 class TestFP8Types(TestCase):
+    #ANDY - DONE
     @unittest.skipIf(not PLATFORM_SUPPORTS_FP8, f8_msg)
     @parametrize("dtype", (torch.float16, torch.bfloat16))
     def test_eager_fallback(self, dtype: torch.dtype):
         weight_shape = (32, 16)
+
+        e4m3_type = torch.float8_e4m3fn if torch.version.hip is None else torch.float8_e4m3fnuz
 
         def fp8_matmul_unwrapped(x):
             a_scale = torch.Tensor([1.0]).to(device="cuda")
@@ -58,7 +63,7 @@ class TestFP8Types(TestCase):
             output_scale = None
             input_bias = torch.rand(32, device="cuda", dtype=dtype)
             weight = torch.rand(*weight_shape, device="cuda", dtype=dtype).T.to(
-                torch.float8_e4m3fn
+                e4m3_type
             )
             a_inverse_scale = 1 / a_scale
             b_inverse_scale = 1 / b_scale
@@ -78,14 +83,14 @@ class TestFP8Types(TestCase):
         )
 
         x_shape = (16, 16)
-        x = torch.rand(*x_shape, device="cuda", dtype=dtype).to(torch.float8_e4m3fn)
+        x = torch.rand(*x_shape, device="cuda", dtype=dtype).to(e4m3_type)
         y_fp8 = compiled_fp8_matmul(x)
 
         x_shape = (15, 16)
-        x = torch.rand(*x_shape, device="cuda", dtype=dtype).to(torch.float8_e4m3fn)
+        x = torch.rand(*x_shape, device="cuda", dtype=dtype).to(e4m3_type)
         y_fp8 = compiled_fp8_matmul(x)
 
-
+    #ANDY - DONE
     @unittest.skipIf(not PLATFORM_SUPPORTS_FP8, f8_msg)
     @parametrize("dtype", (torch.float16, torch.bfloat16, torch.float))
     @parametrize("shape", ("15,3,13", "4,2048,4096"))
@@ -110,7 +115,7 @@ class TestFP8Types(TestCase):
         torch.testing.assert_close(y0_fp8, x, rtol=5e-1, atol=5e-1)
         torch.testing.assert_close(y1_fp8, x, rtol=5e-1, atol=5e-1)
         
-
+    #ANDY - DONE
     @unittest.skipIf(not PLATFORM_SUPPORTS_FP8, f8_msg)
     def test_bad_cast(self):
         def fp8_cast(x, dtype):
@@ -134,6 +139,7 @@ class TestFP8Types(TestCase):
             x = torch.rand(*x_shape, device="cuda").to(dtype=torch.float8_e5m2)
             y = compiled_fp8_cast(x, torch.float8_e4m3fn)
 
+    #ANDY - DONE
     @unittest.skipIf(not PLATFORM_SUPPORTS_FP8, f8_msg)
     @parametrize("src_dtype", (torch.float16, torch.bfloat16, torch.float))
     @parametrize("dst_dtype", (torch.float8_e4m3fn, torch.float8_e5m2) if torch.version.hip is None else (torch.float8_e4m3fnuz, torch.float8_e5m2fnuz))
