@@ -936,7 +936,7 @@ class TestOperators(TestCase):
                 # (3) encountering this error in PyTorch internals.
                 xfail("index_reduce", "prod"),
                 decorate(
-                    "linalg.householder_product", decorator=runOnRocm
+                    "linalg.householder_product", decorator=skipIfRocm
                 ),  # works on ROCm
                 xfail(
                     "nanquantile", device_type="cpu"
