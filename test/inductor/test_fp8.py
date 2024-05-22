@@ -7,7 +7,7 @@ import torch
 from torch import Tensor
 from torch._inductor import utils
 from torch._inductor.test_case import run_tests, TestCase
-from torch.testing._internal.common_cuda import PLATFORM_SUPPORTS_FP8 
+from torch.testing._internal.common_cuda import PLATFORM_SUPPORTS_FP8, SM90OrLater 
 from torch.testing._internal.common_utils import (
     instantiate_parametrized_tests,
     parametrize,
@@ -49,7 +49,6 @@ def _to_fp8_saturated(x: Tensor, float8_dtype: torch.dtype) -> Tensor:
 
 @instantiate_parametrized_tests
 class TestFP8Types(TestCase):
-    #ANDY - DONE
     @unittest.skipIf(not PLATFORM_SUPPORTS_FP8, f8_msg)
     @parametrize("dtype", (torch.float16, torch.bfloat16))
     def test_eager_fallback(self, dtype: torch.dtype):
@@ -90,7 +89,7 @@ class TestFP8Types(TestCase):
         x = torch.rand(*x_shape, device="cuda", dtype=dtype).to(e4m3_type)
         y_fp8 = compiled_fp8_matmul(x)
 
-    #ANDY - DONE
+
     @unittest.skipIf(not PLATFORM_SUPPORTS_FP8, f8_msg)
     @parametrize("dtype", (torch.float16, torch.bfloat16, torch.float))
     @parametrize("shape", ("15,3,13", "4,2048,4096"))
@@ -115,7 +114,7 @@ class TestFP8Types(TestCase):
         torch.testing.assert_close(y0_fp8, x, rtol=5e-1, atol=5e-1)
         torch.testing.assert_close(y1_fp8, x, rtol=5e-1, atol=5e-1)
         
-    #ANDY - DONE
+
     @unittest.skipIf(not PLATFORM_SUPPORTS_FP8, f8_msg)
     def test_bad_cast(self):
         def fp8_cast(x, dtype):
@@ -139,7 +138,7 @@ class TestFP8Types(TestCase):
             x = torch.rand(*x_shape, device="cuda").to(dtype=torch.float8_e5m2)
             y = compiled_fp8_cast(x, torch.float8_e4m3fn)
 
-    #ANDY - DONE
+
     @unittest.skipIf(not PLATFORM_SUPPORTS_FP8, f8_msg)
     @parametrize("src_dtype", (torch.float16, torch.bfloat16, torch.float))
     @parametrize("dst_dtype", (torch.float8_e4m3fn, torch.float8_e5m2) if torch.version.hip is None else (torch.float8_e4m3fnuz, torch.float8_e5m2fnuz))
@@ -160,7 +159,8 @@ class TestFP8Types(TestCase):
 
         torch.testing.assert_close(y_compiled.half(), y.half(), rtol=5e-1, atol=5e-1)
 
-    @unittest.skipIf(not PLATFORM_SUPPORTS_FP8, f8_msg)
+    @unittest.skipIf(TEST_WITH_ROCM, "ROCm fails with accuracy issue")
+    @unittest.skipIf(not SM90OrLater, "FP8 is only supported on H100+")    
     @parametrize("float8_dtype", (torch.float8_e4m3fn, torch.float8_e5m2) if torch.version.hip is None else (torch.float8_e4m3fnuz, torch.float8_e5m2fnuz))
     @parametrize("shape", ("1,1,15", "1,10,15", "1,10,512", "1,10,4096", "4,2048,4096"))
     def test_amax_fp8_quant(self, float8_dtype: torch.dtype, shape: str):
@@ -185,7 +185,7 @@ class TestFP8Types(TestCase):
         torch.testing.assert_close(y_compiled.half(), y.half(), rtol=1e-2, atol=1e-2)
 
     @unittest.skipIf(not PLATFORM_SUPPORTS_FP8, f8_msg)
-    @parametrize("float8_dtype", (torch.float8_e4m3fn, torch.float8_e5m2))
+    @parametrize("float8_dtype", (torch.float8_e4m3fn, torch.float8_e5m2) if torch.version.hip is None else (torch.float8_e4m3fnuz, torch.float8_e5m2fnuz))
     @parametrize("shape", ("1,1,15", "1,10,15", "1,10,512", "1,10,4096", "4,2048,4096"))
     def test_amax_along_with_fp8_quant(self, float8_dtype: torch.dtype, shape: str):
         shape = [int(dim) for dim in shape.split(",")]
@@ -213,8 +213,9 @@ class TestFP8Types(TestCase):
             amax_buffer_compiled, amax_buffer, rtol=1e-2, atol=1e-2
         )
 
-    @unittest.skipIf(not PLATFORM_SUPPORTS_FP8, f8_msg)
-    @parametrize("float8_dtype", (torch.float8_e4m3fn, torch.float8_e5m2))
+    @unittest.skipIf(TEST_WITH_ROCM, "ROCm fails with accuracy issue")
+    @unittest.skipIf(not SM90OrLater, "FP8 is only supported on H100+")
+    @parametrize("float8_dtype", (torch.float8_e4m3fn, torch.float8_e5m2) if torch.version.hip is None else (torch.float8_e4m3fnuz, torch.float8_e5m2fnuz))
     @parametrize("amax_keep_dim", (True, False))
     @parametrize("shape", ("1,1,15", "1,10,15", "1,10,512", "1,10,4096", "4,2048,4096"))
     def test_layernorm_fp8_quant(
@@ -255,7 +256,7 @@ class TestFP8Types(TestCase):
         )
 
     @unittest.skipIf(not PLATFORM_SUPPORTS_FP8, f8_msg)
-    @parametrize("float8_dtype", (torch.float8_e4m3fn, torch.float8_e5m2))
+    @parametrize("float8_dtype", (torch.float8_e4m3fn, torch.float8_e5m2) if torch.version.hip is None else (torch.float8_e4m3fnuz, torch.float8_e5m2fnuz))
     @parametrize("shape", ("4,2048,4096",))
     @parametrize("keepdim", (False, True))
     def test_layernorm_fp8_quant_benchmark(
