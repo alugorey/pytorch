@@ -39,9 +39,9 @@ def _to_fp8_saturated(x: Tensor, float8_dtype: torch.dtype) -> Tensor:
     elif float8_dtype == torch.float8_e5m2:
         x = x.clamp(min=-1 * E5M2_MAX_POS, max=E5M2_MAX_POS)
     elif float8_dtype == torch.float8_e4m3fnuz:
-        x = x.clamp(min=-1 * E4M3_MAX_POS, max=E4M3_MAX_POS)
+        x = x.clamp(min=-1 * E4M3FNUZ_MAX_POS, max=E4M3FNUZ_MAX_POS)
     elif float8_dtype == torch.float8_e5m2fnuz:
-        x = x.clamp(min=-1 * E5M2_MAX_POS, max=E5M2_MAX_POS)
+        x = x.clamp(min=-1 * E5M2FNUZ_MAX_POS, max=E5M2FNUZ_MAX_POS)
     else:
         raise TypeError(f"Unsupported float8_dtype: {float8_dtype}")
     return x.to(float8_dtype)
@@ -160,7 +160,7 @@ class TestFP8Types(TestCase):
         torch.testing.assert_close(y_compiled.half(), y.half(), rtol=5e-1, atol=5e-1)
 
     @unittest.skipIf(TEST_WITH_ROCM, "ROCm fails with accuracy issue")
-    @unittest.skipIf(not SM90OrLater, "FP8 is only supported on H100+")    
+    @unittest.skipIf(not SM90OrLater, "FP8 is only supported on H100+")
     @parametrize("float8_dtype", (torch.float8_e4m3fn, torch.float8_e5m2) if torch.version.hip is None else (torch.float8_e4m3fnuz, torch.float8_e5m2fnuz))
     @parametrize("shape", ("1,1,15", "1,10,15", "1,10,512", "1,10,4096", "4,2048,4096"))
     def test_amax_fp8_quant(self, float8_dtype: torch.dtype, shape: str):
