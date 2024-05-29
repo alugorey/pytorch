@@ -159,10 +159,23 @@ class TestFP8Types(TestCase):
 
         torch.testing.assert_close(y_compiled.half(), y.half(), rtol=5e-1, atol=5e-1)
 
-    @unittest.skipIf(TEST_WITH_ROCM, "ROCm fails with accuracy issue")
-    @unittest.skipIf(not SM90OrLater, "FP8 is only supported on H100+")
+    #@unittest.skipIf(TEST_WITH_ROCM, "ROCm fails with accuracy issue")
+    #@unittest.skipIf(not SM90OrLater, "FP8 is only supported on H100+")
+    @unittest.skipIf(not PLATFORM_SUPPORTS_FP8, f8_msg)
     @parametrize("float8_dtype", (torch.float8_e4m3fn, torch.float8_e5m2) if torch.version.hip is None else (torch.float8_e4m3fnuz, torch.float8_e5m2fnuz))
+    #@parametrize("float8_dtype", (torch.float8_e4m3fnuz, torch.float8_e5m2fnuz))
     @parametrize("shape", ("1,1,15", "1,10,15", "1,10,512", "1,10,4096", "4,2048,4096"))
+    #@parametrize("shape", ("1,10,15",))
+    #PASSING SIZES/TYPES
+    # ALL TESTS PASS USING e5m2fnuz
+    # 1,1,15 : e4m3fnuz
+    
+
+    #FAILING SIZES
+    # 1,10,15 : e4m3fnuz
+    # 1,10,4096 : e4m3fnuz
+    # 1,10,512 : e4m3fnuz
+    # 4,2048,4096 : e4m3fnuz
     def test_amax_fp8_quant(self, float8_dtype: torch.dtype, shape: str):
         shape = [int(dim) for dim in shape.split(",")]
         batch_size, sequence_length, hidden_size = shape
