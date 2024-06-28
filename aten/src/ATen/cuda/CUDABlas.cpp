@@ -788,45 +788,10 @@ inline void gemm_internal_cublaslt(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   bgemm_internal_cublaslt(transa, transb, m, n, k, alpha, a, lda, 0, b, ldb, 0, beta, c, ldc, 0, 0);
 }
 
-
-template <>
-void ::at::native::gemm_internal_ck<double>(CK_GEMM_ARGTYPES(double)) {
-  return;
-}
-
-template <>
-void gemm_internal_ck<float>(CK_GEMM_ARGTYPES(float)) {
-  return;
-}
-
-template <>
-void gemm_internal_ck<c10::complex<double>>(CK_GEMM_ARGTYPES(c10::complex<double>)) {
-  return;
-}
-
-template <>
-void gemm_internal_ck<c10::complex<float>>(CK_GEMM_ARGTYPES(c10::complex<float>)) {
-  return;
-}
-
-template <>
-void gemm_internal_ck<at::Half>(CK_GEMM_ARGTYPES(at::Half)) {
-  return;
-}
-
-template <>
-void gemm_internal_ck<at::BFloat16>(CK_GEMM_ARGTYPES(at::Half)) {
-  return;
-}
-
-
-
 template <typename Dtype>
 inline void gemm_internal_cublas(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   AT_ERROR("at::cuda::blas::gemm_internal_cublas: not implemented for ", typeid(Dtype).name());
 }
-
-
 
 
 template <>
