@@ -48,34 +48,56 @@ using Add = ck::tensor_operation::element_wise::Add;
 namespace at::native {
 
 template <>
-void gemm_internal_ck<double>(CK_GEMM_ARGTYPES(double)) {
+void gemm_internal_ck<double>(CUDABLAS_GEMM_ARGTYPES(double)) {
   return;
 }
 
 template <>
-void gemm_internal_ck<float>(CK_GEMM_ARGTYPES(float)) {
+void gemm_internal_ck<float>(CUDABLAS_GEMM_ARGTYPES(float)) {
   return;
 }
 
 template <>
-void gemm_internal_ck<c10::complex<double>>(CK_GEMM_ARGTYPES(c10::complex<double>)) {
+void gemm_internal_ck<c10::complex<double>>(CUDABLAS_GEMM_ARGTYPES(c10::complex<double>)) {
   return;
 }
 
 template <>
-void gemm_internal_ck<c10::complex<float>>(CK_GEMM_ARGTYPES(c10::complex<float>)) {
+void gemm_internal_ck<c10::complex<float>>(CUDABLAS_GEMM_ARGTYPES(c10::complex<float>)) {
   return;
 }
 
 template <>
-void gemm_internal_ck<at::Half>(CK_GEMM_ARGTYPES(at::Half)) {
+void gemm_internal_ck<at::Half>(CUDABLAS_GEMM_ARGTYPES(at::Half)) {
   return;
 }
 
 template <>
-void gemm_internal_ck<at::BFloat16>(CK_GEMM_ARGTYPES(at::BFloat16)) {
+void gemm_internal_ck<at::BFloat16>(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
   return;
 }
+
+/*
+TODO - Remove this blurb
+Parameters traditionally being passed to gemms
+- char transa
+- char transb
+- int64 m
+- int64 n
+- int64 k
+- opMath_type alpha
+
+- const dtype * a
+- int64 lda
+- const dtype * b
+- int64 ldb
+- opMath_type beta
+- dtype * c
+- ldc
+
+*/
+
+
 
 template <
     int BLOCK_SIZE,

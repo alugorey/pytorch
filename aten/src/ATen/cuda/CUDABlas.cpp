@@ -1004,7 +1004,7 @@ void gemm_internal<double>(CUDABLAS_GEMM_ARGTYPES(double))
   }
 #ifdef USE_ROCM
   else if (at::globalContext().blasPreferredBackend() == BlasBackend::Ck) {
-    at::native::gemm_internal_ck<double>(CK_GEMM_ARGS(double));
+    at::native::gemm_internal_ck<double>(CUDABLAS_GEMM_ARGS(double));
   }
 #endif
   else {
@@ -1020,7 +1020,7 @@ void gemm_internal<float>(CUDABLAS_GEMM_ARGTYPES(float))
   }
 #ifdef USE_ROCM
   else if (at::globalContext().blasPreferredBackend() == BlasBackend::Ck) {
-    at::native::gemm_internal_ck<float>(CK_GEMM_ARGS(float));
+    at::native::gemm_internal_ck<float>(CUDABLAS_GEMM_ARGS(float));
   }
 #endif
   else {
@@ -1041,7 +1041,7 @@ void gemm_internal<c10::complex<double>>(CUDABLAS_GEMM_ARGTYPES(c10::complex<dou
   }
 #ifdef USE_ROCM
   else if (at::globalContext().blasPreferredBackend() == BlasBackend::Ck) {
-    at::native::gemm_internal_ck<c10::complex<double>>(CK_GEMM_ARGS(c10::complex<double>));
+    at::native::gemm_internal_ck<c10::complex<double>>(CUDABLAS_GEMM_ARGS(c10::complex<double>));
   }
 #endif
   else {
@@ -1062,7 +1062,7 @@ void gemm_internal<c10::complex<float>>(CUDABLAS_GEMM_ARGTYPES(c10::complex<floa
   }
 #ifdef USE_ROCM
   else if (at::globalContext().blasPreferredBackend() == BlasBackend::Ck) {
-    at::native::gemm_internal_ck<c10::complex<float>>(CK_GEMM_ARGS(c10::complex<float>));
+    at::native::gemm_internal_ck<c10::complex<float>>(CUDABLAS_GEMM_ARGS(c10::complex<float>));
   }
 #endif
   else {
@@ -1078,7 +1078,7 @@ void gemm_internal<at::Half>(CUDABLAS_GEMM_ARGTYPES(at::Half))
   }
 #ifdef USE_ROCM
   else if (at::globalContext().blasPreferredBackend() == BlasBackend::Ck) {
-    at::native::gemm_internal_ck<at::Half>(CK_GEMM_ARGS(at::Half));
+    at::native::gemm_internal_ck<at::Half>(CUDABLAS_GEMM_ARGS(at::Half));
   }
 #endif
   else {
@@ -1094,7 +1094,7 @@ void gemm_internal<at::BFloat16>(CUDABLAS_GEMM_ARGTYPES(at::BFloat16))
   }
 #ifdef USE_ROCM
   else if (at::globalContext().blasPreferredBackend() == BlasBackend::Ck) {
-    at::native::gemm_internal_ck<at::BFloat16>(CK_GEMM_ARGS(at::BFloat16));
+    at::native::gemm_internal_ck<at::BFloat16>(CUDABLAS_GEMM_ARGS(at::BFloat16));
   }
 #endif
   else {
