@@ -57,11 +57,6 @@ void gemm_internal_ck<at::Half>(CUDABLAS_GEMM_ARGTYPES(at::Half)) {
 }
 
 template <>
-void gemm_internal_ck<float>(CUDABLAS_GEMM_ARGTYPES(float)) {
-  return;
-}
-
-template <>
 void gemm_internal_ck<at::BFloat16>(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
   return;
 }
