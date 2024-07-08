@@ -1015,12 +1015,15 @@ void gemm_internal<double>(CUDABLAS_GEMM_ARGTYPES(double))
 template <>
 void gemm_internal<float>(CUDABLAS_GEMM_ARGTYPES(float))
 {
+  std::cout << "MADE IT TO GEMM INTERNAL FLOAT!" << std::endl;
   if (at::globalContext().blasPreferredBackend() == BlasBackend::Cublaslt) {
     gemm_internal_cublaslt<float>(CUDABLAS_GEMM_ARGS(float));
   }
 #ifdef USE_ROCM
   else if (at::globalContext().blasPreferredBackend() == BlasBackend::Ck) {
+  	std::cout << "ABOUT TO CALL CK GEMM_INTERNAL!" << std::endl;
     at::native::gemm_internal_ck<float>(CUDABLAS_GEMM_ARGS(float));
+	std::cout << "CAME BACK FROM CK_GEMM_INTERNAL!!!!" << std::endl;
   }
 #endif
   else {
@@ -1152,6 +1155,7 @@ void gemm<float>(CUDABLAS_GEMM_ARGTYPES(float)) {
   }
   else {
     gemm_internal<float>(CUDABLAS_GEMM_ARGS(float));
+	std::cout << "OUT OF GEMM_INTERNAL" << std::endl;
   }
 }
 
