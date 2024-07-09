@@ -34,8 +34,7 @@
 #include "ck/library/utility/host_tensor_generator.hpp"
 #include "ck/library/utility/literals.hpp"
 
-#include "ck/tensor_operation/gpu/device/impl/device_gemm_multiple_d_xdl_cshuffle_v3.hpp"
-#include "ck/tensor_operation/gpu/device/impl/device_gemm_multiple_d_xdl_cshuffle.hpp"
+#include "ck/tensor_operation/gpu/device/impl/device_gemm_multiple_abd_xdl_cshuffle.hpp"
 
 
 // Define commonly used types.
@@ -45,7 +44,7 @@ using S = ck::Sequence<Is...>;
 using Row = ck::tensor_layout::gemm::RowMajor;
 using Col = ck::tensor_layout::gemm::ColumnMajor;
 using PassThrough = ck::tensor_operation::element_wise::PassThrough;
-using Add = ck::tensor_operation::element_wise::Add;
+//using Add = ck::tensor_operation::element_wise::Add; // don't need?
 
 namespace at::native {
 
@@ -80,6 +79,39 @@ struct CkMathType<at::Half> {
 };
 
 
+// Elementwise Operators
+struct AddScale
+{
+  __host__ __device__ constexpr void
+  operator()(float& a, const float& a0) const
+  {
+    a = scale * a0;
+  }
+
+  float scale = 1.0;
+};
+
+struct AlphaBetaAdd
+{
+  AlphaBetaAdd(float alpha, float beta) : alpha_(alpha), beta_(beta){};
+
+  template <typename E, typename C, typename D>
+  __host__ __device__ constexpr void operator()(E& e, const C& c, const D& d) const;
+
+  template<>
+  __host__ __device__ constexpr void operator()<float, float, float>
+    (float& e, const float& c, const float& d) const
+    {
+      e = alpha_ * c + beta_ * d;
+    };
+
+    float alpha_;
+    float beta_;
+};
+
+
+
+
 template <
     typename Dtype,
     int BLOCK_SIZE,
@@ -104,42 +136,47 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   int StrideA = lda;
   int StrideB = ldb;
   int StrideC = ldc;
+  int StrideD = N;
+
+  float falpha = alpha;
+  float fbeta = beta;
+
 
   using ADataType = typename CkMathType<Dtype>::dtype;
   using BDataType = typename CkMathType<Dtype>::dtype;
+  using CDataType = typename CkMathType<Dtype>::dtype;
   using DDataType = typename CkMathType<Dtype>::dtype;
-  using DsDataType = ck::Tuple<>;
+
   using AccDataType = float;
-  using CShuffleDataType = typename CkMathType<Dtype>::dtype;;
-  using CDataType = typename CkMathType<Dtype>::dtype;;
-  std::cout << "ONE" << std::endl;
+  using CShuffleDataType = typename CkMathType<Dtype>::dtype;
+
+
+
 #if 0
   using ALayout = Row;
   using BLayout = Col;
   using DLayout = Row;
-  using DsLayout = ck::Tuple<>;
-  using DsDataType = ck::Tuple<>;
   using CLayout = Row;
 #else
   using ALayout = Col;
   using BLayout = Col;
-  using DLayout = Col;
-  using DsLayout = ck::Tuple<>;
   using CLayout = Col;
+  using DLayout = Col;
 #endif
 
+
+  // These element ops will probably need to change
   using AElementOp = PassThrough;
   using BElementOp = PassThrough;
-  using CElementOp = PassThrough;
+  using CDEElementOp = AlphaBetaAdd;
 
-  std::cout << "TWO" << std::endl;
 
   static constexpr auto GemmDefault =
       ck::tensor_operation::device::GemmSpecialization::Default;
   static constexpr auto GemmMNKPadding =
       ck::tensor_operation::device::GemmSpecialization::MNKPadding;
-  static constexpr auto GemmSpec = PADDING ? GemmMNKPadding : GemmDefault;
-
+  //static constexpr auto GemmSpec = PADDING ? GemmMNKPadding : GemmDefault;
+  static constexpr auto GemmSpec = GemmMNKPadding;
   // Define derivative constants based on template parameters.
   static constexpr int BLOCK_CLUSTER = BLOCK_SIZE / 4;
   static constexpr int CBLOCK_N = NBLOCK / 16;
@@ -149,56 +186,52 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   static constexpr auto LoopSched = ck::make_default_loop_scheduler();
 
 
-  std::cout << "THREE" << std::endl;
 
   using DeviceGemmV2Instance =
-      ck::tensor_operation::device::DeviceGemmMultipleD_Xdl_CShuffle<
-          ALayout,					//ALayout
-          BLayout,					//BLayout
-          ck::Tuple<>,					//DLayout
-          CLayout,					//CLayout
-          ADataType,				//ADataType
-          BDataType,				//BDataType
-          AccDataType,				//AccDataType
-          CShuffleDataType,				//CShuffleDataType
-          ck::Tuple<>,				//DDataType
-          CDataType,			//CDataType
-          AElementOp,				//AElementOp
-          BElementOp,				//BElementOp
-          CElementOp,				//CElementOp
-          GemmSpec,					//GemmSpec
-		  1,						// Prefetch stage
-          BLOCK_SIZE,				// Prefetch stage
-          MBLOCK,					//BLOCK_SIZE
-          NBLOCK,					//MBLOCK
-          KBLOCK,					//NBLOCK
-          16, // AK1					//KBLOCK
-          16, // BK1					//AK1
-          32, // MPerXDL		//BK1
-          32, // NPerXDL		//MPER_XDL
-          MPER_WAVE, // MXdlPerWave //NPER_XDL
-          NPER_WAVE, // NXdlPerWave //MPER_WAVE
-          S<4, BLOCK_CLUSTER, 1>, // ABlockTransferThreadClusterLengths //NPER_WAVE
-          S<1, 0, 2>, // ABlockTransferThreadClusterOrder 	//ABlockTransfer Threadcluster K0_M_k1 ^^^abive
-          S<1, 0, 2>, // ABlockTransferSrcAccessOrder		//ABlockTransfer threadCluster ArrangeOrder
-          2, // ABlockTransferSrcVectorDim					//AblockTransfer SrcAccessOrder
-          16, // ABlockTransferSrcScalarPerVector			//ABlockTransfer SrcVectorDim
-          16, // ABlockTransferDstScalarPerVector			//ABlockTransfer srcScalar PerVector
-          1, // ABlockLdsExtraM								//ABlockTransfer DstScalar PerVector_K1
-          S<4, BLOCK_CLUSTER, 1>, // BBlockTransferThreadClusterLengths //ABlockLds, AddExtraM
-          S<1, 0, 2>, // BBlockTransferThreadClusterArrangeOrder	//BBlockTransfer ThreadCluster K0_N_K1
-          S<1, 0, 2>, // BBlockTransferSrcAccessOrder				//BBlockTransfer ThreadCluster ArrangeOrder
-          2, // BBlockTransferSrcVectorDim							//BBlockTransfer SrcAccess Order
-          8, // BBlockTransferSrcScalarPerVector					//BBlockTransfer SrcVectorDim
-          8, // BBlockTransferDstScalarPerVector					//BBlockTransfer SrcScalarPerVector
-          1, // BBlockLdsExtraN										//BBlockTransfer DstScalar PerVector_k1
-          1, // CShuffleMXdlPerWavePerShuffle						//BBlockLds, AddExtraN
-          1, // CShuffleNXdlPerWavePerShuffle				//CShuffle MXdlPerWave PerShuffle
-          S<1, CBLOCK_M, 1, CBLOCK_N>, // CShuffleBlockTransferClusterLengths //CShuffle NXDLPerWave PerShuffle
-          8, // CShuffleBlockTransferScalarPerVector// CBlockTransferClusterLengths
-          LoopSched, // Pipeline Schedule  	//ScalarPerVector
-          ck::PipelineVersion::v1, // Pipeline Version
-		  float>;
+      ck::tensor_operation::device::DeviceGemmMultipleABD_Xdl_CShuffle<
+          ck::Tuple<ALayout>,// ALayout
+          ck::Tuple<BLayout>,		// BLayout
+          ck::Tuple<DLayout>,		// DLayout
+          CLayout,					// CLayout
+          ck::Tuple<ADataType>,	// ADataType
+          ck::Tuple<BDataType>,				// BDataType
+          AccDataType,				// AccDataType
+          CShuffleDataType,			// CShuffleDataType
+          ck::Tuple<DDataType>,		// DDataType
+          CDataType,				// CDataType
+          AElementOp,				// AElementOp
+          BElementOp,				// BElementOp
+          CDEElementOp,				// CDEElementOp
+          GemmSpec,					// GemmSpec
+          1,						// Prefetch stage
+          BLOCK_SIZE,				// BLOCK_SIZE
+          MBLOCK,					// MBLOCK
+          NBLOCK,					// NBLOCK
+          KBLOCK,					// KBLOCK
+          8, 						// AK1
+          8, 						// BK1
+          MPER_XDL,					// MPerXDL
+          NPER_XDL,					// NPerXDL
+          MPER_WAVE, 				// MXdlPerWave
+          NPER_WAVE, 				// NXdlPerWave
+          S<4, BLOCK_CLUSTER, 1>, 	// ABlockTransferThreadClusterLengths_AK0_M_AK1
+          S<1, 0, 2>, 				// ABlockTransferThreadClusterOrder
+          S<1, 0, 2>, 				// ABlockTransferSrcAccessOrder
+          2,						// ABlockTransferSrcVectorDim
+          8,						// ABlockTransferSrcScalarPerVector
+          8,						// ABlockTransferDstScalarPerVector_AK1
+          1,						// ABlockLdsExtraM
+          S<4, BLOCK_CLUSTER, 1>,	// BBlockTransferThreadClusterLengths_BK0_N_BK1
+          S<1, 0, 2>,				// BBlockTransferThreadClusterArrangeOrder
+          S<1, 0, 2>,				// BBlockTransferSrcAccessOrder
+          1,						// BBlockTransferSrcVectorDim
+          2,						// BBlockTransferSrcScalarPerVector
+          8,						// BBlockTransferDstScalarPerVector_BK1
+          1,						// BBlockLdsExtraN
+          1,						// CShuffleMXdlPerWavePerShuffle
+          1,						// CShuffleNXdlPerWavePerShuffle
+          S<1, CBLOCK_M, 1, CBLOCK_N>, // CShuffleBlockTransferClusterLengths_MBlock_MPerBlock_NBlock_NPerBlock
+          8>;						// CShuffleBlockTransferScalarPerVector_NPerBlock
 
 
   // Create gemm launcher and arguments.
@@ -207,35 +240,31 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
 
   auto a_element_op = AElementOp{};
   auto b_element_op = BElementOp{};
-  auto c_element_op = CElementOp{};
+  auto cde_element_op = CDEElementOp{falpha, fbeta};
 
-  using DDataArrayType = std::array<const void*, 0>;
+  using DDataArrayType = std::array<const void*, 1>;
   using DStrideArrayType = std::array<ck::index_t, 0>;
 
   DDataArrayType DDataArray;
   DStrideArrayType DStrideArray;
-  std::cout << "FIVE" << std::endl;
   auto arguments = gemm.MakeArgument(
-      reinterpret_cast<const ADataType*>(a),
-      reinterpret_cast<const BDataType*>(b),
+      std::array<const void*, 1>{reinterpret_cast<const void*>(a)},
+      std::array<const void*, 1>{reinterpret_cast<const void*>(b)},
       DDataArray,
-      reinterpret_cast<CDataType*>(c),
+      reinterpret_cast<void*>(c),
       M,
       N,
       K,
-      StrideA,
-      StrideB,
-      DStrideArray,
+      std::array<ck::index_t, 1>{StrideA},
+      std::array<ck::index_t, 1>{StrideB},
+      std::array<ck::index_t, 1>{StrideD},
       StrideC,
       a_element_op,
       b_element_op,
-      c_element_op);
-  std::cout << "SIX" << std::endl;
+      cde_element_op);
+
   auto stream = at::cuda::getCurrentHIPStream().stream();
   invoker.Run(arguments, StreamConfig{stream, false});
-  std::cout << "SEVEN" << std::endl;
-  std::cout << std::endl;
-  std::cout << std::endl;
 
 }
 
@@ -274,7 +303,7 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
 	  // local memory exceeds error
       //float_gemm_impl<float, 256, 256, 128, 64, 16, 16, 8, 4, 2, true>(CUDABLAS_GEMM_ARGS(float));
 
-	  float_gemm_impl<float, 256, 256, 128, 64, 32, 32, 4, 2, 1, true>(CUDABLAS_GEMM_ARGS(float));
+	  float_gemm_impl<float, 256, 256, 128, 32, 32, 32, 4, 2, 1, true>(CUDABLAS_GEMM_ARGS(float));
 	  std::cout << "BACK FROM BETA" << std::endl;
     }
   } else {
