@@ -16345,8 +16345,7 @@ op_db: List[OpInfo] = [
         skip_cow_input_backward=True,
         # FIXME: mask_type == 2 (LowerRight)
         decorators=[
-            skipCUDAIf(not PLATFORM_SUPPORTS_MEM_EFF_ATTENTION, "This platform doesn't support efficient attention"),
-            ],
+            skipCUDAIf(not PLATFORM_SUPPORTS_MEM_EFF_ATTENTION, "This platform doesn't support efficient attention")],
         skips=(
             # Device mismatch due to philox seed and offset
             DecorateInfo(unittest.expectedFailure, 'TestFakeTensor', 'test_fake_autocast', device_type='cuda'),
