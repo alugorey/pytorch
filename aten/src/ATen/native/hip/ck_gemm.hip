@@ -34,8 +34,8 @@
 #include "ck/library/utility/host_tensor_generator.hpp"
 #include "ck/library/utility/literals.hpp"
 
-#include "ck/tensor_operation/gpu/device/impl/device_gemm_multiple_abd_xdl_cshuffle.hpp"
-
+//#include "ck/tensor_operation/gpu/device/impl/device_gemm_multiple_abd_xdl_cshuffle.hpp"
+#include "ck/tensor_operation/gpu/device/impl/device_gemm_multiple_d_xdl_cshuffle.hpp"
 
 // Define commonly used types.
 template <ck::index_t... Is>
@@ -44,7 +44,6 @@ using S = ck::Sequence<Is...>;
 using Row = ck::tensor_layout::gemm::RowMajor;
 using Col = ck::tensor_layout::gemm::ColumnMajor;
 using PassThrough = ck::tensor_operation::element_wise::PassThrough;
-//using Add = ck::tensor_operation::element_wise::Add; // don't need?
 
 namespace at::native {
 
@@ -80,17 +79,6 @@ struct CkMathType<at::Half> {
 
 
 // Elementwise Operators
-struct AddScale
-{
-  __host__ __device__ constexpr void
-  operator()(float& a, const float& a0) const
-  {
-    a = scale * a0;
-  }
-
-  float scale = 1.0;
-};
-
 struct AlphaBetaAdd
 {
   AlphaBetaAdd(float alpha, float beta) : alpha_(alpha), beta_(beta){};
@@ -144,14 +132,15 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
 
   using ADataType = typename CkMathType<Dtype>::dtype;
   using BDataType = typename CkMathType<Dtype>::dtype;
-  using CDataType = typename CkMathType<Dtype>::dtype;
   using DDataType = typename CkMathType<Dtype>::dtype;
+  using EDataType = typename CkMathType<Dtype>::dtype;
+
 
   using AccDataType = float;
   using CShuffleDataType = typename CkMathType<Dtype>::dtype;
 
 
-
+//TODO: SET THESE BASED OFF transa AND transb
 #if 0
   using ALayout = Row;
   using BLayout = Col;
@@ -160,8 +149,8 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
 #else
   using ALayout = Col;
   using BLayout = Col;
-  using CLayout = Col;
   using DLayout = Col;
+  using ELayout = Col;
 #endif
 
 
@@ -170,23 +159,93 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   using BElementOp = PassThrough;
   using CDEElementOp = AlphaBetaAdd;
 
-
-  static constexpr auto GemmDefault =
-      ck::tensor_operation::device::GemmSpecialization::Default;
+  // LET'S ASSUME PADDING FOR NOW SINCE THAT'S WHAT THE EXAMPLE IS DOING
+//  static constexpr auto GemmDefault =
+//      ck::tensor_operation::device::GemmSpecialization::Default;
   static constexpr auto GemmMNKPadding =
       ck::tensor_operation::device::GemmSpecialization::MNKPadding;
   //static constexpr auto GemmSpec = PADDING ? GemmMNKPadding : GemmDefault;
   static constexpr auto GemmSpec = GemmMNKPadding;
   // Define derivative constants based on template parameters.
+
+
+  //Revisit these at the end based on rules
   static constexpr int BLOCK_CLUSTER = BLOCK_SIZE / 4;
   static constexpr int CBLOCK_N = NBLOCK / 16;
   static constexpr int CBLOCK_M = BLOCK_SIZE / CBLOCK_N;
+  using DeviceGemmInstance =
+    ck::tensor_operation::device::DeviceGemmMultipleD_Xdl_CShuffle<ALayout,
+                                                                   BLayout,
+                                                                   ck::Tuple<DLayout>,
+                                                                   ELayout,
+                                                                   ADataType,
+                                                                   BDataType,
+                                                                   AccDataType,
+                                                                   CShuffleDataType,
+                                                                   ck::Tuple<DDataType>,
+                                                                   EDataType,
+                                                                   AElementOp,
+                                                                   BElementOp,
+                                                                   CDEElementOp,
+                                                                   GemmSpec,
+                                                                   1,
+                                                                   256,
+                                                                   256,
+                                                                   128,
+                                                                   32,
+                                                                   8,
+                                                                   8,
+                                                                   32,
+                                                                   32,
+                                                                   4,
+                                                                   2,
+                                                                   S<4, 64, 1>,
+                                                                   S<1, 0, 2>,
+                                                                   S<1, 0, 2>,
+                                                                   2,
+                                                                   8,
+                                                                   8,
+                                                                   1,
+                                                                   S<4, 64, 1>,
+                                                                   S<1, 0, 2>,
+                                                                   S<1, 0, 2>,
+                                                                   2,
+                                                                   8,
+                                                                   8,
+                                                                   1,
+                                                                   1,
+                                                                   1,
+                                                                   S<1, 32, 1, 8>,
+                                                                   8>;
 
 
-  static constexpr auto LoopSched = ck::make_default_loop_scheduler();
+  auto gemm = DeviceGemmInstance{};
+  auto invoker = gemm.MakeInvoker();
+
+  auto a_element_op = AElementOp{};
+  auto b_element_op = BElementOp{};
+  auto cde_element_op = CDEElementOp{falpha, fbeta};
+
+  using DDataArrayType = std::array<const void*, 1>;
+  DDataArrayType DDataArray;
 
 
+  auto argument = gemm.MakeArgument(
+     std::array<const void*, 1>{reinterpret_cast<const void*>(a)},
+     std::array<const void*, 1>{reinterpret_cast<const void*>(b)},
+     DDataArray,
+     reinterpret_cast<void*>(c),
+     M,
+     N,
+     K,
+     std::array<ck::index_t, 1>{StrideA},
+     std::array<ck::index_t, 1>{StrideB},
+      std::array<ck::index_t, 1>{StrideD},
+  );
 
+
+#if 0
+// OLD STUFF USING ABD
   using DeviceGemmV2Instance =
       ck::tensor_operation::device::DeviceGemmMultipleABD_Xdl_CShuffle<
           ck::Tuple<ALayout>,// ALayout
@@ -219,7 +278,7 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
           S<1, 0, 2>, 				// ABlockTransferSrcAccessOrder
           2,						// ABlockTransferSrcVectorDim
           8,						// ABlockTransferSrcScalarPerVector
-          8,						// ABlockTransferDstScalarPerVector_AK1
+          16,						// ABlockTransferDstScalarPerVector_AK1
           1,						// ABlockLdsExtraM
           S<4, BLOCK_CLUSTER, 1>,	// BBlockTransferThreadClusterLengths_BK0_N_BK1
           S<1, 0, 2>,				// BBlockTransferThreadClusterArrangeOrder
@@ -243,10 +302,9 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   auto cde_element_op = CDEElementOp{falpha, fbeta};
 
   using DDataArrayType = std::array<const void*, 1>;
-  using DStrideArrayType = std::array<ck::index_t, 0>;
-
   DDataArrayType DDataArray;
-  DStrideArrayType DStrideArray;
+
+
   auto arguments = gemm.MakeArgument(
       std::array<const void*, 1>{reinterpret_cast<const void*>(a)},
       std::array<const void*, 1>{reinterpret_cast<const void*>(b)},
@@ -264,9 +322,18 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
       cde_element_op);
 
   auto stream = at::cuda::getCurrentHIPStream().stream();
-  invoker.Run(arguments, StreamConfig{stream, false});
-
+  //invoker.Run(arguments, StreamConfig{stream, false});
+#endif
 }
+
+
+
+
+
+
+
+
+
 
 #if 0
     int BLOCK_SIZE,
