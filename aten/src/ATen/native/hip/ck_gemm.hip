@@ -125,6 +125,7 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   int StrideB = ldb;
   int StrideC = ldc;
   int StrideD = N;
+  int StrideE = N;
 
   float falpha = alpha;
   float fbeta = beta;
@@ -146,12 +147,18 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   using BLayout = Col;
   using DLayout = Row;
   using CLayout = Row;
-#else
+//#else
   using ALayout = Col;
   using BLayout = Col;
-  using DLayout = Col;
-  using ELayout = Col;
+  using DLayout = Row;
+  using ELayout = Row;
 #endif
+
+  using ALayout = std::conditional_t<(transa == 'n' || transa == 'N'), Col, Row>;
+  using BLayout = std::conditional_t<(transb == 'n' || transb == 'N'), Col, Row>;
+  using DLayout = Row;
+  using ELayout = Row;
+
 
 
   // These element ops will probably need to change
@@ -193,30 +200,30 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
                                                                    256,
                                                                    128,
                                                                    32,
-                                                                   8,
-                                                                   8,
+                                                                   4,
+                                                                   4,
                                                                    32,
                                                                    32,
                                                                    4,
                                                                    2,
-                                                                   S<4, 64, 1>,
+                                                                   S<8, 32, 1>,
                                                                    S<1, 0, 2>,
                                                                    S<1, 0, 2>,
                                                                    2,
-                                                                   8,
-                                                                   8,
+                                                                   4,
+                                                                   4,
                                                                    1,
-                                                                   S<4, 64, 1>,
+                                                                   S<8, 32, 1>,
                                                                    S<1, 0, 2>,
                                                                    S<1, 0, 2>,
                                                                    2,
-                                                                   8,
-                                                                   8,
+                                                                   4,
+                                                                   4,
                                                                    1,
                                                                    1,
                                                                    1,
                                                                    S<1, 32, 1, 8>,
-                                                                   8>;
+                                                                   4>;
 
 
   auto gemm = DeviceGemmInstance{};
@@ -240,8 +247,21 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
      K,
      std::array<ck::index_t, 1>{StrideA},
      std::array<ck::index_t, 1>{StrideB},
-      std::array<ck::index_t, 1>{StrideD},
-  );
+     std::array<ck::index_t, 1>{StrideD},
+     std::array<ck::index_t, 1>{StrideE},
+     a_element_op,
+     b_element_op,
+     cde_element_op);
+
+ if(!device_op.IsSupportedArgument(argument))
+ {
+        throw std::runtime_error(
+            "wrong! device_gemm with the specified compilation parameters does "
+            "not support this GEMM problem");
+ }
+
+ auto stream = at::cuda::getCurrentHIPStream().stream();
+ invoker.Run(arguments, StreamConfig{stream, false});
 
 
 #if 0
