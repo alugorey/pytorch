@@ -83,14 +83,14 @@ struct AlphaBetaAdd
 {
   AlphaBetaAdd(float alpha, float beta) : alpha_(alpha), beta_(beta){};
 
-  template <typename E, typename C, typename D>
-  __host__ __device__ constexpr void operator()(E& e, const C& c, const D& d) const;
+  template <typename E, typename C>
+  __host__ __device__ constexpr void operator()(E& e, const C& c) const;
 
   template<>
-  __host__ __device__ constexpr void operator()<float, float, float>
-    (float& e, const float& c, const float& d) const
+  __host__ __device__ constexpr void operator()<float, float>
+    (float& e, const float& c) const
     {
-      e = alpha_ * c + beta_ * d;
+      e = alpha_ * c;
     };
 
     float alpha_;
@@ -133,7 +133,8 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
 
   using ADataType = typename CkMathType<Dtype>::dtype;
   using BDataType = typename CkMathType<Dtype>::dtype;
-  using DDataType = typename CkMathType<Dtype>::dtype;
+  //using DDataType = typename CkMathType<Dtype>::dtype;
+  using DDataType = ck::Tuple<>;
   using EDataType = typename CkMathType<Dtype>::dtype;
 
 
@@ -166,7 +167,7 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
 
   using ALayout = Row;
   using BLayout = Col;
-  using DLayout = Row;
+  using DLayout = ck::Tuple<>;
   using ELayout = Row;
 
   std::cout << std::endl;
@@ -245,7 +246,7 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   auto b_element_op = BElementOp{};
   auto cde_element_op = CDEElementOp{alpha, beta};
 
-  using DDataArrayType = std::array<const void*, 0>;
+  using DDataArrayType = std::array<const void*, 1>;
   using DStrideArrayType = std::array<ck::index_t, 0>;
 
   DDataArrayType DDataArray;
