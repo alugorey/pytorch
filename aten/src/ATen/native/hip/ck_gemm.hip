@@ -154,25 +154,37 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   using ELayout = Row;
 #endif
 
-  using ALayout = std::conditional_t<(transa == 'n' || transa == 'N'), Col, Row>;
-  using BLayout = std::conditional_t<(transb == 'n' || transb == 'N'), Col, Row>;
+
+  // TODO this needs to probably do another template thing similar to CKMathType because std::optional
+  // expects the expression to be constant i.e. discernable at compile time.
+  //using ALayout = std::conditional<(transa == 'n' || transa == 'N'), Col, Row>::type;
+  //using BLayout = std::conditional<(transb == 'n' || transb == 'N'), Col, Row>::type;
+
+  // NOTE: in our example, transa = t and transb = n;
+  // since default for cublas is Column-major, since the value is T, ALayout is Row
+  // same for B. transb = N = NO Transpose so B is column Major
+
+  using ALayout = Row;
+  using BLayout = Col;
   using DLayout = Row;
   using ELayout = Row;
 
-
+  std::cout << std::endl;
+  std::cout << "TRANSA: " << transa << std::endl;
+  std::cout << "TRANSB: " << transb << std::endl;
+  std::cout << std::endl;
 
   // These element ops will probably need to change
   using AElementOp = PassThrough;
   using BElementOp = PassThrough;
   using CDEElementOp = AlphaBetaAdd;
 
-  // LET'S ASSUME PADDING FOR NOW SINCE THAT'S WHAT THE EXAMPLE IS DOING
-//  static constexpr auto GemmDefault =
-//      ck::tensor_operation::device::GemmSpecialization::Default;
+  static constexpr auto GemmDefault =
+      ck::tensor_operation::device::GemmSpecialization::Default;
   static constexpr auto GemmMNKPadding =
       ck::tensor_operation::device::GemmSpecialization::MNKPadding;
-  //static constexpr auto GemmSpec = PADDING ? GemmMNKPadding : GemmDefault;
-  static constexpr auto GemmSpec = GemmMNKPadding;
+  static constexpr auto GemmSpec = PADDING ? GemmMNKPadding : GemmDefault;
+  //static constexpr auto GemmSpec = GemmDefault;
   // Define derivative constants based on template parameters.
 
 
@@ -231,37 +243,42 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
 
   auto a_element_op = AElementOp{};
   auto b_element_op = BElementOp{};
-  auto cde_element_op = CDEElementOp{falpha, fbeta};
+  auto cde_element_op = CDEElementOp{alpha, beta};
 
   using DDataArrayType = std::array<const void*, 1>;
   DDataArrayType DDataArray;
 
 
   auto argument = gemm.MakeArgument(
-     std::array<const void*, 1>{reinterpret_cast<const void*>(a)},
-     std::array<const void*, 1>{reinterpret_cast<const void*>(b)},
+     reinterpret_cast<const void*>(a),
+     reinterpret_cast<const void*>(b),
      DDataArray,
      reinterpret_cast<void*>(c),
      M,
      N,
      K,
-     std::array<ck::index_t, 1>{StrideA},
-     std::array<ck::index_t, 1>{StrideB},
+     StrideA,
+     StrideB,
      std::array<ck::index_t, 1>{StrideD},
-     std::array<ck::index_t, 1>{StrideE},
+     StrideE,
      a_element_op,
      b_element_op,
      cde_element_op);
 
- if(!device_op.IsSupportedArgument(argument))
+// This block prevents a device side memfault
+
+ if(!gemm.IsSupportedArgument(argument))
  {
         throw std::runtime_error(
             "wrong! device_gemm with the specified compilation parameters does "
             "not support this GEMM problem");
  }
 
+
  auto stream = at::cuda::getCurrentHIPStream().stream();
- invoker.Run(arguments, StreamConfig{stream, false});
+ std::cout << "before Run" << std::endl;
+ invoker.Run(argument, StreamConfig{stream, false});
+ std::cout << "after Run" << std::endl;
 
 
 #if 0
@@ -368,7 +385,6 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
     bool PADDING = false>
 #endif
 void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
-  std::cout << "CHECKPOINT 0" << std::endl;
   // If any of the shapes cant be tiled, we must use padding.
   bool use_padding = ((m % 256 != 0) || (n % 128 != 0) || (k % 64 != 0));
   std::cout << "M: " << m << std::endl;
@@ -377,7 +393,6 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
   // Dispatch to best implementation. TODO add more configurations.
   if (use_padding) {
     if (m <= 128) {
-	  std::cout << "CHECKPOINT ALPHA" << std::endl;
       float_gemm_impl<float, 256, 128, 64, 32, 32, 32, 2, 1, 1, true>(CUDABLAS_GEMM_ARGS(float));
 #if 0
     // as float type, get error: local memory (98304) exceeds limit (65536)
@@ -385,13 +400,11 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
       float_gemm_impl<float, 256, 256, 128, 64, 16, 16, 8, 4, 2, true>(CUDABLAS_GEMM_ARGS(float));
 #endif
     } else {
-	  std::cout << "CHECKPOINT BETA" << std::endl;
 
 	  // local memory exceeds error
       //float_gemm_impl<float, 256, 256, 128, 64, 16, 16, 8, 4, 2, true>(CUDABLAS_GEMM_ARGS(float));
 
 	  float_gemm_impl<float, 256, 256, 128, 32, 32, 32, 4, 2, 1, true>(CUDABLAS_GEMM_ARGS(float));
-	  std::cout << "BACK FROM BETA" << std::endl;
     }
   } else {
 #if 0
@@ -401,7 +414,6 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
     } else
 #endif
     {
-	  std::cout << "CHECKPOINT GAMMA" << std::endl;
       float_gemm_impl<float, 256, 128, 128, 64, 16, 16, 4, 4, 2, false>(CUDABLAS_GEMM_ARGS(float));
     }
   }
