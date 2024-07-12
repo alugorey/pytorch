@@ -245,9 +245,11 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   auto b_element_op = BElementOp{};
   auto cde_element_op = CDEElementOp{alpha, beta};
 
-  using DDataArrayType = std::array<const void*, 1>;
-  DDataArrayType DDataArray;
+  using DDataArrayType = std::array<const void*, 0>;
+  using DStrideArrayType = std::array<ck::index_t, 0>;
 
+  DDataArrayType DDataArray;
+  DStrideArrayType DStrideArray;
 
   auto argument = gemm.MakeArgument(
      reinterpret_cast<const void*>(a),
@@ -259,7 +261,7 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
      K,
      StrideA,
      StrideB,
-     std::array<ck::index_t, 1>{StrideD},
+     DStrideArray,
      StrideE,
      a_element_op,
      b_element_op,
