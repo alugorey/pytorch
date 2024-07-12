@@ -154,8 +154,13 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   using ELayout = Row;
 #endif
 
-  using ALayout = std::conditional_t<(transa == 'n' || transa == 'N'), Col, Row>;
-  using BLayout = std::conditional_t<(transb == 'n' || transb == 'N'), Col, Row>;
+
+  // TODO this needs to probably do another template thing similar to CKMathType because std::optional
+  // expects the expression to be constant i.e. discernable at compile time.
+  //using ALayout = std::conditional<(transa == 'n' || transa == 'N'), Col, Row>::type;
+  //using BLayout = std::conditional<(transb == 'n' || transb == 'N'), Col, Row>::type;
+  using ALayout = Col;
+  using BLayout = Col;
   using DLayout = Row;
   using ELayout = Row;
 
@@ -238,22 +243,22 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
 
 
   auto argument = gemm.MakeArgument(
-     std::array<const void*, 1>{reinterpret_cast<const void*>(a)},
-     std::array<const void*, 1>{reinterpret_cast<const void*>(b)},
+     reinterpret_cast<const void*>(a),
+     reinterpret_cast<const void*>(b),
      DDataArray,
      reinterpret_cast<void*>(c),
      M,
      N,
      K,
-     std::array<ck::index_t, 1>{StrideA},
-     std::array<ck::index_t, 1>{StrideB},
+     StrideA,
+     StrideB,
      std::array<ck::index_t, 1>{StrideD},
-     std::array<ck::index_t, 1>{StrideE},
+     StrideE,
      a_element_op,
      b_element_op,
      cde_element_op);
 
- if(!device_op.IsSupportedArgument(argument))
+ if(!gemm.IsSupportedArgument(argument))
  {
         throw std::runtime_error(
             "wrong! device_gemm with the specified compilation parameters does "
@@ -261,7 +266,7 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
  }
 
  auto stream = at::cuda::getCurrentHIPStream().stream();
- invoker.Run(arguments, StreamConfig{stream, false});
+ invoker.Run(argument, StreamConfig{stream, false});
 
 
 #if 0
