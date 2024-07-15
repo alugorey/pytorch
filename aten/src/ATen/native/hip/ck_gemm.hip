@@ -79,38 +79,17 @@ struct CkMathType<at::Half> {
   using dtype = ck::half_t;
 };
 
-#if 0
 // Elementwise Operators
 struct AlphaBetaAdd
 {
   AlphaBetaAdd(float alpha, float beta) : alpha_(alpha), beta_(beta){};
 
-  template <typename E, typename C, typename D>
-  __host__ __device__ constexpr void operator()(E& e, const C& c, const D& d) const;
+  template <typename E, typename C>
+  __host__ __device__ constexpr void operator()(E& e, const C& c) const;
 
   template<>
-  __host__ __device__ constexpr void operator()<float, float, float>
-    (float& e, const float& c, const float& d) const
-    {
-      e = alpha_ * c + beta_ * d;
-    };
-
-    float alpha_;
-    float beta_;
-};
-
-#endif
-// Elementwise Operators
-struct AlphaBetaAdd
-{
-  AlphaBetaAdd(float alpha, float beta) : alpha_(alpha), beta_(beta){};
-
-  template <typename E, typename C, typename D>
-  __host__ __device__ constexpr void operator()(E& e, const C& c, const D& d) const;
-
-  template<>
-  __host__ __device__ constexpr void operator()<float, float, float>
-    (float& e, const float& c, const float& d) const
+  __host__ __device__ constexpr void operator()<float, float>
+    (float& e, const float& c) const
     {
       e = alpha_ * c;
     };
@@ -118,7 +97,6 @@ struct AlphaBetaAdd
     float alpha_;
     float beta_;
 };
-
 
 template <
     typename Dtype,
@@ -204,24 +182,22 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   static constexpr auto GemmMNKPadding =
       ck::tensor_operation::device::GemmSpecialization::MNKPadding;
   static constexpr auto GemmSpec = PADDING ? GemmMNKPadding : GemmDefault;
-  //static constexpr auto GemmSpec = GemmDefault;
-  // Define derivative constants based on template parameters.
 
 
-  //Revisit these at the end based on rules
   static constexpr int BLOCK_CLUSTER = BLOCK_SIZE / 4;
   static constexpr int CBLOCK_N = NBLOCK / 16;
   static constexpr int CBLOCK_M = BLOCK_SIZE / CBLOCK_N;
+  // TODO: use template parameters instead of constants
   using DeviceGemmInstance =
     ck::tensor_operation::device::DeviceGemmMultipleD_Xdl_CShuffle<ALayout,
                                                                    BLayout,
-                                                                   ck::Tuple<DLayout>,
+                                                                   ck::Tuple<>,
                                                                    ELayout,
                                                                    ADataType,
                                                                    BDataType,
                                                                    AccDataType,
                                                                    CShuffleDataType,
-                                                                   ck::Tuple<DDataType>,
+                                                                   ck::Tuple<>,
                                                                    EDataType,
                                                                    AElementOp,
                                                                    BElementOp,
@@ -265,9 +241,8 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   auto b_element_op = BElementOp{};
   auto cde_element_op = CDEElementOp{alpha, beta};
 
-  using DDataArrayType = std::array<const void*, 1>;
+  using DDataArrayType = std::array<const void*, 0>;
   DDataArrayType DDataArray;
-
 
 
 
@@ -281,13 +256,12 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
      K,
      StrideA,
      StrideB,
-     std::array<ck::index_t, 1>{StrideD},
+     std::array<ck::index_t, 0>{},
      StrideE,
      a_element_op,
      b_element_op,
      cde_element_op);
 
-// This block prevents a device side memfault
 
  if(!gemm.IsSupportedArgument(argument))
  {
@@ -303,6 +277,8 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
  std::cout << "after Run" << std::endl;
 
 
+
+// TODO Delete this stuff when no longer used as reference
 #if 0
 // OLD STUFF USING ABD
   using DeviceGemmV2Instance =
