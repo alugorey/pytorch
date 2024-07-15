@@ -11,6 +11,8 @@
 #include <iostream>
 #include <numeric>
 
+#include <stdio.h>
+
 #undef __HIP_NO_HALF_CONVERSIONS__
 
 #include <ATen/ATen.h>
@@ -77,7 +79,7 @@ struct CkMathType<at::Half> {
   using dtype = ck::half_t;
 };
 
-
+#if 0
 // Elementwise Operators
 struct AlphaBetaAdd
 {
@@ -97,7 +99,25 @@ struct AlphaBetaAdd
     float beta_;
 };
 
+#endif
+// Elementwise Operators
+struct AlphaBetaAdd
+{
+  AlphaBetaAdd(float alpha, float beta) : alpha_(alpha), beta_(beta){};
 
+  template <typename E, typename C, typename D>
+  __host__ __device__ constexpr void operator()(E& e, const C& c, const D& d) const;
+
+  template<>
+  __host__ __device__ constexpr void operator()<float, float, float>
+    (float& e, const float& c, const float& d) const
+    {
+      e = alpha_ * c;
+    };
+
+    float alpha_;
+    float beta_;
+};
 
 
 template <
@@ -247,6 +267,8 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
 
   using DDataArrayType = std::array<const void*, 1>;
   DDataArrayType DDataArray;
+
+
 
 
   auto argument = gemm.MakeArgument(
