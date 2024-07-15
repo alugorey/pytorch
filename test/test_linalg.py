@@ -8040,13 +8040,36 @@ scipy_lobpcg  | {eq_err_scipy:10.2e}  | {eq_err_general_scipy:10.2e}  | {iters2:
     @unittest.skipIf(not blaslt_supported_device(), "blasLt not supported on current device")
     @setBlasBackendsToDefaultFinally
     def test_ck_blas_library(self):
-
+        '''
         m1 = torch.randint(2, 5, (7168, 8192), device='cuda', dtype=torch.float)
-        m2 = torch.randint(2, 5, (1280, 8192), device='cuda', dtype=torch.float)
+        m2 = torch.randint(2, 5, (8192, 1280), device='cuda', dtype=torch.float)
+        
+
+        m1 = torch.full((4, 4), 2000, device='cuda', dtype=torch.float)
+        m2 = torch.full((4, 4), 2000, device='cuda', dtype=torch.float)
+
+
+        '''
+        m1 = torch.randint(2,5,(4, 4), device='cuda', dtype=torch.float)
+        m2 = torch.randint(2,5,(4, 4), device='cuda', dtype=torch.float)
+
+        print(m1)
+        print(m2)
         torch.backends.cuda.preferred_blas_library('ck')
         ck_out = torch.nn.functional.linear(m1, m2)
 
         cpu_out = torch.nn.functional.linear(m1.cpu(), m2.cpu())
+        print("RESULTS!")
+
+        print("")
+        print("EXPECTED")
+        print(cpu_out)
+
+        print("")
+        print("ACTUAL")
+        print(ck_out)
+
+
 
         self.assertEqual(ck_out, cpu_out)
 

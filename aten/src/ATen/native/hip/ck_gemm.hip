@@ -104,6 +104,8 @@ template <
     int MBLOCK,
     int NBLOCK,
     int KBLOCK,
+    int AK1,
+    int BK1,
     int MPER_XDL,
     int NPER_XDL,
     int MPER_WAVE,
@@ -127,6 +129,9 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
 
   float falpha = alpha;
   float fbeta = beta;
+
+  std::cout << "ALPHA: " << falpha << std::endl;
+  std::cout << "BETA: " << fbeta << std::endl;
 
 
   using ADataType = typename CkMathType<Dtype>::dtype;
@@ -391,7 +396,8 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
   // Dispatch to best implementation. TODO add more configurations.
   if (use_padding) {
     if (m <= 128) {
-      float_gemm_impl<float, 256, 128, 64, 32, 32, 32, 2, 1, 1, true>(CUDABLAS_GEMM_ARGS(float));
+	  std::cout << "SMALL VERSION" << std::endl;
+      float_gemm_impl<float, 256, 256, 128, 32,4,4, 32, 32, 4, 2, 1, true>(CUDABLAS_GEMM_ARGS(float));
 #if 0
     // as float type, get error: local memory (98304) exceeds limit (65536)
     } else if ((m >= 8192 && n >= 4096) || (n >= 8192 && m >= 4096)) {
@@ -401,8 +407,8 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
 
 	  // local memory exceeds error
       //float_gemm_impl<float, 256, 256, 128, 64, 16, 16, 8, 4, 2, true>(CUDABLAS_GEMM_ARGS(float));
-
-	  float_gemm_impl<float, 256, 256, 128, 32, 32, 32, 4, 2, 1, true>(CUDABLAS_GEMM_ARGS(float));
+	  std::cout << "BIG VERSION" << std::endl;
+	  float_gemm_impl<float, 256, 256, 128, 32,4,4, 32, 32, 4, 2, 1, true>(CUDABLAS_GEMM_ARGS(float));
     }
   } else {
 #if 0
@@ -412,6 +418,7 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
     } else
 #endif
     {
+	  std::cout << "LAST VERSION" << std::endl;
       float_gemm_impl<float, 256, 128, 128, 64, 16, 16, 4, 4, 2, false>(CUDABLAS_GEMM_ARGS(float));
     }
   }
