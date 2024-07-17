@@ -37,8 +37,8 @@
 #include "ck/library/utility/literals.hpp"
 
 //#include "ck/tensor_operation/gpu/device/impl/device_gemm_multiple_abd_xdl_cshuffle.hpp"
-#include "ck/tensor_operation/gpu/device/impl/device_gemm_multiple_d_xdl_cshuffle.hpp"
-
+//#include "ck/tensor_operation/gpu/device/impl/device_gemm_multiple_d_xdl_cshuffle.hpp"
+#include "ck/tensor_operation/gpu/device/impl/device_gemm_multiple_d_xdl_cshuffle_v3.hpp"
 // Define commonly used types.
 template <ck::index_t... Is>
 using S = ck::Sequence<Is...>;
@@ -124,8 +124,6 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   int StrideA = lda;
   int StrideB = ldb;
   int StrideC = ldc;
-  int StrideD = N;
-  int StrideE = N;
 
   float falpha = alpha;
   float fbeta = beta;
@@ -136,8 +134,8 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
 
   using ADataType = typename CkMathType<Dtype>::dtype;
   using BDataType = typename CkMathType<Dtype>::dtype;
+  using CDataType = typename CkMathType<Dtype>::dtype;
   using DDataType = typename CkMathType<Dtype>::dtype;
-  using EDataType = typename CkMathType<Dtype>::dtype;
 
 
   using AccDataType = float;
@@ -170,7 +168,7 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   using ALayout = Row;
   using BLayout = Col;
   using DLayout = Row;
-  using ELayout = Row;
+  using CLayout = Row;
 
   std::cout << std::endl;
   std::cout << "TRANSA: " << transa << std::endl;
@@ -180,7 +178,7 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   // These element ops will probably need to change
   using AElementOp = PassThrough;
   using BElementOp = PassThrough;
-  using CDEElementOp = AlphaBetaAdd;
+  using CElementOp = AlphaBetaAdd;
 
   static constexpr auto GemmDefault =
       ck::tensor_operation::device::GemmSpecialization::Default;
@@ -194,21 +192,20 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   static constexpr int CBLOCK_M = BLOCK_SIZE / CBLOCK_N;
   // TODO: use template parameters instead of constants
   using DeviceGemmInstance =
-    ck::tensor_operation::device::DeviceGemmMultipleD_Xdl_CShuffle<ALayout,
+    ck::tensor_operation::device::DeviceGemmMultiD_Xdl_CShuffle_V3<ALayout,
                                                                    BLayout,
                                                                    ck::Tuple<>,
-                                                                   ELayout,
+                                                                   CLayout,
                                                                    ADataType,
                                                                    BDataType,
+                                                                   ck::Tuple<>,
+																   CDataType,
                                                                    AccDataType,
                                                                    CShuffleDataType,
-                                                                   ck::Tuple<>,
-                                                                   EDataType,
                                                                    AElementOp,
                                                                    BElementOp,
-                                                                   CDEElementOp,
+                                                                   CElementOp,
                                                                    GemmSpec,
-                                                                   1,
                                                                    256,
                                                                    256,
                                                                    128,
@@ -225,18 +222,18 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
                                                                    2,
                                                                    4,
                                                                    4,
-                                                                   1,
+                                                                   0,
                                                                    S<8, 32, 1>,
                                                                    S<1, 0, 2>,
                                                                    S<1, 0, 2>,
                                                                    2,
                                                                    4,
                                                                    4,
-                                                                   1,
+                                                                   0,
                                                                    1,
                                                                    1,
                                                                    S<1, 32, 1, 8>,
-                                                                   4>;
+                                                                   S<4>>;
 
 
   auto gemm = DeviceGemmInstance{};
@@ -244,28 +241,29 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
 
   auto a_element_op = AElementOp{};
   auto b_element_op = BElementOp{};
-  auto cde_element_op = CDEElementOp{alpha, beta};
+  auto c_element_op = CElementOp{alpha, beta};
 
   using DDataArrayType = std::array<const void*, 0>;
   DDataArrayType DDataArray;
 
 
-
+  // Note: Since CK only supports row-major output, we swap A and B inputs here
+  // as a workaround
   auto argument = gemm.MakeArgument(
-     reinterpret_cast<const void*>(a),
      reinterpret_cast<const void*>(b),
+     reinterpret_cast<const void*>(a),
      DDataArray,
      reinterpret_cast<void*>(c),
-     M,
      N,
+     M,
      K,
-     StrideA,
      StrideB,
+     StrideA,
      std::array<ck::index_t, 0>{},
-     StrideE,
+     StrideC,
      a_element_op,
      b_element_op,
-     cde_element_op);
+     c_element_op);
 
 
  if(!gemm.IsSupportedArgument(argument))
@@ -277,116 +275,12 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
 
 
  auto stream = at::cuda::getCurrentHIPStream().stream();
- std::cout << "before Run" << std::endl;
  invoker.Run(argument, StreamConfig{stream, false});
- std::cout << "after Run" << std::endl;
 
 
 
-// TODO Delete this stuff when no longer used as reference
-#if 0
-// OLD STUFF USING ABD
-  using DeviceGemmV2Instance =
-      ck::tensor_operation::device::DeviceGemmMultipleABD_Xdl_CShuffle<
-          ck::Tuple<ALayout>,// ALayout
-          ck::Tuple<BLayout>,		// BLayout
-          ck::Tuple<DLayout>,		// DLayout
-          CLayout,					// CLayout
-          ck::Tuple<ADataType>,	// ADataType
-          ck::Tuple<BDataType>,				// BDataType
-          AccDataType,				// AccDataType
-          CShuffleDataType,			// CShuffleDataType
-          ck::Tuple<DDataType>,		// DDataType
-          CDataType,				// CDataType
-          AElementOp,				// AElementOp
-          BElementOp,				// BElementOp
-          CDEElementOp,				// CDEElementOp
-          GemmSpec,					// GemmSpec
-          1,						// Prefetch stage
-          BLOCK_SIZE,				// BLOCK_SIZE
-          MBLOCK,					// MBLOCK
-          NBLOCK,					// NBLOCK
-          KBLOCK,					// KBLOCK
-          8, 						// AK1
-          8, 						// BK1
-          MPER_XDL,					// MPerXDL
-          NPER_XDL,					// NPerXDL
-          MPER_WAVE, 				// MXdlPerWave
-          NPER_WAVE, 				// NXdlPerWave
-          S<4, BLOCK_CLUSTER, 1>, 	// ABlockTransferThreadClusterLengths_AK0_M_AK1
-          S<1, 0, 2>, 				// ABlockTransferThreadClusterOrder
-          S<1, 0, 2>, 				// ABlockTransferSrcAccessOrder
-          2,						// ABlockTransferSrcVectorDim
-          8,						// ABlockTransferSrcScalarPerVector
-          16,						// ABlockTransferDstScalarPerVector_AK1
-          1,						// ABlockLdsExtraM
-          S<4, BLOCK_CLUSTER, 1>,	// BBlockTransferThreadClusterLengths_BK0_N_BK1
-          S<1, 0, 2>,				// BBlockTransferThreadClusterArrangeOrder
-          S<1, 0, 2>,				// BBlockTransferSrcAccessOrder
-          1,						// BBlockTransferSrcVectorDim
-          2,						// BBlockTransferSrcScalarPerVector
-          8,						// BBlockTransferDstScalarPerVector_BK1
-          1,						// BBlockLdsExtraN
-          1,						// CShuffleMXdlPerWavePerShuffle
-          1,						// CShuffleNXdlPerWavePerShuffle
-          S<1, CBLOCK_M, 1, CBLOCK_N>, // CShuffleBlockTransferClusterLengths_MBlock_MPerBlock_NBlock_NPerBlock
-          8>;						// CShuffleBlockTransferScalarPerVector_NPerBlock
-
-
-  // Create gemm launcher and arguments.
-  auto gemm = DeviceGemmV2Instance{};
-  auto invoker = gemm.MakeInvoker();
-
-  auto a_element_op = AElementOp{};
-  auto b_element_op = BElementOp{};
-  auto cde_element_op = CDEElementOp{falpha, fbeta};
-
-  using DDataArrayType = std::array<const void*, 1>;
-  DDataArrayType DDataArray;
-
-
-  auto arguments = gemm.MakeArgument(
-      std::array<const void*, 1>{reinterpret_cast<const void*>(a)},
-      std::array<const void*, 1>{reinterpret_cast<const void*>(b)},
-      DDataArray,
-      reinterpret_cast<void*>(c),
-      M,
-      N,
-      K,
-      std::array<ck::index_t, 1>{StrideA},
-      std::array<ck::index_t, 1>{StrideB},
-      std::array<ck::index_t, 1>{StrideD},
-      StrideC,
-      a_element_op,
-      b_element_op,
-      cde_element_op);
-
-  auto stream = at::cuda::getCurrentHIPStream().stream();
-  //invoker.Run(arguments, StreamConfig{stream, false});
-#endif
 }
 
-
-
-
-
-
-
-
-
-
-#if 0
-    int BLOCK_SIZE,
-    int MBLOCK,
-    int NBLOCK,
-    int KBLOCK,
-    int MPER_XDL,
-    int NPER_XDL,
-    int MPER_WAVE,
-    int NPER_WAVE,
-    int CNPER_WAVE = 1,
-    bool PADDING = false>
-#endif
 void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
   // If any of the shapes cant be tiled, we must use padding.
   bool use_padding = ((m % 256 != 0) || (n % 128 != 0) || (k % 64 != 0));
@@ -396,29 +290,12 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
   // Dispatch to best implementation. TODO add more configurations.
   if (use_padding) {
     if (m <= 128) {
-	  std::cout << "SMALL VERSION" << std::endl;
       float_gemm_impl<float, 256, 256, 128, 32,4,4, 32, 32, 4, 2, 1, true>(CUDABLAS_GEMM_ARGS(float));
-#if 0
-    // as float type, get error: local memory (98304) exceeds limit (65536)
-    } else if ((m >= 8192 && n >= 4096) || (n >= 8192 && m >= 4096)) {
-      float_gemm_impl<float, 256, 256, 128, 64, 16, 16, 8, 4, 2, true>(CUDABLAS_GEMM_ARGS(float));
-#endif
     } else {
-
-	  // local memory exceeds error
-      //float_gemm_impl<float, 256, 256, 128, 64, 16, 16, 8, 4, 2, true>(CUDABLAS_GEMM_ARGS(float));
-	  std::cout << "BIG VERSION" << std::endl;
-	  float_gemm_impl<float, 256, 256, 128, 32,4,4, 32, 32, 4, 2, 1, true>(CUDABLAS_GEMM_ARGS(float));
+      float_gemm_impl<float, 256, 256, 128, 32,4,4, 32, 32, 4, 2, 1, true>(CUDABLAS_GEMM_ARGS(float));
     }
   } else {
-#if 0
-    // as float type, get error: local memory (98304) exceeds limit (65536)
-    if ((m >= 8192 && n >= 4096) || (n >= 8192 && m >= 4096)) {
-      float_gemm_impl<float, 256, 256, 128, 64, 16, 16, 8, 4, 2, false>(CUDABLAS_GEMM_ARGS(float));
-    } else
-#endif
     {
-	  std::cout << "LAST VERSION" << std::endl;
       float_gemm_impl<float, 256, 128, 128, 64, 16, 16, 4, 4, 2, false>(CUDABLAS_GEMM_ARGS(float));
     }
   }
@@ -426,7 +303,6 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
 
 template <>
 void gemm_internal_ck<float>(CUDABLAS_GEMM_ARGTYPES(float)) {
-  std::cout << "ENTRY CHECKPOINT" << std::endl;
   dispatch_float_gemm(CUDABLAS_GEMM_ARGS(float));
 }
 
