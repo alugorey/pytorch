@@ -24,7 +24,6 @@
 #include "ck/tensor_operation/gpu/device/tensor_layout.hpp"
 #include "ck/tensor_operation/gpu/element/element_wise_operation.hpp"
 #include "ck/utility/data_type.hpp"
-#include "ck/utility/loop_scheduler.hpp"
 
 #include "ck/library/reference_tensor_operation/cpu/reference_gemm.hpp"
 #include "ck/library/utility/check_err.hpp"
@@ -35,6 +34,7 @@
 #include "ck/library/utility/literals.hpp"
 
 #include "ck/tensor_operation/gpu/device/impl/device_gemm_multiple_d_xdl_cshuffle_v3.hpp"
+
 // Define commonly used types.
 template <ck::index_t... Is>
 using S = ck::Sequence<Is...>;
@@ -80,17 +80,18 @@ struct AlphaBetaAdd
 {
   AlphaBetaAdd(float alpha, float beta) : alpha_(alpha), beta_(beta){};
 
-  template <typename E, typename C>
-  __host__ __device__ constexpr void operator()(E& e, const C& c) const;
+  template <typename C, typename AB>
+  __host__ __device__ constexpr void operator()(C& c, const AB& ab) const;
 
   template<>
   __host__ __device__ constexpr void operator()<float, float>
-    (float& e, const float& c) const
+    (float& c, const float& ab) const
     {
-      e = alpha_ * c;
+      c = alpha_ * ab;
     };
 
     float alpha_;
+    // TODO: Leaving for now, will use later
     float beta_;
 };
 
@@ -139,7 +140,6 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   using DLayout = Row;
   using CLayout = Row;
 
-  // These element ops will probably need to change
   using AElementOp = PassThrough;
   using BElementOp = PassThrough;
   using CElementOp = AlphaBetaAdd;
@@ -151,11 +151,7 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   static constexpr auto GemmSpec = PADDING ? GemmMNKPadding : GemmDefault;
 
 
-  static constexpr int BLOCK_CLUSTER = BLOCK_SIZE / 4;
-  static constexpr int CBLOCK_N = NBLOCK / 16;
-  static constexpr int CBLOCK_M = BLOCK_SIZE / CBLOCK_N;
-
-  // TODO: use template parameters instead of constants
+  // TODO: Flesh out template parameters
   using DeviceGemmInstance =
     ck::tensor_operation::device::DeviceGemmMultiD_Xdl_CShuffle_V3<ALayout,
                                                                    BLayout,
@@ -211,8 +207,8 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   using DDataArrayType = std::array<const void*, 0>;
   DDataArrayType DDataArray;
 
-  // Note: Since CK only supports row-major output, we swap A and B inputs here
-  // as a workaround
+  // Note: CK only supports row-major output.
+  // We swap A and B inputs here as a temporary workaround
   auto argument = gemm.MakeArgument(
      reinterpret_cast<const void*>(b),
      reinterpret_cast<const void*>(a),
