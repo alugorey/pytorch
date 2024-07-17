@@ -11,8 +11,6 @@
 #include <iostream>
 #include <numeric>
 
-#include <stdio.h>
-
 #undef __HIP_NO_HALF_CONVERSIONS__
 
 #include <ATen/ATen.h>
@@ -36,8 +34,6 @@
 #include "ck/library/utility/host_tensor_generator.hpp"
 #include "ck/library/utility/literals.hpp"
 
-//#include "ck/tensor_operation/gpu/device/impl/device_gemm_multiple_abd_xdl_cshuffle.hpp"
-//#include "ck/tensor_operation/gpu/device/impl/device_gemm_multiple_d_xdl_cshuffle.hpp"
 #include "ck/tensor_operation/gpu/device/impl/device_gemm_multiple_d_xdl_cshuffle_v3.hpp"
 // Define commonly used types.
 template <ck::index_t... Is>
@@ -113,9 +109,6 @@ template <
     int CNPER_WAVE = 1,
     bool PADDING = false>
 void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
-  std::cout << std::endl;
-  std::cout << std::endl;
-  std::cout << "INSIDE FLOAT_GEMM_IMPL" << std::endl;
   // Get input information.
   int M = m;
   int N = n;
@@ -128,52 +121,23 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   float falpha = alpha;
   float fbeta = beta;
 
-  std::cout << "ALPHA: " << falpha << std::endl;
-  std::cout << "BETA: " << fbeta << std::endl;
-
 
   using ADataType = typename CkMathType<Dtype>::dtype;
   using BDataType = typename CkMathType<Dtype>::dtype;
   using CDataType = typename CkMathType<Dtype>::dtype;
   using DDataType = typename CkMathType<Dtype>::dtype;
 
-
   using AccDataType = float;
   using CShuffleDataType = typename CkMathType<Dtype>::dtype;
 
 
-//TODO: SET THESE BASED OFF transa AND transb
-#if 0
-  using ALayout = Row;
-  using BLayout = Col;
-  using DLayout = Row;
-  using CLayout = Row;
-//#else
-  using ALayout = Col;
-  using BLayout = Col;
-  using DLayout = Row;
-  using ELayout = Row;
-#endif
-
-
-  // TODO this needs to probably do another template thing similar to CKMathType because std::optional
-  // expects the expression to be constant i.e. discernable at compile time.
-  //using ALayout = std::conditional<(transa == 'n' || transa == 'N'), Col, Row>::type;
-  //using BLayout = std::conditional<(transb == 'n' || transb == 'N'), Col, Row>::type;
-
   // NOTE: in our example, transa = t and transb = n;
   // since default for cublas is Column-major, since the value is T, ALayout is Row
   // same for B. transb = N = NO Transpose so B is column Major
-
   using ALayout = Row;
   using BLayout = Col;
   using DLayout = Row;
   using CLayout = Row;
-
-  std::cout << std::endl;
-  std::cout << "TRANSA: " << transa << std::endl;
-  std::cout << "TRANSB: " << transb << std::endl;
-  std::cout << std::endl;
 
   // These element ops will probably need to change
   using AElementOp = PassThrough;
@@ -190,6 +154,7 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   static constexpr int BLOCK_CLUSTER = BLOCK_SIZE / 4;
   static constexpr int CBLOCK_N = NBLOCK / 16;
   static constexpr int CBLOCK_M = BLOCK_SIZE / CBLOCK_N;
+
   // TODO: use template parameters instead of constants
   using DeviceGemmInstance =
     ck::tensor_operation::device::DeviceGemmMultiD_Xdl_CShuffle_V3<ALayout,
@@ -199,23 +164,23 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
                                                                    ADataType,
                                                                    BDataType,
                                                                    ck::Tuple<>,
-																   CDataType,
+                                                                   CDataType,
                                                                    AccDataType,
                                                                    CShuffleDataType,
                                                                    AElementOp,
                                                                    BElementOp,
                                                                    CElementOp,
                                                                    GemmSpec,
-                                                                   256,
-                                                                   256,
-                                                                   128,
-                                                                   32,
-                                                                   4,
-                                                                   4,
-                                                                   32,
-                                                                   32,
-                                                                   4,
-                                                                   2,
+                                                                   BLOCK_SIZE, //256,
+                                                                   MBLOCK, //256,
+                                                                   NBLOCK, //128,
+                                                                   KBLOCK, //32,
+                                                                   AK1, //4,
+                                                                   BK1, //4,
+                                                                   MPER_XDL, //32,
+                                                                   NPER_XDL, //32,
+                                                                   MPER_WAVE, //4,
+                                                                   NPER_WAVE, //2,
                                                                    S<8, 32, 1>,
                                                                    S<1, 0, 2>,
                                                                    S<1, 0, 2>,
@@ -246,7 +211,6 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   using DDataArrayType = std::array<const void*, 0>;
   DDataArrayType DDataArray;
 
-
   // Note: Since CK only supports row-major output, we swap A and B inputs here
   // as a workaround
   auto argument = gemm.MakeArgument(
@@ -276,27 +240,22 @@ void float_gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
 
  auto stream = at::cuda::getCurrentHIPStream().stream();
  invoker.Run(argument, StreamConfig{stream, false});
-
-
-
 }
 
 void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
   // If any of the shapes cant be tiled, we must use padding.
   bool use_padding = ((m % 256 != 0) || (n % 128 != 0) || (k % 64 != 0));
-  std::cout << "M: " << m << std::endl;
-  std::cout << "N: " << n << std::endl;
-  std::cout << "K: " << k << std::endl;
-  // Dispatch to best implementation. TODO add more configurations.
+  // Dispatch to best implementation. 
+  // TODO add more configurations. Optimize.
   if (use_padding) {
     if (m <= 128) {
-      float_gemm_impl<float, 256, 256, 128, 32,4,4, 32, 32, 4, 2, 1, true>(CUDABLAS_GEMM_ARGS(float));
+      float_gemm_impl<float, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, 1, true>(CUDABLAS_GEMM_ARGS(float));
     } else {
-      float_gemm_impl<float, 256, 256, 128, 32,4,4, 32, 32, 4, 2, 1, true>(CUDABLAS_GEMM_ARGS(float));
+      float_gemm_impl<float, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, 1, true>(CUDABLAS_GEMM_ARGS(float));
     }
   } else {
     {
-      float_gemm_impl<float, 256, 128, 128, 64, 16, 16, 4, 4, 2, false>(CUDABLAS_GEMM_ARGS(float));
+      float_gemm_impl<float, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, 1, false>(CUDABLAS_GEMM_ARGS(float));
     }
   }
 }
