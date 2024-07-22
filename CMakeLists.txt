@@ -871,7 +871,7 @@ cmake_dependent_option(
   USE_MEM_EFF_ATTENTION
   "Enable memory-efficient attention for scaled dot product attention.\
   Will be disabled if not supported by the platform" ON
-  "USE_CUDA OR USE_ROCM" OFF)
+  "USE_CUDA" OFF)
 
 if(DEBUG_CUDA)
   string(APPEND CMAKE_CUDA_FLAGS_DEBUG " -lineinfo")
