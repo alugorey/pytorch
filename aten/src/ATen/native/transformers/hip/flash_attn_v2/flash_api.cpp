@@ -84,11 +84,11 @@ mha_varlen_bwd(const at::Tensor &dout,                   // total_q x num_heads 
                c10::optional<at::Generator> gen_,
                c10::optional<at::Tensor> &rng_state);
 
-PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
-{
-    m.doc() = "FlashAttention";
-    m.def("fwd", &mha_fwd, "Forward pass");
-    m.def("varlen_fwd", &mha_varlen_fwd, "Forward pass (variable length)");
-    m.def("bwd", &mha_bwd, "Backward pass");
-    m.def("varlen_bwd", &mha_varlen_bwd, "Backward pass (variable length)");
-}
+// PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
+// {
+//     m.doc() = "FlashAttention";
+//     m.def("fwd", &mha_fwd, "Forward pass");
+//     m.def("varlen_fwd", &mha_varlen_fwd, "Forward pass (variable length)");
+//     m.def("bwd", &mha_bwd, "Backward pass");
+//     m.def("varlen_bwd", &mha_varlen_bwd, "Backward pass (variable length)");
+// }
