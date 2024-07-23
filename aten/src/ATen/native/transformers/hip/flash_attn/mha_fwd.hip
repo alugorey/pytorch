@@ -5,8 +5,8 @@
 
 #include "flash_common_hip.hpp"
 
-#include "fmha_fwd_hip.hpp"
-#include "mask_hip.hpp"
+#include "fmha_fwd.hpp"
+#include "mask.hpp"
 
 fmha_fwd_traits get_ck_fmha_fwd_traits(const mask_info &mask,
                                        std::string dtype,

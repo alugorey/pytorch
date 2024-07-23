@@ -5,8 +5,8 @@
 
 #include "flash_common_hip.hpp"
 
-#include "fmha_bwd_hip.hpp"
-#include "mask_hip.hpp"
+#include "fmha_bwd.hpp"
+#include "mask.hpp"
 
 fmha_bwd_traits get_ck_fmha_varlen_bwd_traits(const mask_info &mask,
                                               std::string dtype,
