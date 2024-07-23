@@ -58,6 +58,37 @@ struct CkMathType<at::Half> {
   using dtype = ck::half_t;
 };
 
+
+template <bool B>
+struct CkTensorLayout {
+  // default goes to row-wise for now
+  using layout = Row;
+};
+
+template <>
+struct CkTensorLayout<true> {
+  using layout = Row;
+};
+
+template <>
+struct CkTensorLayout<false> {
+  using layout = Row;
+};
+
+template<bool b>
+CkTensorLayout<b> getLayout(char transpose) {
+  if(std::tolower(transpose) == 't')
+  {
+    return CkTensorLayout<true>{};
+  }
+  else
+  {
+    return CkTensorLayout<false>{};
+  }
+
+}
+
+
 // Elementwise Operators
 struct AlphaBetaAdd
 {
@@ -105,7 +136,9 @@ template <
     int MPER_WAVE,
     int NPER_WAVE,
     int CNPER_WAVE = 1,
-    bool PADDING = false>
+    bool PADDING = false,
+    bool TRANSA = false,
+    bool TRANSB = false>
 void gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   // Get input information.
   int M = m;
@@ -128,11 +161,23 @@ void gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   using AccDataType = float;
   using CShuffleDataType = typename CkMathType<Dtype>::dtype;
 
+  // Case 1:  transa = n transb = n
+  // Case 2:  transa = t transb = t
+  // Case 3:  transa = n transb = t
+  // Default: transa = t transb = n
+
+
 
   // NOTE: in our example, transa = t and transb = n;
   // since default for cublas is Column-major, since the value is T, ALayout is Row
   // same for B. transb = N = NO Transpose so B is column Major
-  using ALayout = Row;
+  //using ALayout = typename CkTensorLayout<true>::layout;
+
+
+
+
+//  using ALayout = decltype(getLayout<std::tolower(transa) == 'n'>(transa))::layout;
+  using ALayout = typename CkTensorLayout<TRANSA>::layout;
   using BLayout = Col;
   using DLayout = Row;
   using CLayout = Row;
@@ -140,6 +185,7 @@ void gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   using AElementOp = PassThrough;
   using BElementOp = PassThrough;
   using CElementOp = AlphaBetaAdd;
+
 
   static constexpr auto GemmDefault =
       ck::tensor_operation::device::GemmSpecialization::Default;
