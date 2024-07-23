@@ -58,6 +58,27 @@ struct CkMathType<at::Half> {
   using dtype = ck::half_t;
 };
 
+
+template <bool B>
+struct CkTensorLayout {
+  // default goes to row-wise for now
+  using layout = Row;
+};
+
+
+// True denotes transpose is necessary. Default is Col, so return Row
+template <>
+struct CkTensorLayout<true> {
+  using layout = Row;
+};
+
+template <>
+struct CkTensorLayout<false> {
+  using layout = Col;
+};
+
+
+
 // Elementwise Operators
 struct AlphaBetaAdd
 {
@@ -105,16 +126,28 @@ template <
     int MPER_WAVE,
     int NPER_WAVE,
     int CNPER_WAVE = 1,
-    bool PADDING = false>
+    bool PADDING = false,
+    bool TRANSA = false,
+    bool TRANSB = false>
 void gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   // Get input information.
   int M = m;
   int N = n;
   int K = k;
 
+
+
   int StrideA = lda;
   int StrideB = ldb;
   int StrideC = ldc;
+
+  std::cout << "M      : " << M << std::endl;
+  std::cout << "N      : " << N << std::endl;
+  std::cout << "K      : " << K << std::endl;
+
+  std::cout << "StrideA: " << StrideA << std::endl;
+  std::cout << "StrideB: " << StrideB << std::endl;
+  std::cout << "StrideC: " << StrideC << std::endl;
 
   float falpha = alpha;
   float fbeta = beta;
@@ -128,18 +161,39 @@ void gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   using AccDataType = float;
   using CShuffleDataType = typename CkMathType<Dtype>::dtype;
 
+  // Case 1:  transa = n transb = n
+  // Case 2:  transa = t transb = t
+  // Case 3:  transa = n transb = t
+  // Default: transa = t transb = n
+
+
 
   // NOTE: in our example, transa = t and transb = n;
   // since default for cublas is Column-major, since the value is T, ALayout is Row
   // same for B. transb = N = NO Transpose so B is column Major
-  using ALayout = Row;
-  using BLayout = Col;
+  //using ALayout = typename CkTensorLayout<true>::layout;
+
+  std::cout << "TRANSA: " << TRANSA << std::endl;
+  std::cout << "TRANSB: " << TRANSB << std::endl;
+  std::cout << "transa: " << transa << std::endl;
+  std::cout << "transb: " << transb << std::endl;
+#if 0
+  using ALayout = typename CkTensorLayout<TRANSA>::layout;
+  using BLayout = typename CkTensorLayout<TRANSB>::layout;
+#endif
+
+  using ALayout = typename CkTensorLayout<TRANSA>::layout;
+  using BLayout = typename CkTensorLayout<TRANSB>::layout;
+
+
+  //using BLayout = Col;
   using DLayout = Row;
   using CLayout = Row;
 
   using AElementOp = PassThrough;
   using BElementOp = PassThrough;
   using CElementOp = AlphaBetaAdd;
+
 
   static constexpr auto GemmDefault =
       ck::tensor_operation::device::GemmSpecialization::Default;
