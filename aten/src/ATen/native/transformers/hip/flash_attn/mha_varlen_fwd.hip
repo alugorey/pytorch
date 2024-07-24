@@ -183,8 +183,8 @@ mha_varlen_fwd(at::Tensor &q,                   // total_q x num_heads x head_si
 
     TORCH_CHECK(k.dtype() == q_dtype, "query and key must have the same dtype");
     TORCH_CHECK(v.dtype() == q_dtype, "query and value must have the same dtype");
-    TORCH_CHECK(cu_seqlens_q.dtype() == int32_t, "cu_seqlens_q must have dtype int32");
-    TORCH_CHECK(cu_seqlens_k.dtype() == int32_t, "cu_seqlens_k must have dtype int32");
+    TORCH_CHECK(cu_seqlens_q.dtype() == at::kInt, "cu_seqlens_q must have dtype int32");
+    TORCH_CHECK(cu_seqlens_k.dtype() == at::kInt, "cu_seqlens_k must have dtype int32");
 
     std::string q_dtype_str = q_dtype == at::kHalf ? "fp16" : "bf16";
 
@@ -295,7 +295,7 @@ mha_varlen_fwd(at::Tensor &q,                   // total_q x num_heads x head_si
     at::Tensor p;
     if (return_dropout_randval) {
         TORCH_CHECK(has_dropout, "return_dropout_randval require p_dropout > 0");
-        p = at::empty({num_heads, total_q, max_seqlen_k}, opts.dtype(uint8_t));
+        p = at::empty({num_heads, total_q, max_seqlen_k}, opts.dtype(at::kByte));
     }
 
     if (zero_tensors)
@@ -308,7 +308,7 @@ mha_varlen_fwd(at::Tensor &q,                   // total_q x num_heads x head_si
     uint64_t drop_seed = 1, drop_offset = 0;
     int64_t counter_offset = batch_size * num_heads * ck_tile::get_warp_size();
     auto options = at::TensorOptions().dtype(at::kFloat).device(at::kCUDA);
-    auto rng_state = at::empty({2}, options.dtype(int64_t));
+    auto rng_state = at::empty({2}, options.dtype(at::kLong));
 
     if (p_dropout > 0.0)  {
         auto gen = at::get_generator_or_default<at::CUDAGeneratorImpl>(

@@ -274,13 +274,13 @@ mha_fwd(at::Tensor &q,                            // batch_size x seqlen_q x num
     at::Tensor p;
     if (return_dropout_randval) {
         TORCH_CHECK(has_dropout, "return_dropout_randval require p_dropout > 0");
-        p = at::empty({batch_size, num_heads, seqlen_q, seqlen_k}, opts.dtype(uint8_t));
+        p = at::empty({batch_size, num_heads, seqlen_q, seqlen_k}, opts.dtype(at::kByte));
     }
 
     uint64_t drop_seed = 1, drop_offset = 0;
     int64_t counter_offset = batch_size * num_heads * ck_tile::get_warp_size();
     auto options = at::TensorOptions().dtype(at::kFloat).device(at::kCUDA);
-    auto rng_state = at::empty({2}, options.dtype(int64_t));
+    auto rng_state = at::empty({2}, options.dtype(at::kLong));
 
     if (p_dropout > 0.0)  {
         auto gen = at::get_generator_or_default<at::CUDAGeneratorImpl>(
