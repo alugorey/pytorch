@@ -46,6 +46,7 @@ fmha_fwd_args get_ck_fmha_varlen_fwd_args(bool has_lse,
                                           at::Tensor out,
                                           at::Tensor softmax_lse,
                                           at::Tensor dropout_randval,
+
                                           float softmax_scale,
                                           float p_dropout,
                                           uint64_t drop_seed,
@@ -91,7 +92,7 @@ fmha_fwd_args get_ck_fmha_varlen_fwd_args(bool has_lse,
         auto alibi_slopes = alibi_slopes_.value();
         CHECK_DEVICE(alibi_slopes);
         TORCH_CHECK(alibi_slopes.stride(-1) == 1, "ALiBi slopes tensor must have contiguous last dimension");
-        TORCH_CHECK(alibi_slopes.sizes() == torch::IntArrayRef({h}) || alibi_slopes.sizes() == torch::IntArrayRef({b, h}));
+        TORCH_CHECK(alibi_slopes.sizes() == at::IntArrayRef({h}) || alibi_slopes.sizes() == at::IntArrayRef({b, h}));
         alibi_slopes_ptr = alibi_slopes.data_ptr();
         stride_alibi_slopes = alibi_slopes.dim() == 2 ? alibi_slopes.stride(0) : 0;
     }
@@ -177,15 +178,15 @@ mha_varlen_fwd(at::Tensor &q,                   // total_q x num_heads x head_si
                c10::optional<at::Generator> gen_)
 {
     auto q_dtype = q.dtype();
-    TORCH_CHECK(q_dtype == torch::kFloat16 || q_dtype == torch::kBFloat16,
+    TORCH_CHECK(q_dtype == at::kHalf || q_dtype == at::kBFloat16,
                 "FlashAttention only support fp16 and bf16 data type");
 
     TORCH_CHECK(k.dtype() == q_dtype, "query and key must have the same dtype");
     TORCH_CHECK(v.dtype() == q_dtype, "query and value must have the same dtype");
-    TORCH_CHECK(cu_seqlens_q.dtype() == torch::kInt32, "cu_seqlens_q must have dtype int32");
-    TORCH_CHECK(cu_seqlens_k.dtype() == torch::kInt32, "cu_seqlens_k must have dtype int32");
+    TORCH_CHECK(cu_seqlens_q.dtype() == at::kInt32, "cu_seqlens_q must have dtype int32");
+    TORCH_CHECK(cu_seqlens_k.dtype() == at::kInt32, "cu_seqlens_k must have dtype int32");
 
-    std::string q_dtype_str = q_dtype == torch::kFloat16 ? "fp16" : "bf16";
+    std::string q_dtype_str = q_dtype == at::kHalf ? "fp16" : "bf16";
 
     CHECK_DEVICE(q); CHECK_DEVICE(k); CHECK_DEVICE(v);
     CHECK_DEVICE(cu_seqlens_q);
@@ -252,9 +253,9 @@ mha_varlen_fwd(at::Tensor &q,                   // total_q x num_heads x head_si
 
     at::Tensor q_padded, k_padded, v_padded;
     if (head_size_og % 8 != 0) {
-        q_padded = torch::nn::functional::pad(q, torch::nn::functional::PadFuncOptions({0, 8 - head_size_og % 8}));
-        k_padded = torch::nn::functional::pad(k, torch::nn::functional::PadFuncOptions({0, 8 - head_size_og % 8}));
-        v_padded = torch::nn::functional::pad(v, torch::nn::functional::PadFuncOptions({0, 8 - head_size_og % 8}));
+        q_padded = at::pad(q, at::PadFuncOptions({0, 8 - head_size_og % 8}));
+        k_padded = at::pad(k, at::PadFuncOptions({0, 8 - head_size_og % 8}));
+        v_padded = at::pad(v, at::PadFuncOptions({0, 8 - head_size_og % 8}));
     }
     else {
         q_padded = q;
@@ -270,10 +271,10 @@ mha_varlen_fwd(at::Tensor &q,                   // total_q x num_heads x head_si
         TORCH_CHECK(out.stride(-1) == 1, "Output tensor must have contiguous last dimension");
         CHECK_SHAPE(out, total_q, num_heads, head_size_og);
 
-        if (head_size_og % 8 != 0) { out = torch::empty_like(q_padded); }
+        if (head_size_og % 8 != 0) { out = at::empty_like(q_padded); }
     }
     else {
-        out = torch::empty_like(q_padded);
+        out = at::empty_like(q_padded);
     }
 
     auto round_multiple = [](int x, int m) { return (x + m - 1) / m * m; };
@@ -289,12 +290,12 @@ mha_varlen_fwd(at::Tensor &q,                   // total_q x num_heads x head_si
 
     at::Tensor softmax_lse;
     // TODO - check gradient, only training require lse
-    softmax_lse = torch::empty({batch_size, num_heads, max_seqlen_q}, opts.dtype(torch::kFloat32));
+    softmax_lse = at::empty({batch_size, num_heads, max_seqlen_q}, opts.dtype(at::kFloat));
 
     at::Tensor p;
     if (return_dropout_randval) {
         TORCH_CHECK(has_dropout, "return_dropout_randval require p_dropout > 0");
-        p = torch::empty({num_heads, total_q, max_seqlen_k}, opts.dtype(torch::kUInt8));
+        p = at::empty({num_heads, total_q, max_seqlen_k}, opts.dtype(at::kUInt8));
     }
 
     if (zero_tensors)
@@ -306,8 +307,8 @@ mha_varlen_fwd(at::Tensor &q,                   // total_q x num_heads x head_si
 
     uint64_t drop_seed = 1, drop_offset = 0;
     int64_t counter_offset = batch_size * num_heads * ck_tile::get_warp_size();
-    auto options = torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCUDA);
-    auto rng_state = torch::empty({2}, options.dtype(torch::kInt64));
+    auto options = at::TensorOptions().dtype(at::kFloat).device(at::kCUDA);
+    auto rng_state = at::empty({2}, options.dtype(at::kInt64));
 
     if (p_dropout > 0.0)  {
         auto gen = at::get_generator_or_default<at::CUDAGeneratorImpl>(
@@ -362,7 +363,7 @@ mha_varlen_fwd(at::Tensor &q,                   // total_q x num_heads x head_si
 
     at::Tensor out_padded = out;
     if (head_size_og % 8 != 0) {
-        out = out.index({"...", torch::indexing::Slice(torch::indexing::None, head_size_og)});
+        out = out.index({"...", at::indexing::Slice(at::indexing::None, head_size_og)});
         if (out_.has_value()) { out_.value().copy_(out); }
     }
 

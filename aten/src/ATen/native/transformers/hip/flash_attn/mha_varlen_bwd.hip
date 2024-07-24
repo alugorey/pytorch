@@ -100,7 +100,7 @@ fmha_bwd_args get_ck_fmha_varlen_bwd_args(const mask_info &mask,
         auto alibi_slopes = alibi_slopes_.value();
         CHECK_DEVICE(alibi_slopes);
         TORCH_CHECK(alibi_slopes.stride(-1) == 1, "ALiBi slopes tensor must have contiguous last dimension");
-        TORCH_CHECK(alibi_slopes.sizes() == torch::IntArrayRef({h}) || alibi_slopes.sizes() == torch::IntArrayRef({b, h}));
+        TORCH_CHECK(alibi_slopes.sizes() == at::IntArrayRef({h}) || alibi_slopes.sizes() == at::IntArrayRef({b, h}));
         alibi_slopes_ptr = alibi_slopes.data_ptr();
         stride_alibi_slopes = alibi_slopes.dim() == 2 ? alibi_slopes.stride(0) : 0;
     }
@@ -204,17 +204,17 @@ mha_varlen_bwd(const at::Tensor &dout,                   // total_q x num_heads 
     auto stream = at::hip::getCurrentHIPStreamMasqueradingAsCUDA().stream();
 
     auto q_dtype = q.dtype();
-    TORCH_CHECK(q_dtype == torch::kFloat16 || q_dtype == torch::kBFloat16,
+    TORCH_CHECK(q_dtype == at::kHalf || q_dtype == at::kBFloat16,
                 "FlashAttention only support fp16 and bf16 data type");
 
     TORCH_CHECK(k.dtype() == q_dtype, "query and key must have the same dtype");
     TORCH_CHECK(v.dtype() == q_dtype, "query and value must have the same dtype");
     TORCH_CHECK(out.dtype() == q_dtype, "query and out must have the same dtype");
     TORCH_CHECK(dout.dtype() == q_dtype, "query and dout must have the same dtype");
-    TORCH_CHECK(cu_seqlens_q.dtype() == torch::kInt32, "cu_seqlens_q must have dtype int32");
-    TORCH_CHECK(cu_seqlens_k.dtype() == torch::kInt32, "cu_seqlens_k must have dtype int32");
+    TORCH_CHECK(cu_seqlens_q.dtype() == at::kInt32, "cu_seqlens_q must have dtype int32");
+    TORCH_CHECK(cu_seqlens_k.dtype() == at::kInt32, "cu_seqlens_k must have dtype int32");
 
-    std::string q_dtype_str = q_dtype == torch::kFloat16 ? "fp16" : "bf16";
+    std::string q_dtype_str = q_dtype == at::kHalf ? "fp16" : "bf16";
 
     CHECK_DEVICE(q); CHECK_DEVICE(k); CHECK_DEVICE(v);
     CHECK_DEVICE(out); CHECK_DEVICE(dout); CHECK_DEVICE(softmax_lse);
@@ -280,7 +280,7 @@ mha_varlen_bwd(const at::Tensor &dout,                   // total_q x num_heads 
         TORCH_CHECK(dq.stride(-1) == 1, "dq must have contiguous last dimension");
         CHECK_SHAPE(dq, total_q, num_heads, head_size_8x);
     } else {
-        dq = torch::empty_like(q);
+        dq = at::empty_like(q);
     }
     if (dk_.has_value()) {
         dk = dk_.value();
@@ -289,7 +289,7 @@ mha_varlen_bwd(const at::Tensor &dout,                   // total_q x num_heads 
         TORCH_CHECK(dk.stride(-1) == 1, "dk must have contiguous last dimension");
         CHECK_SHAPE(dk, total_k, num_heads_k, head_size_8x);
     } else {
-        dk = torch::empty_like(k);
+        dk = at::empty_like(k);
     }
     if (dv_.has_value()) {
         dv = dv_.value();
@@ -298,12 +298,12 @@ mha_varlen_bwd(const at::Tensor &dout,                   // total_q x num_heads 
         TORCH_CHECK(dv.stride(-1) == 1, "dv must have contiguous last dimension");
         CHECK_SHAPE(dv, total_k, num_heads_k, head_size_8x);
     } else {
-        dv = torch::empty_like(v);
+        dv = at::empty_like(v);
     }
 
     at::Tensor dout_padded;
     if (head_size_og % 8 != 0) {
-        dout_padded = torch::nn::functional::pad(dout, torch::nn::functional::PadFuncOptions({0, 8 - head_size_og % 8}));
+        dout_padded = at::pad(dout, at::PadFuncOptions({0, 8 - head_size_og % 8}));
     } else {
         dout_padded = dout;
     }
@@ -313,13 +313,13 @@ mha_varlen_bwd(const at::Tensor &dout,                   // total_q x num_heads 
     at::hip::HIPGuardMasqueradingAsCUDA device_guard{(char)q.get_device()};
 
     auto opts = q.options();
-    auto softmax_d = torch::empty({batch_size, num_heads, max_seqlen_q}, opts.dtype(at::kFloat));
+    auto softmax_d = at::empty({batch_size, num_heads, max_seqlen_q}, opts.dtype(at::kFloat));
     // TODO - CK does not support dq_accum
 
     at::Tensor dk_expanded, dv_expanded;
     if (num_heads_k != num_heads) {  // MQA / GQA
-        dk_expanded = torch::empty({total_k, num_heads, head_size_8x}, opts);
-        dv_expanded = torch::empty({total_k, num_heads, head_size_8x}, opts);
+        dk_expanded = at::empty({total_k, num_heads, head_size_8x}, opts);
+        dv_expanded = at::empty({total_k, num_heads, head_size_8x}, opts);
     } else {
         dk_expanded = dk;
         dv_expanded = dv;
@@ -397,9 +397,9 @@ mha_varlen_bwd(const at::Tensor &dout,                   // total_q x num_heads 
         at::sum_out(dv, at::reshape(dv_expanded, {total_k, num_heads_k, num_heads / num_heads_k, head_size_8x}), {2});
     }
     if (head_size_og % 8 != 0) {
-        dq = dq.index({"...", torch::indexing::Slice(torch::indexing::None, head_size_og)});
-        dk = dk.index({"...", torch::indexing::Slice(torch::indexing::None, head_size_og)});
-        dv = dv.index({"...", torch::indexing::Slice(torch::indexing::None, head_size_og)});
+        dq = dq.index({"...", at::indexing::Slice(at::indexing::None, head_size_og)});
+        dk = dk.index({"...", at::indexing::Slice(at::indexing::None, head_size_og)});
+        dv = dv.index({"...", at::indexing::Slice(at::indexing::None, head_size_og)});
     }
 
     return { dq, dk, dv, softmax_d };
