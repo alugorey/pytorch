@@ -2,7 +2,9 @@
  * Copyright (c) 2024, Tri Dao.
  ******************************************************************************/
 
-#include "flash_common.hpp"
+#include "flash_common_hip.hpp"
+
+namespace pytorch_flash {
 
 std::vector<at::Tensor>
 mha_fwd(at::Tensor &q,
@@ -83,6 +85,8 @@ mha_varlen_bwd(const at::Tensor &dout,                   // total_q x num_heads 
                const bool deterministic,
                c10::optional<at::Generator> gen_,
                c10::optional<at::Tensor> &rng_state);
+
+}
 
 // PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
 // {

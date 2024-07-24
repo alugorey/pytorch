@@ -8,6 +8,8 @@
 #include "fmha_fwd.hpp"
 #include "mask.hpp"
 
+namespace pytorch_flash {
+
 fmha_fwd_traits get_ck_fmha_varlen_fwd_traits(const mask_info &mask,
                                               std::string dtype,
                                               int head_size,
@@ -368,4 +370,5 @@ mha_varlen_fwd(at::Tensor &q,                   // total_q x num_heads x head_si
     }
 
     return {out, q_padded, k_padded, v_padded, out_padded, softmax_lse, p, rng_state};
+}
 }

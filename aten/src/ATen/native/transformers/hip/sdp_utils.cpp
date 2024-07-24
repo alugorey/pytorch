@@ -25,9 +25,9 @@
 #include <c10/core/SymInt.h>
 #include <c10/util/string_view.h>
 
-#if USE_ROCM
-#include <aotriton/flash.h>
-#endif
+// #if USE_ROCM
+// #include <aotriton/flash.h>
+// #endif
 
 /**
 * Note [SDPA Runtime Dispatch]
@@ -209,15 +209,15 @@ bool check_flash_attention_hardware_support(sdp_params const& params, bool debug
   using sm80 = SMVersion<8, 0>;
   using sm90 = SMVersion<9, 0>;
 #if USE_ROCM
-  auto stream = at::hip::getCurrentHIPStreamMasqueradingAsCUDA().stream();
-  if (hipSuccess != aotriton::v2::flash::check_gpu(stream)) {
-      auto dprops = at::cuda::getCurrentDeviceProperties();
-      if (debug) {
-          TORCH_WARN(
-                  "Flash attention was not compiled for current AMD GPU architecture. Attempting to run on architecture ", dprops->gcnArchName);
-      }
-      return false;
-  }
+  // auto stream = at::hip::getCurrentHIPStreamMasqueradingAsCUDA().stream();
+  // if (hipSuccess != aotriton::v2::flash::check_gpu(stream)) {
+  //     auto dprops = at::cuda::getCurrentDeviceProperties();
+  //     if (debug) {
+  //         TORCH_WARN(
+  //                 "Flash attention was not compiled for current AMD GPU architecture. Attempting to run on architecture ", dprops->gcnArchName);
+  //     }
+  //     return false;
+  // }
 #else
   auto dprops = at::cuda::getCurrentDeviceProperties();
   if (!check_sm_version<sm80, sm90>(dprops)) {
@@ -240,15 +240,15 @@ bool check_mem_efficient_hardware_support(sdp_params const& params, bool debug) 
   using sm50 = SMVersion<5, 0>;
   using sm90 = SMVersion<9, 0>;
 #if USE_ROCM
-  auto stream = at::hip::getCurrentHIPStreamMasqueradingAsCUDA().stream();
-  if (hipSuccess != aotriton::v2::flash::check_gpu(stream)) {
-      auto dprops = at::cuda::getCurrentDeviceProperties();
-      if (debug) {
-          TORCH_WARN(
-                  "Mem Efficient attention was not compiled for current AMD GPU architecture. Attempting to run on architecture ", dprops->gcnArchName);
-      }
-      return false;
-  }
+  // auto stream = at::hip::getCurrentHIPStreamMasqueradingAsCUDA().stream();
+  // if (hipSuccess != aotriton::v2::flash::check_gpu(stream)) {
+  //     auto dprops = at::cuda::getCurrentDeviceProperties();
+  //     if (debug) {
+  //         TORCH_WARN(
+  //                 "Mem Efficient attention was not compiled for current AMD GPU architecture. Attempting to run on architecture ", dprops->gcnArchName);
+  //     }
+  //     return false;
+  // }
 #else
   auto dprops = at::cuda::getCurrentDeviceProperties();
   if (!check_sm_version<sm50, sm90>(dprops)) {
@@ -616,8 +616,8 @@ bool can_use_mem_efficient_attention(sdp_params const& params, bool debug) {
   constexpr auto less_than_sm80_mem_efficient_dtypes =
       array_of<at::ScalarType>(at::kHalf, at::kFloat);
 #ifdef USE_ROCM
-  constexpr auto aotriton_mem_efficient_dtypes =
-      array_of<at::ScalarType>(at::kHalf, at::kFloat, at::kBFloat16);
+  // constexpr auto aotriton_mem_efficient_dtypes =
+  //     array_of<at::ScalarType>(at::kHalf, at::kFloat, at::kBFloat16);
 #endif
 
   //  Define gate functions that determine if a mem efficient kernel can be ran
@@ -660,14 +660,14 @@ bool can_use_mem_efficient_attention(sdp_params const& params, bool debug) {
     }
   }
 
-#ifdef USE_ROCM
-  return check_tensor_dtype(params, aotriton_mem_efficient_dtypes, debug);
-#else
+// #ifdef USE_ROCM
+//   return check_tensor_dtype(params, aotriton_mem_efficient_dtypes, debug);
+// #else
   auto dprop = at::cuda::getCurrentDeviceProperties();
   if (dprop->major >= 8) {
     return check_tensor_dtype(params, greater_than_or_equal_sm80_mem_efficient_dtypes, debug);
   }
-#endif
+//#endif
   return check_tensor_dtype(params, less_than_sm80_mem_efficient_dtypes, debug);
 }
 

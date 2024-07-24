@@ -8,6 +8,8 @@
 #include "fmha_fwd.hpp"
 #include "mask.hpp"
 
+namespace pytorch_flash {
+
 fmha_fwd_traits get_ck_fmha_fwd_traits(const mask_info &mask,
                                        std::string dtype,
                                        int head_size,
@@ -345,4 +347,5 @@ mha_fwd(at::Tensor &q,                            // batch_size x seqlen_q x num
         softmax_lse = softmax_lse.reshape({batch_size, num_heads_k * seqlen_q, 1});
     }
     return {out, q_padded, k_padded, v_padded, out_padded, softmax_lse, p, rng_state};
+}
 }

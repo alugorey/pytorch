@@ -8,6 +8,8 @@
 #include "fmha_bwd.hpp"
 #include "mask.hpp"
 
+namespace pytorch_flash {
+
 fmha_bwd_traits get_ck_fmha_bwd_traits(const mask_info &mask,
                                        std::string dtype,
                                        int head_size,
@@ -376,4 +378,5 @@ mha_bwd(const at::Tensor &dout,                   // batch_size x seqlen_q x num
     }
 
     return { dq, dk, dv, softmax_d };
+}
 }
