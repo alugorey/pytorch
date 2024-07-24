@@ -211,8 +211,8 @@ mha_varlen_bwd(const at::Tensor &dout,                   // total_q x num_heads 
     TORCH_CHECK(v.dtype() == q_dtype, "query and value must have the same dtype");
     TORCH_CHECK(out.dtype() == q_dtype, "query and out must have the same dtype");
     TORCH_CHECK(dout.dtype() == q_dtype, "query and dout must have the same dtype");
-    TORCH_CHECK(cu_seqlens_q.dtype() == at::kInt32, "cu_seqlens_q must have dtype int32");
-    TORCH_CHECK(cu_seqlens_k.dtype() == at::kInt32, "cu_seqlens_k must have dtype int32");
+    TORCH_CHECK(cu_seqlens_q.dtype() == int32_t, "cu_seqlens_q must have dtype int32");
+    TORCH_CHECK(cu_seqlens_k.dtype() == int32_t, "cu_seqlens_k must have dtype int32");
 
     std::string q_dtype_str = q_dtype == at::kHalf ? "fp16" : "bf16";
 
@@ -303,7 +303,7 @@ mha_varlen_bwd(const at::Tensor &dout,                   // total_q x num_heads 
 
     at::Tensor dout_padded;
     if (head_size_og % 8 != 0) {
-        dout_padded = at::pad(dout, at::PadFuncOptions({0, 8 - head_size_og % 8}));
+        dout_padded = at::pad(dout, {0, 8 - head_size_og % 8});
     } else {
         dout_padded = dout;
     }

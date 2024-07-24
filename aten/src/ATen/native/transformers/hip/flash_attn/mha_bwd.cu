@@ -285,7 +285,7 @@ mha_bwd(const at::Tensor &dout,                   // batch_size x seqlen_q x num
 
     at::Tensor dout_padded;
     if (head_size_og % 8 != 0) {
-        dout_padded = at::pad(dout, at::PadFuncOptions({0, 8 - head_size_og % 8}));
+        dout_padded = at::pad(dout, at::pad({0, 8 - head_size_og % 8}));
     } else {
         dout_padded = dout;
     }

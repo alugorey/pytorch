@@ -230,9 +230,9 @@ mha_fwd(at::Tensor &q,                            // batch_size x seqlen_q x num
 
     at::Tensor q_padded, k_padded, v_padded;
     if (head_size_og % 8 != 0) {
-        q_padded = at::pad(q, at::PadFuncOptions({0, 8 - head_size_og % 8}));
-        k_padded = at::pad(k, at::PadFuncOptions({0, 8 - head_size_og % 8}));
-        v_padded = at::pad(v, at::PadFuncOptions({0, 8 - head_size_og % 8}));
+        q_padded = at::pad(q, {0, 8 - head_size_og % 8});
+        k_padded = at::pad(k, {0, 8 - head_size_og % 8});
+        v_padded = at::pad(v, {0, 8 - head_size_og % 8});
     }
     else {
         q_padded = q;
@@ -274,13 +274,13 @@ mha_fwd(at::Tensor &q,                            // batch_size x seqlen_q x num
     at::Tensor p;
     if (return_dropout_randval) {
         TORCH_CHECK(has_dropout, "return_dropout_randval require p_dropout > 0");
-        p = at::empty({batch_size, num_heads, seqlen_q, seqlen_k}, opts.dtype(at::kUInt8));
+        p = at::empty({batch_size, num_heads, seqlen_q, seqlen_k}, opts.dtype(uint8_t));
     }
 
     uint64_t drop_seed = 1, drop_offset = 0;
     int64_t counter_offset = batch_size * num_heads * ck_tile::get_warp_size();
     auto options = at::TensorOptions().dtype(at::kFloat).device(at::kCUDA);
-    auto rng_state = at::empty({2}, options.dtype(at::kInt64));
+    auto rng_state = at::empty({2}, options.dtype(int64_t));
 
     if (p_dropout > 0.0)  {
         auto gen = at::get_generator_or_default<at::CUDAGeneratorImpl>(
