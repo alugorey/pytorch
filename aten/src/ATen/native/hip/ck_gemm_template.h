@@ -65,6 +65,8 @@ struct CkTensorLayout {
   using layout = Row;
 };
 
+
+// True denotes transpose is necessary. Default is Col, so return Row
 template <>
 struct CkTensorLayout<true> {
   using layout = Row;
@@ -72,21 +74,9 @@ struct CkTensorLayout<true> {
 
 template <>
 struct CkTensorLayout<false> {
-  using layout = Row;
+  using layout = Col;
 };
 
-template<bool b>
-CkTensorLayout<b> getLayout(char transpose) {
-  if(std::tolower(transpose) == 't')
-  {
-    return CkTensorLayout<true>{};
-  }
-  else
-  {
-    return CkTensorLayout<false>{};
-  }
-
-}
 
 
 // Elementwise Operators
@@ -145,9 +135,19 @@ void gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   int N = n;
   int K = k;
 
+
+
   int StrideA = lda;
   int StrideB = ldb;
   int StrideC = ldc;
+
+  std::cout << "M      : " << M << std::endl;
+  std::cout << "N      : " << N << std::endl;
+  std::cout << "K      : " << K << std::endl;
+
+  std::cout << "StrideA: " << StrideA << std::endl;
+  std::cout << "StrideB: " << StrideB << std::endl;
+  std::cout << "StrideC: " << StrideC << std::endl;
 
   float falpha = alpha;
   float fbeta = beta;
@@ -173,12 +173,20 @@ void gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   // same for B. transb = N = NO Transpose so B is column Major
   //using ALayout = typename CkTensorLayout<true>::layout;
 
-
-
-
-//  using ALayout = decltype(getLayout<std::tolower(transa) == 'n'>(transa))::layout;
+  std::cout << "TRANSA: " << TRANSA << std::endl;
+  std::cout << "TRANSB: " << TRANSB << std::endl;
+  std::cout << "transa: " << transa << std::endl;
+  std::cout << "transb: " << transb << std::endl;
+#if 0
   using ALayout = typename CkTensorLayout<TRANSA>::layout;
-  using BLayout = Col;
+  using BLayout = typename CkTensorLayout<TRANSB>::layout;
+#endif
+
+  using ALayout = typename CkTensorLayout<TRANSA>::layout;
+  using BLayout = typename CkTensorLayout<TRANSB>::layout;
+
+
+  //using BLayout = Col;
   using DLayout = Row;
   using CLayout = Row;
 
