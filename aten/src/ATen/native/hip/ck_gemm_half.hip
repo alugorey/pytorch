@@ -3,7 +3,16 @@
 #include <ATen/native/hip/ck_gemm.h>
 #include <ATen/native/hip/ck_gemm_template.h>
 
+#include <ck/utility/sequence.hpp>
+
+template <ck::index_t... Is>
+using S = ck::Sequence<Is...>;
+
+
 namespace at::native {
+
+
+
 
 void dispatch_half_gemm(CUDABLAS_GEMM_ARGTYPES(at::Half)) {
   // If any of the shapes cant be tiled, we must use padding.
@@ -17,16 +26,16 @@ void dispatch_half_gemm(CUDABLAS_GEMM_ARGTYPES(at::Half)) {
   if (use_padding) {
     if (m <= 128) {
       if(transa_ && transb_) {
-          gemm_impl<at::Half, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, 1, true, true, true>(CUDABLAS_GEMM_ARGS(at::Half));
+          gemm_impl<at::Half, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, S<8,32,1>, S<1,0,2>, 1, true, true, true>(CUDABLAS_GEMM_ARGS(at::Half));
       }
       else if(transa_ && !transb_) {
-          gemm_impl<at::Half, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, 1, true, true, false>(CUDABLAS_GEMM_ARGS(at::Half));
+          gemm_impl<at::Half, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, S<8,32,1>, S<1,0,2>, 1, true, true, false>(CUDABLAS_GEMM_ARGS(at::Half));
       }
       else if(!transa_ && transb_) {
-          gemm_impl<at::Half, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, 1, true, false, true>(CUDABLAS_GEMM_ARGS(at::Half));
+          gemm_impl<at::Half, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, S<8,32,1>, S<1,0,2>, 1, true, false, true>(CUDABLAS_GEMM_ARGS(at::Half));
       }
       else if(!transa_ && !transb_) {
-          gemm_impl<at::Half, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, 1, true, false, false>(CUDABLAS_GEMM_ARGS(at::Half));
+          gemm_impl<at::Half, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, S<8,32,1>, S<1,0,2>, 1, true, false, false>(CUDABLAS_GEMM_ARGS(at::Half));
       }
       else {
         TORCH_CHECK(false, "unreachable");
@@ -37,16 +46,16 @@ void dispatch_half_gemm(CUDABLAS_GEMM_ARGTYPES(at::Half)) {
     } else {
 
       if(transa_ && transb_) {
-          gemm_impl<at::Half, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, 1, true, true, true>(CUDABLAS_GEMM_ARGS(at::Half));
+          gemm_impl<at::Half, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, S<8,32,1>, S<1,0,2>, 1, true, true, true>(CUDABLAS_GEMM_ARGS(at::Half));
       }
       else if(transa_ && !transb_) {
-          gemm_impl<at::Half, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, 1, true, true, false>(CUDABLAS_GEMM_ARGS(at::Half));
+          gemm_impl<at::Half, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, S<8,32,1>, S<1,0,2>, 1, true, true, false>(CUDABLAS_GEMM_ARGS(at::Half));
       }
       else if(!transa_ && transb_) {
-          gemm_impl<at::Half, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, 1, true, false, true>(CUDABLAS_GEMM_ARGS(at::Half));
+          gemm_impl<at::Half, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, S<8,32,1>, S<1,0,2>, 1, true, false, true>(CUDABLAS_GEMM_ARGS(at::Half));
       }
       else if(!transa_ && !transb_) {
-          gemm_impl<at::Half, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, 1, true, false, false>(CUDABLAS_GEMM_ARGS(at::Half));
+          gemm_impl<at::Half, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, S<8,32,1>, S<1,0,2>, 1, true, false, false>(CUDABLAS_GEMM_ARGS(at::Half));
       }
       else {
         TORCH_CHECK(false, "unreachable");
@@ -55,16 +64,16 @@ void dispatch_half_gemm(CUDABLAS_GEMM_ARGTYPES(at::Half)) {
   } else {
     {
       if(transa_ && transb_) {
-          gemm_impl<at::Half, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, 1, true, true, true>(CUDABLAS_GEMM_ARGS(at::Half));
+          gemm_impl<at::Half, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, S<8,32,1>, S<1,0,2>, 1, true, true, true>(CUDABLAS_GEMM_ARGS(at::Half));
       }
       else if(transa_ && !transb_) {
-          gemm_impl<at::Half, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, 1, true, true, false>(CUDABLAS_GEMM_ARGS(at::Half));
+          gemm_impl<at::Half, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, S<8,32,1>, S<1,0,2>, 1, true, true, false>(CUDABLAS_GEMM_ARGS(at::Half));
       }
       else if(!transa_ && transb_) {
-          gemm_impl<at::Half, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, 1, true, false, true>(CUDABLAS_GEMM_ARGS(at::Half));
+          gemm_impl<at::Half, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, S<8,32,1>, S<1,0,2>, 1, true, false, true>(CUDABLAS_GEMM_ARGS(at::Half));
       }
       else if(!transa_ && !transb_) {
-          gemm_impl<at::Half, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, 1, true, false, false>(CUDABLAS_GEMM_ARGS(at::Half));
+          gemm_impl<at::Half, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, S<8,32,1>, S<1,0,2>, 1, true, false, false>(CUDABLAS_GEMM_ARGS(at::Half));
       }
       else {
         TORCH_CHECK(false, "unreachable");

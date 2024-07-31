@@ -3,6 +3,11 @@
 #include <ATen/native/hip/ck_gemm.h>
 #include <ATen/native/hip/ck_gemm_template.h>
 
+#include <ck/utility/sequence.hpp>
+
+template <ck::index_t... Is>
+using S = ck::Sequence<Is...>;
+
 namespace at::native {
 
 void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
@@ -17,16 +22,16 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
   if (use_padding) {
     if (m <= 128) {
       if(transa_ && transb_) {
-          gemm_impl<float, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, 1, true, true, true>(CUDABLAS_GEMM_ARGS(float));
+          gemm_impl<float, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, S<8,32,1>, S<1,0,2>, 1, true, true, true>(CUDABLAS_GEMM_ARGS(float));
       }
       else if(transa_ && !transb_) {
-          gemm_impl<float, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, 1, true, true, false>(CUDABLAS_GEMM_ARGS(float));
+          gemm_impl<float, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, S<8,32,1>,  S<1,0,2>, 1, true, true, false>(CUDABLAS_GEMM_ARGS(float));
       }
       else if(!transa_ && transb_) {
-          gemm_impl<float, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, 1, true, false, true>(CUDABLAS_GEMM_ARGS(float));
+          gemm_impl<float, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, S<8,32,1>, S<1,0,2>, 1, true, false, true>(CUDABLAS_GEMM_ARGS(float));
       }
       else if(!transa_ && !transb_) {
-          gemm_impl<float, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, 1, true, false, false>(CUDABLAS_GEMM_ARGS(float));
+          gemm_impl<float, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, S<8,32,1>, S<1,0,2>, 1, true, false, false>(CUDABLAS_GEMM_ARGS(float));
       }
       else {
         TORCH_CHECK(false, "unreachable");
@@ -37,16 +42,16 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
     } else {
 
       if(transa_ && transb_) {
-          gemm_impl<float, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, 1, true, true, true>(CUDABLAS_GEMM_ARGS(float));
+          gemm_impl<float, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, S<8,32,1>, S<1,0,2>, 1, true, true, true>(CUDABLAS_GEMM_ARGS(float));
       }
       else if(transa_ && !transb_) {
-          gemm_impl<float, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, 1, true, true, false>(CUDABLAS_GEMM_ARGS(float));
+          gemm_impl<float, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, S<8,32,1>, S<1,0,2>, 1, true, true, false>(CUDABLAS_GEMM_ARGS(float));
       }
       else if(!transa_ && transb_) {
-          gemm_impl<float, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, 1, true, false, true>(CUDABLAS_GEMM_ARGS(float));
+          gemm_impl<float, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, S<8,32,1>, S<1,0,2>, 1, true, false, true>(CUDABLAS_GEMM_ARGS(float));
       }
       else if(!transa_ && !transb_) {
-          gemm_impl<float, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, 1, true, false, false>(CUDABLAS_GEMM_ARGS(float));
+          gemm_impl<float, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, S<8,32,1>, S<1,0,2>, 1, true, false, false>(CUDABLAS_GEMM_ARGS(float));
       }
       else {
         TORCH_CHECK(false, "unreachable");
@@ -55,16 +60,16 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
   } else {
     {
       if(transa_ && transb_) {
-          gemm_impl<float, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, 1, true, true, true>(CUDABLAS_GEMM_ARGS(float));
+          gemm_impl<float, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, S<8,32,1>, S<1,0,2>, 1, true, true, true>(CUDABLAS_GEMM_ARGS(float));
       }
       else if(transa_ && !transb_) {
-          gemm_impl<float, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, 1, true, true, false>(CUDABLAS_GEMM_ARGS(float));
+          gemm_impl<float, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, S<8,32,1>, S<1,0,2>, 1, true, true, false>(CUDABLAS_GEMM_ARGS(float));
       }
       else if(!transa_ && transb_) {
-          gemm_impl<float, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, 1, true, false, true>(CUDABLAS_GEMM_ARGS(float));
+          gemm_impl<float, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, S<8,32,1>, S<1,0,2>, 1, true, false, true>(CUDABLAS_GEMM_ARGS(float));
       }
       else if(!transa_ && !transb_) {
-          gemm_impl<float, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, 1, true, false, false>(CUDABLAS_GEMM_ARGS(float));
+          gemm_impl<float, 256, 256, 128, 32, 4, 4, 32, 32, 4, 2, S<8,32,1>, S<1,0,2>, 1, true, false, false>(CUDABLAS_GEMM_ARGS(float));
       }
       else {
         TORCH_CHECK(false, "unreachable");
