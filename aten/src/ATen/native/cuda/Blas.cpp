@@ -42,6 +42,9 @@
 #include <ATen/ops/vdot_native.h>
 #endif
 
+#include <iostream>
+
+
 namespace at::native {
 
 namespace {
@@ -56,38 +59,54 @@ c10::MaybeOwned<Tensor> inline resolve_conj_if_indicated(const Tensor& tensor, b
 }
 
 c10::MaybeOwned<Tensor> inline prepare_matrix_for_cublas(const Tensor& tensor, bool& transpose_tensor, bool transpose_result) {
+  std::cout << "PREPARE_MATRIX_FOR_CUBLAS 0" << std::endl;
+  //std::cout << tensor << std::endl;
+  std::cout << "#$#$#$#$#$^^^^#$#$#$#$#$" << std::endl;
   if (tensor.is_non_overlapping_and_dense()) { // common case
       transpose_tensor = tensor.is_contiguous();
+      std::cout << "TRANSPOSE_AB: is contig: " << transpose_tensor << std::endl;
       return resolve_conj_if_indicated(tensor, transpose_result ? transpose_tensor : !transpose_tensor);
   }
   IntArrayRef tensor_strides = tensor.strides();
   IntArrayRef tensor_sizes = tensor.sizes();
   if ((tensor_strides[0] == 1) && (tensor_strides[1] >= std::max<int64_t>(1, tensor_sizes[0]))) {
+std::cout << "TRANSPOSE_AB: first case: " << transpose_tensor << std::endl;
     transpose_tensor = false;
     return resolve_conj_if_indicated(tensor, !transpose_result);
   } else if ((tensor_strides[1] == 1) && (tensor_strides[0] >= std::max<int64_t>(1, tensor_sizes[1]))) {
     transpose_tensor = true;
+std::cout << "TRANSPOSE_AB: second case: " << transpose_tensor << std::endl;
     return resolve_conj_if_indicated(tensor, transpose_result);
   } else {
+    std::cout << "TRANSPOSE_AB: else case: " << transpose_tensor << std::endl;
     transpose_tensor = true;
     return c10::MaybeOwned<Tensor>::owned(tensor.clone(at::MemoryFormat::Contiguous));
   }
 }
 
 c10::MaybeOwned<Tensor> inline prepare_matrix_for_cublas(const Tensor& tensor, bool& transpose_tensor) {
+  std::cout << "PREPARE_MATRIX_FOR_CUBLAS 1" << std::endl;
+  //std::cout << tensor << std::endl;
+  std::cout << "#$#$#$#$#$^^^^#$#$#$#$#$" << std::endl;
   if (tensor.is_non_overlapping_and_dense()) { // common case
       transpose_tensor = tensor.is_contiguous();
+      // ANDY: This is the case we hit for all examples. tensor is contiguous so we are setting transpose tensor to true
+      std::cout << "TRANSPOSE_RESULT: is contig: " << transpose_tensor << std::endl;
       return resolve_conj_if_indicated(tensor, true);
   }
+
   IntArrayRef tensor_strides = tensor.strides();
   IntArrayRef tensor_sizes = tensor.sizes();
   if ((tensor_strides[0] == 1) && (tensor_strides[1] >= std::max<int64_t>(1, tensor_sizes[0]))) {
     transpose_tensor = false;
+    std::cout << "TRANSPOSE_RESULT: strides at dim 0 is 1 and strides at dim 1 is larger than sizes: " << transpose_tensor << std::endl;
     return resolve_conj_if_indicated(tensor, true);
   } else if ((tensor_strides[1] == 1) && (tensor_strides[0] >= std::max<int64_t>(1, tensor_sizes[1]))) {
     transpose_tensor = true;
+	std::cout << "TRANSPOSE_RESULT: strides at dim 1 is 1 and stridees at dim 0 is larger: " << transpose_tensor << std::endl;
     return resolve_conj_if_indicated(tensor, true);
   } else {
+    std::cout << "TRANSPOSE_RESULT: else case: " << transpose_tensor << std::endl;
     transpose_tensor = true;
     return c10::MaybeOwned<Tensor>::owned(tensor.clone(at::MemoryFormat::Contiguous));
   }
@@ -96,14 +115,35 @@ c10::MaybeOwned<Tensor> inline prepare_matrix_for_cublas(const Tensor& tensor, b
 struct cublasCommonArgs {
   cublasCommonArgs(const Tensor& mat1, const Tensor& mat2, Tensor& c) {
     bool transpose_result, transpose_mat1, transpose_mat2;
+
+    std::cout << "PREPARING C FOR CUBLAS" << std::endl;
     result = prepare_matrix_for_cublas(c, transpose_result);
+	std::cout << "TRANSPOSE_RESULT_AFTER C: " << transpose_result << std::endl;
+    std::cout << "^^^^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl;
+
+    std::cout << "PREPARING mat2 FOR CUBLAS" << std::endl;
     mata = prepare_matrix_for_cublas(transpose_result ? mat2 : mat1, transpose_mat1, transpose_result);
+
+    std::cout << "TRANSPOSE_MAT1_AFTER B: " << transpose_mat1 << std::endl;
+    std::cout << "^^^^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl;
+
+    std::cout << "PREPARING mat1 FOR CUBLAS" << std::endl;
     matb = prepare_matrix_for_cublas(transpose_result ? mat1 : mat2, transpose_mat2, transpose_result);
+	std::cout << "TRANSPOSE_MAT2_AFTER A: " << transpose_mat2 << std::endl;
+    std::cout << "^^^^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl;
+
+
     auto mat1_sizes = mat1.sizes();
     auto mat2_sizes = mat2.sizes();
     if (transpose_result) {
+	  std::cout << "SWAPPING TRANSPOSES! BEFORE: " << std::endl;
+	  std::cout << "transpose_mat1: " << transpose_mat1 << std::endl;
+      std::cout << "transpose_mat2: " << transpose_mat2 << std::endl;
       transpose_mat1 = !transpose_mat1;
       transpose_mat2 = !transpose_mat2;
+      std::cout << "SWAPPING TRANSPOSES! AFTER: " << std::endl;
+	  std::cout << "transpose_mat1: " << transpose_mat1 << std::endl;
+      std::cout << "transpose_mat2: " << transpose_mat2 << std::endl;
       mat1_sizes = mata->sizes();
       mat2_sizes = matb->sizes();
     }
@@ -116,6 +156,30 @@ struct cublasCommonArgs {
     result_ld = result->stride(transpose_result ? 0 : 1);
     transa = transpose_mat1 ?  mata->is_conj() ? 'c' : 't' : 'n';
     transb = transpose_mat2 ?  matb->is_conj() ? 'c' : 't' : 'n';
+
+
+    std::cout << "BLAS transpose_result: " << transpose_result << std::endl;
+	std::cout << "BLAS transpose_mat1: " << transpose_mat1 << std::endl;;
+	std::cout << "BLAS transpose_mat2: " << transpose_mat2 << std::endl;
+
+	std::cout << std::endl;
+	std::cout << "BLAS stride A[0]" << mata->stride(0) << std::endl;
+    std::cout << "BLAS stride A[1]" << mata->stride(1) << std::endl;
+    std::cout << "BLAS lda: " << lda << std::endl;
+    std::cout << "BLAS transa: " << transa << std::endl;
+    //std::cout << "Matrix A: " << std::endl;
+	//std::cout << *mata << std::endl;
+    std::cout << std::endl;
+    std::cout << "BLAS stride B[0]" << matb->stride(0) << std::endl;
+    std::cout << "BLAS stride B[1]" << matb->stride(1) << std::endl;
+    std::cout << "BLAS ldb: " << ldb << std::endl;
+    std::cout << "BLAS transb: " << transb << std::endl;
+    //std::cout << "Matrix B: " << std::endl;
+	//std::cout << *matb << std::endl;
+
+
+
+	std::cout << "BLAS ldc: " << result_ld << std::endl;
   }
   char transa, transb;
   int64_t m, n, k;
