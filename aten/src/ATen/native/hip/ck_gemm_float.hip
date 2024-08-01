@@ -2,7 +2,6 @@
 
 #include <ATen/native/hip/ck_gemm.h>
 #include <ATen/native/hip/ck_gemm_template.h>
-
 #include <ck/utility/sequence.hpp>
 
 template <ck::index_t... Is>
