@@ -8,11 +8,7 @@
 template <ck::index_t... Is>
 using S = ck::Sequence<Is...>;
 
-
 namespace at::native {
-
-
-
 
 void dispatch_half_gemm(CUDABLAS_GEMM_ARGTYPES(at::Half)) {
 #if 0
@@ -302,12 +298,9 @@ void dispatch_half_gemm(CUDABLAS_GEMM_ARGTYPES(at::Half)) {
 #endif
 }
 
-
-
 template <>
 void gemm_internal_ck<at::Half>(CUDABLAS_GEMM_ARGTYPES(at::Half)) {
   dispatch_half_gemm(CUDABLAS_GEMM_ARGS(at::Half));
 }
-
 
 } // namespace at::native

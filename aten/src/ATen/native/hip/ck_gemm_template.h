@@ -65,7 +65,6 @@ struct CkTensorLayout {
   using layout = Row;
 };
 
-
 // True denotes transpose is necessary. Default is Col, so return Row
 template <>
 struct CkTensorLayout<true> {
@@ -76,7 +75,6 @@ template <>
 struct CkTensorLayout<false> {
   using layout = Col;
 };
-
 
 
 // Elementwise Operators
@@ -152,23 +150,12 @@ void gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   int N = n;
   int K = k;
 
-
-
   int StrideA = lda;
   int StrideB = ldb;
   int StrideC = ldc;
 
-  std::cout << "M      : " << M << std::endl;
-  std::cout << "N      : " << N << std::endl;
-  std::cout << "K      : " << K << std::endl;
-
-  std::cout << "StrideA: " << StrideA << std::endl;
-  std::cout << "StrideB: " << StrideB << std::endl;
-  std::cout << "StrideC: " << StrideC << std::endl;
-
   float falpha = alpha;
   float fbeta = beta;
-
 
   using ADataType = typename CkMathType<Dtype>::dtype;
   using BDataType = typename CkMathType<Dtype>::dtype;
@@ -178,32 +165,13 @@ void gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   using AccDataType = float;
   using CShuffleDataType = typename CkMathType<Dtype>::dtype;
 
-  // Case 1:  transa = n transb = n
-  // Case 2:  transa = t transb = t
-  // Case 3:  transa = n transb = t
-  // Default: transa = t transb = n
-
-
-
   // NOTE: in our example, transa = t and transb = n;
   // since default for cublas is Column-major, since the value is T, ALayout is Row
   // same for B. transb = N = NO Transpose so B is column Major
-  //using ALayout = typename CkTensorLayout<true>::layout;
-
-  std::cout << "TRANSA: " << TRANSA << std::endl;
-  std::cout << "TRANSB: " << TRANSB << std::endl;
-  std::cout << "transa: " << transa << std::endl;
-  std::cout << "transb: " << transb << std::endl;
-#if 0
-  using ALayout = typename CkTensorLayout<TRANSA>::layout;
-  using BLayout = typename CkTensorLayout<TRANSB>::layout;
-#endif
 
   using ALayout = typename CkTensorLayout<TRANSA>::layout;
   using BLayout = typename CkTensorLayout<TRANSB>::layout;
 
-
-  //using BLayout = Col;
   using DLayout = Row;
   using CLayout = Row;
 
@@ -219,7 +187,6 @@ void gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   static constexpr auto GemmSpec = PADDING ? GemmMNKPadding : GemmDefault;
 
 
-  // TODO: Flesh out template parameters
   using DeviceGemmInstance =
     ck::tensor_operation::device::DeviceGemmMultiD_Xdl_CShuffle_V3<ALayout,
                                                                    BLayout,
@@ -235,16 +202,16 @@ void gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
                                                                    BElementOp,
                                                                    CElementOp,
                                                                    GemmSpec,
-                                                                   BLOCK_SIZE, //256,
-                                                                   MBLOCK, //256,
-                                                                   NBLOCK, //128,
-                                                                   KBLOCK, //32,
-                                                                   AK1, //4,
-                                                                   BK1, //4,
-                                                                   MPER_XDL, //32,
-                                                                   NPER_XDL, //32,
-                                                                   MPER_WAVE, //4,
-                                                                   NPER_WAVE, //2,
+                                                                   BLOCK_SIZE,
+                                                                   MBLOCK,
+                                                                   NBLOCK,
+                                                                   KBLOCK,
+                                                                   AK1,
+                                                                   BK1,
+                                                                   MPER_XDL,
+                                                                   NPER_XDL,
+                                                                   MPER_WAVE,
+                                                                   NPER_WAVE,
                                                                    ABLOCK_CLUSTER_LENS,
                                                                    ABLOCK_CLUSTER_ORDER,
                                                                    ABLOCK_SRC_ORDER,
