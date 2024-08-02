@@ -154,7 +154,7 @@ fmha_fwd_args get_ck_fmha_fwd_args(bool has_lse,
 }
 
 std::vector<at::Tensor>
-mha_fwd(at::Tensor &q,                            // batch_size x seqlen_q x num_heads x head_size
+mha_fwd(const at::Tensor &q,                            // batch_size x seqlen_q x num_heads x head_size
         const at::Tensor &k,                      // batch_size x seqlen_k x num_heads_k x head_size
         const at::Tensor &v,                      // batch_size x seqlen_k x num_heads_k x head_size
         c10::optional<at::Tensor> &out_,          // batch_size x seqlen_q x num_heads x head_size
@@ -220,24 +220,25 @@ mha_fwd(at::Tensor &q,                            // batch_size x seqlen_q x num
     // H/t Daniel Haziza
     const int seqlenq_ngroups_swapped = seqlen_q == 1 && num_heads > num_heads_k && window_size_left < 0 && window_size_right < 0 && p_dropout == 0.f && head_size_og % 8 == 0 && !alibi_slopes_.has_value();
     const int ngroups = num_heads / num_heads_k;
+    at::Tensor temp_q = q;
     if (seqlenq_ngroups_swapped) {
-        q = q.reshape({batch_size, num_heads_k, ngroups, head_size_og}).transpose(1, 2);
-        seqlen_q = ngroups;
-        num_heads = num_heads_k;
+      temp_q = q.reshape({batch_size, num_heads_k, ngroups, head_size_og}).transpose(1, 2);
+      seqlen_q = ngroups;
+      num_heads = num_heads_k;
     }
 
-    CHECK_SHAPE(q, batch_size, seqlen_q, num_heads, head_size_og);
+    CHECK_SHAPE(temp_q, batch_size, seqlen_q, num_heads, head_size_og);
     CHECK_SHAPE(k, batch_size, seqlen_k, num_heads_k, head_size_og);
     CHECK_SHAPE(v, batch_size, seqlen_k, num_heads_k, head_size_og);
 
     at::Tensor q_padded, k_padded, v_padded;
     if (head_size_og % 8 != 0) {
-        q_padded = at::pad(q, {0, 8 - head_size_og % 8});
+        q_padded = at::pad(temp_q, {0, 8 - head_size_og % 8});
         k_padded = at::pad(k, {0, 8 - head_size_og % 8});
         v_padded = at::pad(v, {0, 8 - head_size_og % 8});
     }
     else {
-        q_padded = q;
+        q_padded = temp_q;
         k_padded = k;
         v_padded = v;
     }
@@ -279,22 +280,61 @@ mha_fwd(at::Tensor &q,                            // batch_size x seqlen_q x num
         p = at::empty({batch_size, num_heads, seqlen_q, seqlen_k}, opts.dtype(at::kByte));
     }
 
-    uint64_t drop_seed = 1, drop_offset = 0;
-    int64_t counter_offset = batch_size * num_heads * ck_tile::get_warp_size();
-    auto options = at::TensorOptions().dtype(at::kFloat).device(at::kCUDA);
-    auto rng_state = at::empty({2}, options.dtype(at::kLong));
+    // uint64_t drop_seed = 1, drop_offset = 0;
+    // int64_t counter_offset = batch_size * num_heads * ck_tile::get_warp_size();
+    // auto options = at::TensorOptions().dtype(at::kFloat).device(at::kCUDA);
+    // auto rng_state = at::empty({2}, options.dtype(at::kLong));
 
+    // if (p_dropout > 0.0)  {
+    //     auto gen = at::get_generator_or_default<at::CUDAGeneratorImpl>(
+    //         gen_, at::cuda::detail::getDefaultCUDAGenerator());
+    //     // See Note [Acquire lock when using random generators]
+    //     std::lock_guard<std::mutex> lock(gen->mutex_);
+    //     auto philox_args = gen->philox_cuda_state(counter_offset);
+    //     std::tie(drop_seed, drop_offset) = flash::unpack(philox_args);
+    // }
+
+    // rng_state[0] = *(reinterpret_cast<int64_t*>(&drop_seed));
+    // rng_state[1] = *(reinterpret_cast<int64_t*>(&drop_offset));
+
+        // We want to checkpoint and save the RNG state for backward if dropout
+    // We get the default generator and return the seed and offset which will
+    // be used in the backward function
+    uint64_t drop_seed = 1, drop_offset = 0;
+    at::Tensor seed_t, offset_t;
     if (p_dropout > 0.0)  {
-        auto gen = at::get_generator_or_default<at::CUDAGeneratorImpl>(
-            gen_, at::cuda::detail::getDefaultCUDAGenerator());
+      auto gen = at::get_generator_or_default<at::CUDAGeneratorImpl>(c10::nullopt, at::cuda::detail::getDefaultCUDAGenerator());
+      //auto gen = at::get_generator_or_default<at::CUDAGeneratorImpl>(gen_, at::cuda::detail::getDefaultCUDAGenerator());
+        // number of times random will be generated per thread, to offset philox counter in thc random
+        // state
+        // We use a custom RNG that increases the offset by batch_size * nheads * 32.
+        int64_t counter_offset = batch_size * num_heads * ck_tile::get_warp_size();
         // See Note [Acquire lock when using random generators]
         std::lock_guard<std::mutex> lock(gen->mutex_);
-        auto philox_args = gen->philox_cuda_state(counter_offset);
-        std::tie(drop_seed, drop_offset) = flash::unpack(philox_args);
-    }
+        at::PhiloxCudaState philox_state = gen->philox_cuda_state(counter_offset);
+        if (at::cuda::currentStreamCaptureStatus() == at::cuda::CaptureStatus::None) {
+          auto [seed, offset] = at::cuda::philox::unpack(philox_state);
+          seed_t = at::scalar_tensor(at::Scalar(static_cast<int64_t>(seed)), at::dtype(at::kLong));
+          offset_t = at::scalar_tensor(at::Scalar(static_cast<int64_t>(offset)), at::dtype(at::kLong));
+          drop_seed = seed;
+          drop_offset = offset;
+        } else {
+          seed_t = at::empty({}, at::dtype(at::kLong).device(at::kCUDA));
+          offset_t = at::empty({}, at::dtype(at::kLong).device(at::kCUDA));
+          //params.seed = seed_t.data_ptr<int64_t>();
+          //params.extragraph_offset = offset_t.data_ptr<int64_t>();
+        }
+        // params.philox_args = philox_state;
+    } else {
+        if (at::cuda::currentStreamCaptureStatus() != at::cuda::CaptureStatus::None) {
+            seed_t = at::empty({}, at::dtype(at::kLong).device(at::kCUDA));
+            offset_t = at::empty({}, at::dtype(at::kLong).device(at::kCUDA));
+        } else {
+            seed_t = at::empty({}, at::dtype(at::kLong));
+            offset_t = at::empty({}, at::dtype(at::kLong));
+        }
 
-    rng_state[0] = *(reinterpret_cast<int64_t*>(&drop_seed));
-    rng_state[1] = *(reinterpret_cast<int64_t*>(&drop_offset));
+    }
 
     if (seqlen_k > 0) {
         auto stream = at::cuda::getCurrentHIPStream().stream();
@@ -334,7 +374,6 @@ mha_fwd(at::Tensor &q,                            // batch_size x seqlen_q x num
         softmax_lse.fill_(std::numeric_limits<float>::infinity());
     }
 
-    at::Tensor out_padded = out;
     if (head_size_og % 8 != 0) {
         out = out.index({"...", at::indexing::Slice(at::indexing::None, head_size_og)});
         if (out_.has_value()) { out_.value().copy_(out); }
@@ -342,10 +381,9 @@ mha_fwd(at::Tensor &q,                            // batch_size x seqlen_q x num
 
     if (seqlenq_ngroups_swapped) {
         out = out.transpose(1, 2).reshape({batch_size, 1, num_heads_k * seqlen_q, head_size_og});
-        out_padded = out_padded.transpose(1, 2).reshape({batch_size, 1, num_heads_k * seqlen_q, head_size_og});
         q_padded = q_padded.transpose(1, 2).reshape({batch_size, 1, num_heads_k * seqlen_q, head_size_og});
         softmax_lse = softmax_lse.reshape({batch_size, num_heads_k * seqlen_q, 1});
     }
-    return {out, q_padded, k_padded, v_padded, out_padded, softmax_lse, p, rng_state};
+    return {out, q_padded, k_padded, v_padded, softmax_lse, seed_t, offset_t, p};
 }
 }

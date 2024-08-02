@@ -11,6 +11,7 @@
 #include <ATen/TensorIndexing.h>
 #include <ATen/hip/HIPContext.h>
 #include <ATen/hip/impl/HIPGuardImplMasqueradingAsCUDA.h>
+#include <ATen/hip/HIPGraphsUtils.cuh>
 #include <ATen/core/Tensor.h>
 #include <ATen/ops/empty.h>
 #include <ATen/ops/empty_like.h>

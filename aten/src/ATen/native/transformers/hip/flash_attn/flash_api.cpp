@@ -3,11 +3,18 @@
  ******************************************************************************/
 
 #include "flash_common_hip.hpp"
+#include "flash_api.h"
+
+#define TORCH_ASSERT_ONLY_METHOD_OPERATORS
 
 namespace pytorch_flash {
 
-std::vector<at::Tensor>
-mha_fwd(at::Tensor &q,
+  ///usr/bin/ld: /docker_m/pytorch/build/lib/libtorch_hip.so: undefined reference to `pytorch_flash::mha_fwd(at::Tensor const&, at::Tensor const&, at::Tensor const&, std::optional<at::Tensor>&, std::optional<at::Tensor>&, float, float, bool, int, int, bool, std::optional<at::Generator>)'
+
+  // Must match PyTorch APIs...
+
+std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor>
+mha_fwd(const at::Tensor &q,
         const at::Tensor &k,
         const at::Tensor &v,
         c10::optional<at::Tensor> &out_,
@@ -20,7 +27,7 @@ mha_fwd(at::Tensor &q,
         const bool return_softmax,
         c10::optional<at::Generator> gen_);
 
-std::vector<at::Tensor>
+std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor>
 mha_varlen_fwd(at::Tensor &q,                            // total_q x num_heads x head_size, total_q := \sum_{i=0}^{b} s_i
                const at::Tensor &k,                      // total_k x num_heads_k x head_size, total_k := \sum_{i=0}^{b} s_i or num_blocks x page_block_size x num_heads_k x head_size if there's a block_table.
                const at::Tensor &v,                      // total_k x num_heads_k x head_size, total_k := \sum_{i=0}^{b} s_i or num_blocks x page_block_size x num_heads_k x head_size if there's a block_table.
@@ -41,7 +48,7 @@ mha_varlen_fwd(at::Tensor &q,                            // total_q x num_heads 
                const bool return_softmax,
                c10::optional<at::Generator> gen_);
 
-std::vector<at::Tensor>
+std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor>
 mha_bwd(const at::Tensor &dout,                   // batch_size x seqlen_q x num_heads, x head_size_og
         const at::Tensor &q,                      // batch_size x seqlen_q x num_heads x head_size
         const at::Tensor &k,                      // batch_size x seqlen_k x num_heads_k x head_size
@@ -61,7 +68,7 @@ mha_bwd(const at::Tensor &dout,                   // batch_size x seqlen_q x num
         c10::optional<at::Generator> gen_,
         c10::optional<at::Tensor> &rng_state);
 
-std::vector<at::Tensor>
+std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor>
 mha_varlen_bwd(const at::Tensor &dout,                   // total_q x num_heads x head_size
                const at::Tensor &q,                      // total_q x num_heads x head_size, total_q := \sum_{i=0}^{b} s_i
                const at::Tensor &k,                      // total_k x num_heads_k x head_size, total_k := \sum_{i=0}^{b} s_i

@@ -800,7 +800,7 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt, Tensor, Ten
     // attention tensor
     // TODO(eqy): should state be advanced per thread (local) amount or per call/launch (global) amount
     philox_state = gen->philox_cuda_state(batch_size * num_heads * max_seqlen_batch_q * max_seqlen_batch_k);
-   hipLaunchKernelGGL(( unpack_cudnn), dim3(1), dim3(1), 0, at::hip::getCurrentHIPStreamMasqueradingAsCUDA(), 
+   hipLaunchKernelGGL(( unpack_cudnn), dim3(1), dim3(1), 0, at::hip::getCurrentHIPStreamMasqueradingAsCUDA(),
                                       philox_state, static_cast<int64_t*>(cudnn_seed.data_ptr()), static_cast<int64_t*>(cudnn_offset.data_ptr()));
   }
 
@@ -1445,7 +1445,7 @@ at::Tensor& _fill_mem_eff_dropout_mask_(
   at::hip::HIPGuardMasqueradingAsCUDA device_guard(self.device());
   hipStream_t stream = at::hip::getCurrentHIPStreamMasqueradingAsCUDA();
 
- hipLaunchKernelGGL(( rand_uniform_kernel<float>), dim3(dim3(batch_sz, n_heads)), dim3(n_queries), 0, stream, 
+ hipLaunchKernelGGL(( rand_uniform_kernel<float>), dim3(dim3(batch_sz, n_heads)), dim3(n_queries), 0, stream,
       n_heads,
       n_queries,
       n_keys,
