@@ -184,8 +184,8 @@ mha_bwd(const at::Tensor &dout,                   // batch_size x seqlen_q x num
         int window_size_left,
         int window_size_right,
         const bool deterministic,
-        c10::optional<at::Generator> gen_,
-        c10::optional<at::Tensor> &rng_state)
+        const at::Tensor philox_seed,
+        const at::Tensor philox_offset)
 {
 #ifdef FLASHATTENTION_DISABLE_BACKWARD
     TORCH_CHECK(false, "This flash attention build does not support backward.");
@@ -309,22 +309,21 @@ mha_bwd(const at::Tensor &dout,                   // batch_size x seqlen_q x num
         dv_expanded = dv;
     }
 
-    auto gen = at::get_generator_or_default<at::CUDAGeneratorImpl>(
-        gen_, at::cuda::detail::getDefaultCUDAGenerator());
+    // auto gen = at::get_generator_or_default<at::CUDAGeneratorImpl>(
+    //     gen_, at::cuda::detail::getDefaultCUDAGenerator());
 
     uint64_t drop_seed = 1, drop_offset = 0;
-    int64_t counter_offset = batch_size * num_heads * ck_tile::get_warp_size();
+    //int64_t counter_offset = batch_size * num_heads * ck_tile::get_warp_size();
 
-    if (rng_state.has_value()) {
-        uint64_t* d = reinterpret_cast<uint64_t*>(rng_state.value().data_ptr());
-        drop_seed = d[0];
-        drop_offset = d[1];
-    } else if(is_dropout) {
-        // See Note [Acquire lock when using random generators]
-        std::lock_guard<std::mutex> lock(gen->mutex_);
-        auto philox_args = gen->philox_cuda_state(counter_offset);
-        std::tie(drop_seed, drop_offset) = flash::unpack(philox_args);
-    }
+    drop_seed = *philox_seed.data_ptr<int64_t>();
+    drop_offset = *philox_offset.data_ptr<int64_t>();
+
+    // if(is_dropout) {
+    //     // See Note [Acquire lock when using random generators]
+    //     std::lock_guard<std::mutex> lock(gen->mutex_);
+    //     auto philox_args = gen->philox_cuda_state(counter_offset);
+    //     std::tie(drop_seed, drop_offset) = flash::unpack(philox_args);
+    // } // TODO: Fix dropout
 
     if (seqlen_q > 0) {
         ck_tile::stream_config stream_config{stream};
