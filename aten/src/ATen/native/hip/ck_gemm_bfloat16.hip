@@ -15,8 +15,8 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
   // Dispatch to best implementation.
   // TODO add more configurations. Optimize.
 
-  std::cout << "(DISPATCH)TRANSA: " << transa << std::endl;
-  std::cout << "(DISPATCH)TRANSB: " << transb << std::endl;
+  std::cout << "(DISPATCH bf16)TRANSA: " << transa << std::endl;
+  std::cout << "(DISPATCH bf16)TRANSB: " << transb << std::endl;
   bool transa_ = std::tolower(transa) != 'n';
   bool transb_ = std::tolower(transb) != 'n';
 

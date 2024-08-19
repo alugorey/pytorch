@@ -15,12 +15,15 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
   // Dispatch to best implementation.
   // TODO add more configurations. Optimize.
 
+  std::cout << "(DISPATCH fp32)TRANSA: " << transa << std::endl;
+  std::cout << "(DISPATCH fp32)TRANSB: " << transb << std::endl;
   bool transa_ = std::tolower(transa) != 'n';
   bool transb_ = std::tolower(transb) != 'n';
 
   if (use_padding) {
     if (m <= 128) {
       if(transa_ && transb_) {
+          std::cout << "OPTIMUS PRIMAL" << std::endl;
           gemm_impl<
             float,
             256,
@@ -34,9 +37,9 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
             4,
             2,
             S<8,32,1>,
-            S<1,0,2>,
-            S<1,0,2>,
-            2,
+            S<0,2,1>,
+            S<0,2,1>,
+            1,
             4,
             4,
             0,
@@ -57,6 +60,7 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
             (CUDABLAS_GEMM_ARGS(float));
       }
       else if(transa_ && !transb_) {
+          std::cout << "MEGATRON" << std::endl;
           gemm_impl<
             float,
             256,
@@ -93,6 +97,7 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
             (CUDABLAS_GEMM_ARGS(float));
       }
       else if(!transa_ && transb_) {
+          std::cout << "TERRORSAUR" << std::endl;
           gemm_impl<
             float,
             256,
@@ -106,16 +111,16 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
             4,
             2,
             S<8,32,1>,
-            S<1,0,2>,
-            S<1,0,2>,
-            2,
+            S<0,2,1>,
+            S<0,2,1>,
+            1,
             4,
             4,
             0,
             S<8,32,1>,
-            S<1,0,2>,
-            S<1,0,2>,
-            2,
+            S<0,2,1>,
+            S<0,2,1>,
+            1,
             4,
             4,
             0,
@@ -129,6 +134,7 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
             (CUDABLAS_GEMM_ARGS(float));
       }
       else if(!transa_ && !transb_) {
+          std::cout << "TIGATRON" << std::endl;
           gemm_impl<
             float,
             256,
@@ -149,9 +155,9 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
             4,
             0,
             S<8,32,1>,
-            S<1,0,2>,
-            S<1,0,2>,
-            2,
+            S<0,2,1>,
+            S<0,2,1>,
+            1,
             4,
             4,
             0,
