@@ -1,7 +1,7 @@
 /*
   Provides the implementations of CUDA BLAS function templates.
  */
-
+#include <iostream>
 #include <ATen/ATen.h>
 #include <ATen/cuda/CUDABlas.h>
 #include <ATen/cuda/Exceptions.h>
@@ -1015,11 +1015,13 @@ void gemm_internal<double>(CUDABLAS_GEMM_ARGTYPES(double))
 template <>
 void gemm_internal<float>(CUDABLAS_GEMM_ARGTYPES(float))
 {
+  std::cout << "gemm_internal<float>" << std::endl;
   if (at::globalContext().blasPreferredBackend() == BlasBackend::Cublaslt) {
     gemm_internal_cublaslt<float>(CUDABLAS_GEMM_ARGS(float));
   }
 #ifdef USE_ROCM
   else if (at::globalContext().blasPreferredBackend() == BlasBackend::Ck) {
+    std::cout << "about to call gemm_internal_ck<f32>" << std::endl;
     at::native::gemm_internal_ck<float>(CUDABLAS_GEMM_ARGS(float));
   }
 #endif
@@ -1079,11 +1081,13 @@ void gemm_internal<at::Half>(CUDABLAS_GEMM_ARGTYPES(at::Half))
 template <>
 void gemm_internal<at::BFloat16>(CUDABLAS_GEMM_ARGTYPES(at::BFloat16))
 {
+  std::cout << "gemm_internal<at::BFloat16>" << std::endl;
   if (at::globalContext().blasPreferredBackend() == BlasBackend::Cublaslt) {
     gemm_internal_cublaslt<at::BFloat16>(CUDABLAS_GEMM_ARGS(at::BFloat16));
   }
 #ifdef USE_ROCM
   else if (at::globalContext().blasPreferredBackend() == BlasBackend::Ck) {
+    std::cout << "about to call gemm_internal_ck<bf16>" << std::endl;
     at::native::gemm_internal_ck<at::BFloat16>(CUDABLAS_GEMM_ARGS(at::BFloat16));
   }
 #endif
@@ -1146,11 +1150,13 @@ void gemm<double>(CUDABLAS_GEMM_ARGTYPES(double)) {
 
 template <>
 void gemm<float>(CUDABLAS_GEMM_ARGTYPES(float)) {
+  std::cout << "gemm<float>" << std::endl;
   auto tuning_ctx = at::cuda::tunable::getTuningContext();
   if (tuning_ctx->IsTunableOpEnabled()) {
     gemm_tunable<float>(CUDABLAS_GEMM_ARGS(float));
   }
   else {
+    std::cout << "about to call gemm_internal<f32>" << std::endl;
     gemm_internal<float>(CUDABLAS_GEMM_ARGS(float));
   }
 }
@@ -1190,11 +1196,13 @@ void gemm<at::Half>(CUDABLAS_GEMM_ARGTYPES(at::Half)) {
 
 template <>
 void gemm<at::BFloat16>(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
+  std::cout << "gemm<at::BFloat16>" << std::endl;
   auto tuning_ctx = at::cuda::tunable::getTuningContext();
   if (tuning_ctx->IsTunableOpEnabled()) {
     gemm_tunable<at::BFloat16>(CUDABLAS_GEMM_ARGS(at::BFloat16));
   }
   else {
+    std::cout << "about to call gemm_internal<bf16>" << std::endl;
     gemm_internal<at::BFloat16>(CUDABLAS_GEMM_ARGS(at::BFloat16));
   }
 }

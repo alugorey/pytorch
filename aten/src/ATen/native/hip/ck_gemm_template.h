@@ -171,6 +171,10 @@ void gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
 
   using ALayout = typename CkTensorLayout<TRANSA>::layout;
   using BLayout = typename CkTensorLayout<TRANSB>::layout;
+  std::cout << "ALAYOUT: " << typeid(ALayout).name() << std::endl;
+  std::cout << "BLAYOUT: " << typeid(BLayout).name() << std::endl;
+  std::cout << "TRANSA : " << transa << std::endl;
+  std::cout << "TRANSB : " << transb << std::endl;
 
   using DLayout = Row;
   using CLayout = Row;
@@ -239,10 +243,10 @@ void gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   auto b_element_op = BElementOp{};
   auto c_element_op = CElementOp{alpha, beta};
 
+
   using DDataArrayType = std::array<const void*, 0>;
   DDataArrayType DDataArray;
 
-  // Note: CK only supports row-major output.
   // We swap A and B inputs here as a temporary workaround
   auto argument = gemm.MakeArgument(
      reinterpret_cast<const void*>(b),
