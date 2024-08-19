@@ -15,6 +15,8 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
   // Dispatch to best implementation.
   // TODO add more configurations. Optimize.
 
+  std::cout << "(DISPATCH)TRANSA: " << transa << std::endl;
+  std::cout << "(DISPATCH)TRANSB: " << transb << std::endl;
   bool transa_ = std::tolower(transa) != 'n';
   bool transb_ = std::tolower(transb) != 'n';
 
@@ -41,8 +43,8 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             8,
             0,
             S<8,32,1>,
-            S<1,0,2>,
-            S<1,0,2>,
+            S<0,2,1>,
+            S<0,2,1>,
             2,
             8,
             8,
@@ -50,7 +52,7 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             1,
             1,
             S<1, 32, 1, 8>,
-            S<8>,
+            S<4>,
             true,
             true,
             true>
@@ -191,8 +193,8 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             8,
             0,
             S<8,32,1>,
-            S<1,0,2>,
-            S<1,0,2>,
+            S<0,2,1>,
+            S<0,2,1>,
             2,
             8,
             8,
@@ -341,8 +343,8 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             8,
             0,
             S<8,32,1>,
-            S<1,0,2>,
-            S<1,0,2>,
+            S<0,2,1>,
+            S<0,2,1>,
             2,
             8,
             8,
