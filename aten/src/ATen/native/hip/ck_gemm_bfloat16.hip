@@ -23,6 +23,7 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
   if (use_padding) {
     if (m <= 128) {
       if(transa_ && transb_) {
+         std::cout << "CHEETOR" << std::endl;
          gemm_impl<
             at::BFloat16,
             256,
@@ -59,7 +60,8 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             (CUDABLAS_GEMM_ARGS(at::BFloat16));
       }
       else if(transa_ && !transb_) {
-          gemm_impl<
+         std::cout << "RHINOX" << std::endl;
+        gemm_impl<
             at::BFloat16,
             256,
             128,
@@ -95,6 +97,7 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             (CUDABLAS_GEMM_ARGS(at::BFloat16));
       }
       else if(!transa_ && transb_) {
+		  std::cout << "RATTRAP" << std::endl;
           gemm_impl<
             at::BFloat16,
             256,
@@ -108,17 +111,17 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             2,
             2,
             S<8,32,1>,
-            S<1,0,2>,
-            S<1,0,2>,
-            2,
-            8,
+            S<0,2,1>,
+            S<0,2,1>,
+            1,
+            4,
             8,
             0,
             S<8,32,1>,
-            S<1,0,2>,
-            S<1,0,2>,
-            2,
-            8,
+            S<0,2,1>,
+            S<0,2,1>,
+            1,
+            4,
             8,
             0,
             1,
@@ -131,8 +134,9 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             (CUDABLAS_GEMM_ARGS(at::BFloat16));
       }
       else if(!transa_ && !transb_) {
+          std::cout << "AIRAZOR" << std::endl;
           gemm_impl<
-            at::BFloat16,
+           at::BFloat16,
             256,
             128,
             128,
@@ -151,10 +155,10 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             8,
             0,
             S<8,32,1>,
-            S<1,0,2>,
-            S<1,0,2>,
-            2,
-            8,
+            S<0,2,1>,
+            S<0,2,1>,
+            1,
+            4,
             8,
             0,
             1,
@@ -222,17 +226,17 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             2,
             2,
             S<8,32,1>,
-            S<1,0,2>,
-            S<1,0,2>,
-            2,
-            8,
+            S<0,2,1>,
+            S<0,2,1>,
+            1,
+            4,
             8,
             0,
             S<8,32,1>,
-            S<1,0,2>,
-            S<1,0,2>,
-            2,
-            8,
+            S<0,2,1>,
+            S<0,2,1>,
+            1,
+            4,
             8,
             0,
             1,
@@ -372,17 +376,17 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             2,
             2,
             S<8,32,1>,
-            S<1,0,2>,
-            S<1,0,2>,
-            2,
-            8,
+            S<0,2,1>,
+            S<0,2,1>,
+            1,
+            4,
             8,
             0,
             S<8,32,1>,
-            S<1,0,2>,
-            S<1,0,2>,
-            2,
-            8,
+            S<0,2,1>,
+            S<0,2,1>,
+            1,
+            4,
             8,
             0,
             1,

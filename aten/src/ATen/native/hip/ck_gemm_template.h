@@ -59,21 +59,38 @@ struct CkMathType<at::Half> {
 };
 
 
-template <bool B>
+template <bool A, bool B>
 struct CkTensorLayout {
   // default goes to row-wise for now
-  using layout = Row;
+  using a_layout = Row;
+  using b_layout = Row;
 };
 
 // True denotes transpose is necessary. Default is Col, so return Row
 template <>
-struct CkTensorLayout<true> {
-  using layout = Row;
+struct CkTensorLayout<true, true> {
+  using a_layout = Col;
+  using b_layout = Col;
+};
+
+
+template <>
+struct CkTensorLayout<true, false> {
+  using a_layout = Row;
+  using b_layout = Col;
 };
 
 template <>
-struct CkTensorLayout<false> {
-  using layout = Col;
+struct CkTensorLayout<false, true> {
+  using a_layout = Col;
+  using b_layout = Row;
+};
+
+
+template <>
+struct CkTensorLayout<false, false> {
+  using a_layout = Row;
+  using b_layout = Row;
 };
 
 
@@ -169,8 +186,10 @@ void gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   // since default for cublas is Column-major, since the value is T, ALayout is Row
   // same for B. transb = N = NO Transpose so B is column Major
 
-  using ALayout = typename CkTensorLayout<TRANSA>::layout;
-  using BLayout = typename CkTensorLayout<TRANSB>::layout;
+  std::cout << "ACTUAL TRANSA:: " << TRANSA << std::endl;
+  std::cout << "ACTUAL TRANSB:: " << TRANSB << std::endl;
+  using ALayout = typename CkTensorLayout<TRANSA, TRANSB>::a_layout;
+  using BLayout = typename CkTensorLayout<TRANSA, TRANSB>::b_layout;
   std::cout << "ALAYOUT: " << typeid(ALayout).name() << std::endl;
   std::cout << "BLAYOUT: " << typeid(BLayout).name() << std::endl;
   std::cout << "TRANSA : " << transa << std::endl;
