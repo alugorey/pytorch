@@ -222,6 +222,7 @@ static bool isSupportedHipLtROCmArch(int index) {
 #endif
 
 Tensor& addmm_out_cuda_impl(Tensor& result, const Tensor& self, const Tensor& mat1, const Tensor& mat2, const Scalar& beta, const Scalar& alpha, Activation activation=Activation::None) {
+#if 0
   static int count = 0;
   std::cout << "============================" << std::endl;
   std::cout << "HIT COUNT: " << count << std::endl;
@@ -234,7 +235,7 @@ Tensor& addmm_out_cuda_impl(Tensor& result, const Tensor& self, const Tensor& ma
   std::cout << "SELF : " << std::endl;
   std::cout << self << std::endl;
   std::cout << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl;
-
+#endif
   // Make sure to keep addmm_cuda below in sync with this code; it
   // preflights a check to try to avoid actually needing to call
   // expand().
@@ -331,7 +332,7 @@ Tensor& addmm_out_cuda_impl(Tensor& result, const Tensor& self, const Tensor& ma
     return result;
   }
 
-
+#if 0
   std::cout << "AKUMA: addmm_out_cuda_impl" << std::endl;
   std::cout << "BEFORE cublasCommonArgs " << std::endl;
   std::cout << "MAT 1: " << std::endl;
@@ -340,14 +341,17 @@ Tensor& addmm_out_cuda_impl(Tensor& result, const Tensor& self, const Tensor& ma
   std::cout << mat2 << std::endl;
   std::cout << "RESULT : " << std::endl;
   std::cout << result << std::endl;
+#endif
   cublasCommonArgs args(mat1, mat2, result);
 
+#if 0
   std::cout << "AFTER cublasCommonArgs " << std::endl;
   std::cout << "MAT 1: " << std::endl;
   std::cout << mat1 << std::endl;
   std::cout << "MAT 2: " << std::endl;
   std::cout << mat2 << std::endl;
   std::cout << "RESULT : " << result << std::endl;
+#endif
 
   if (mat1.numel() == 0) {
     // By definition, when beta==0, values in self should be ignored. nans and infs
@@ -408,7 +412,7 @@ Tensor& addmm_out_cuda_impl(Tensor& result, const Tensor& self, const Tensor& ma
     if (activation == Activation::GELU)
       activation_epilogue = cuda::blas::GEMMAndBiasActivationEpilogue::None;
 #endif
-    std::cout << "DISPATCHING ADDMM_CUDA_LT" << std::endl;
+    //std::cout << "DISPATCHING ADDMM_CUDA_LT" << std::endl;
     AT_DISPATCH_FLOATING_TYPES_AND2(
         at::ScalarType::Half,
         at::ScalarType::BFloat16,
@@ -435,6 +439,7 @@ Tensor& addmm_out_cuda_impl(Tensor& result, const Tensor& self, const Tensor& ma
 #endif
   } else
   {
+#if 0
     std::cout << "DISPATCHING ADDMM_CUDA" << std::endl;
     std::cout << "ABOUT TO GO TO CUDABLAS " << std::endl;
     std::cout << "MAT A: " << std::endl;
@@ -442,6 +447,7 @@ Tensor& addmm_out_cuda_impl(Tensor& result, const Tensor& self, const Tensor& ma
     std::cout << "MAT B: " << std::endl;
     std::cout << *args.matb << std::endl;
     std::cout << "RESULT(C) : " << *args.result << std::endl;
+#endif
     AT_DISPATCH_FLOATING_AND_COMPLEX_TYPES_AND2(
         at::ScalarType::Half,
         at::ScalarType::BFloat16,
@@ -454,12 +460,14 @@ Tensor& addmm_out_cuda_impl(Tensor& result, const Tensor& self, const Tensor& ma
           const scalar_t* mat1_ptr = args.mata->const_data_ptr<scalar_t>();
           const scalar_t* mat2_ptr = args.matb->const_data_ptr<scalar_t>();
           scalar_t* result_ptr = args.result->mutable_data_ptr<scalar_t>();
+#if 0
 		  std::cout << "MAT A: " << std::endl;
           std::cout << *args.mata << std::endl;
           std::cout << "MAT B: " << std::endl;
           std::cout << *args.matb << std::endl;
           std::cout << "RESULT(C) : " << *args.result << std::endl;
 		  std::cout << "LITERALLY ABOUT TO CALL THE GEM LOOK UP" << std::endl;
+#endif
           at::cuda::blas::gemm<scalar_t>(
               args.transa,
               args.transb,
@@ -501,8 +509,8 @@ Tensor& addmm_out_cuda_impl(Tensor& result, const Tensor& self, const Tensor& ma
   if (!result.is_same(*args.result)) {
     result.copy_(*args.result);
   }
-  std::cout << "RETURNED RESULT!!!!!" << std::endl;
-  std::cout << result << std::endl;
+  //std::cout << "RETURNED RESULT!!!!!" << std::endl;
+  //std::cout << result << std::endl;
   return result;
 }
 

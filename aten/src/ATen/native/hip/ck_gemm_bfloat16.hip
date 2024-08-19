@@ -175,8 +175,8 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
       }
 
     } else {
-
       if(transa_ && transb_) {
+	    std::cout << "SCORPONOK" << std::endl;
         gemm_impl<
             at::BFloat16,
             256,
@@ -213,6 +213,7 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             (CUDABLAS_GEMM_ARGS(at::BFloat16));
       }
       else if(transa_ && !transb_) {
+          std::cout << "TARANTULAS" << std::endl;
           gemm_impl<
             at::BFloat16,
             256,
@@ -226,17 +227,17 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             2,
             2,
             S<8,32,1>,
-            S<0,2,1>,
-            S<0,2,1>,
-            1,
-            4,
+            S<1,0,2>,
+            S<1,0,2>,
+            2,
+            8,
             8,
             0,
             S<8,32,1>,
             S<0,2,1>,
             S<0,2,1>,
-            1,
-            4,
+            2,
+            8,
             8,
             0,
             1,
@@ -249,6 +250,7 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             (CUDABLAS_GEMM_ARGS(at::BFloat16));
       }
       else if(!transa_ && transb_) {
+	      std::cout << "DEPTHCHARGE" << std::endl;
           gemm_impl<
             at::BFloat16,
             256,
@@ -285,6 +287,7 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             (CUDABLAS_GEMM_ARGS(at::BFloat16));
       }
       else if(!transa_ && !transb_) {
+          std::cout << "RAMPAGE" << std::endl;
           gemm_impl<
             at::BFloat16,
             256,
@@ -305,10 +308,10 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             8,
             0,
             S<8,32,1>,
-            S<1,0,2>,
-            S<1,0,2>,
-            2,
-            8,
+            S<0,2,1>,
+            S<0,2,1>,
+            1,
+            4,
             8,
             0,
             1,
@@ -327,6 +330,7 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
   } else {
     {
       if(transa_ && transb_) {
+	      std::cout << "SILVERBOLT" << std::endl;
           gemm_impl<
             at::BFloat16,
             256,
@@ -363,6 +367,7 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             (CUDABLAS_GEMM_ARGS(at::BFloat16));
       }
       else if(transa_ && !transb_) {
+	      std::cout << "INFERNO" << std::endl;
           gemm_impl<
             at::BFloat16,
             256,
@@ -399,6 +404,7 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             (CUDABLAS_GEMM_ARGS(at::BFloat16));
       }
       else if(!transa_ && transb_) {
+	      std::cout << "QUICKSTRIKE" << std::endl;
           gemm_impl<
             at::BFloat16,
             256,
@@ -412,17 +418,17 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             2,
             2,
             S<8,32,1>,
-            S<1,0,2>,
-            S<1,0,2>,
-            2,
-            8,
+            S<0,2,1>,
+            S<0,2,1>,
+            1,
+            4,
             8,
             0,
             S<8,32,1>,
-            S<1,0,2>,
-            S<1,0,2>,
-            2,
-            8,
+            S<0,2,1>,
+            S<0,2,1>,
+            1,
+            4,
             8,
             0,
             1,
@@ -435,6 +441,7 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             (CUDABLAS_GEMM_ARGS(at::BFloat16));
       }
       else if(!transa_ && !transb_) {
+	      std::cout << "BLACKARACHNIA" << std::endl;
           gemm_impl<
             at::BFloat16,
             256,
@@ -455,10 +462,10 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             8,
             0,
             S<8,32,1>,
-            S<1,0,2>,
-            S<1,0,2>,
-            2,
-            8,
+            S<0,2,1>,
+            S<0,2,1>,
+            1,
+            4,// should be 4?
             8,
             0,
             1,
