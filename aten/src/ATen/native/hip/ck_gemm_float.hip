@@ -20,6 +20,9 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
   bool transa_ = std::tolower(transa) != 'n';
   bool transb_ = std::tolower(transb) != 'n';
 
+  std::cout << "USE PADDING?: " << use_padding << std::endl;
+  std::cout << "M: " << m << std::endl;
+
   if (use_padding) {
     if (m <= 128) {
       if(transa_ && transb_) {
@@ -155,9 +158,9 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
             4,
             0,
             S<8,32,1>,
-            S<1,0,2>,
-            S<1,0,2>,
-            2,
+            S<0,2,1>,
+            S<0,2,1>,
+            1,
             4,
             4,
             0,
@@ -191,9 +194,9 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
             4,
             2,
             S<8,32,1>,
-            S<1,0,2>,
-            S<1,0,2>,
-            2,
+            S<0,2,1>,
+            S<0,2,1>,
+            1,
             4,
             4,
             0,
@@ -265,16 +268,16 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
             4,
             2,
             S<8,32,1>,
-            S<1,0,2>,
-            S<1,0,2>,
-            2,
+            S<0,2,1>,
+            S<0,2,1>,
+            1,
             4,
             4,
             0,
             S<8,32,1>,
-            S<1,0,2>,
-            S<1,0,2>,
-            2,
+            S<0,2,1>,
+            S<0,2,1>,
+            1,
             4,
             4,
             0,
@@ -331,7 +334,7 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
   } else {
     {
       if(transa_ && transb_) {
-	      std::cout << "MICHELANGELO" << std::endl;
+          std::cout << "MICHELANGELO" << std::endl;
           gemm_impl<
             float,
             256,
