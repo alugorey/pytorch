@@ -155,9 +155,9 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
             4,
             0,
             S<8,32,1>,
-            S<0,2,1>,
-            S<0,2,1>,
-            1,
+            S<1,0,2>,
+            S<1,0,2>,
+            2,
             4,
             4,
             0,
@@ -177,6 +177,7 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
     } else {
 
       if(transa_ && transb_) {
+	      std::cout << "DINOBOT" << std::endl;
           gemm_impl<
             float,
             256,
@@ -213,6 +214,7 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
             (CUDABLAS_GEMM_ARGS(float));
       }
       else if(transa_ && !transb_) {
+	      std::cout << "TIGERHAWK" << std::endl;
           gemm_impl<
             float,
             256,
@@ -249,6 +251,7 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
             (CUDABLAS_GEMM_ARGS(float));
       }
       else if(!transa_ && transb_) {
+	      std::cout << "WASPINATOR" << std::endl;
           gemm_impl<
             float,
             256,
@@ -285,6 +288,7 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
             (CUDABLAS_GEMM_ARGS(float));
       }
       else if(!transa_ && !transb_) {
+	      std::cout << "RAVAGE" << std::endl;
           gemm_impl<
             float,
             256,
@@ -305,9 +309,9 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
             4,
             0,
             S<8,32,1>,
-            S<1,0,2>,
-            S<1,0,2>,
-            2,
+            S<0,2,1>,
+            S<0,2,1>,
+            1,
             4,
             4,
             0,
@@ -327,6 +331,7 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
   } else {
     {
       if(transa_ && transb_) {
+	      std::cout << "MICHELANGELO" << std::endl;
           gemm_impl<
             float,
             256,
@@ -340,9 +345,9 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
             4,
             2,
             S<8,32,1>,
-            S<1,0,2>,
-            S<1,0,2>,
-            2,
+            S<0,2,1>,
+            S<0,2,1>,
+            1,
             4,
             4,
             0,
@@ -363,6 +368,7 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
             (CUDABLAS_GEMM_ARGS(float));
       }
       else if(transa_ && !transb_) {
+	      std::cout << "RAPHAEL" << std::endl;
           gemm_impl<
             float,
             256,
@@ -399,6 +405,7 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
             (CUDABLAS_GEMM_ARGS(float));
       }
       else if(!transa_ && transb_) {
+	      std::cout << "LEONARDO" << std::endl;
           gemm_impl<
             float,
             256,
@@ -412,16 +419,16 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
             4,
             2,
             S<8,32,1>,
-            S<1,0,2>,
-            S<1,0,2>,
-            2,
+            S<0,2,1>,
+            S<0,2,1>,
+            1,
             4,
             4,
             0,
             S<8,32,1>,
-            S<1,0,2>,
-            S<1,0,2>,
-            2,
+            S<0,2,1>,
+            S<0,2,1>,
+            1,
             4,
             4,
             0,
@@ -435,6 +442,7 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
             (CUDABLAS_GEMM_ARGS(float));
       }
       else if(!transa_ && !transb_) {
+	      std::cout << "DONATELLO" << std::endl;
           gemm_impl<
             float,
             256,
@@ -455,9 +463,9 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
             4,
             0,
             S<8,32,1>,
-            S<1,0,2>,
-            S<1,0,2>,
-            2,
+            S<0,2,1>,
+            S<0,2,1>,
+            1,
             4,
             4,
             0,
