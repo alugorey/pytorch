@@ -8,7 +8,6 @@
 
 #include <cstdlib>
 #include <initializer_list>
-#include <iostream>
 #include <numeric>
 
 #include <ATen/ATen.h>
@@ -182,18 +181,8 @@ void gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   using AccDataType = float;
   using CShuffleDataType = typename CkMathType<Dtype>::dtype;
 
-  // NOTE: in our example, transa = t and transb = n;
-  // since default for cublas is Column-major, since the value is T, ALayout is Row
-  // same for B. transb = N = NO Transpose so B is column Major
-
-  std::cout << "ACTUAL TRANSA:: " << TRANSA << std::endl;
-  std::cout << "ACTUAL TRANSB:: " << TRANSB << std::endl;
   using ALayout = typename CkTensorLayout<TRANSA, TRANSB>::a_layout;
   using BLayout = typename CkTensorLayout<TRANSA, TRANSB>::b_layout;
-  std::cout << "ALAYOUT: " << typeid(ALayout).name() << std::endl;
-  std::cout << "BLAYOUT: " << typeid(BLayout).name() << std::endl;
-  std::cout << "TRANSA : " << transa << std::endl;
-  std::cout << "TRANSB : " << transb << std::endl;
 
   using DLayout = Row;
   using CLayout = Row;

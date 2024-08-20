@@ -14,18 +14,12 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
   bool use_padding = ((m % 256 != 0) || (n % 128 != 0) || (k % 64 != 0));
   // Dispatch to best implementation.
   // TODO add more configurations. Optimize.
-
-  std::cout << "(DISPATCH bf16)TRANSA: " << transa << std::endl;
-  std::cout << "(DISPATCH bf16)TRANSB: " << transb << std::endl;
   bool transa_ = std::tolower(transa) != 'n';
   bool transb_ = std::tolower(transb) != 'n';
-  std::cout << "USE PADDING?: " << use_padding << std::endl;
-  std::cout << "M: " << m << std::endl;
 
   if (use_padding) {
     if (m <= 128) {
       if(transa_ && transb_) {
-         std::cout << "CHEETOR" << std::endl;
          gemm_impl<
             at::BFloat16,
             256,
@@ -62,7 +56,6 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             (CUDABLAS_GEMM_ARGS(at::BFloat16));
       }
       else if(transa_ && !transb_) {
-         std::cout << "RHINOX" << std::endl;
         gemm_impl<
             at::BFloat16,
             256,
@@ -99,7 +92,6 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             (CUDABLAS_GEMM_ARGS(at::BFloat16));
       }
       else if(!transa_ && transb_) {
-		  std::cout << "RATTRAP" << std::endl;
           gemm_impl<
             at::BFloat16,
             256,
@@ -136,7 +128,6 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             (CUDABLAS_GEMM_ARGS(at::BFloat16));
       }
       else if(!transa_ && !transb_) {
-          std::cout << "AIRAZOR" << std::endl;
           gemm_impl<
            at::BFloat16,
             256,
@@ -178,7 +169,6 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
 
     } else {
       if(transa_ && transb_) {
-	    std::cout << "SCORPONOK" << std::endl;
         gemm_impl<
             at::BFloat16,
             256,
@@ -215,7 +205,6 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             (CUDABLAS_GEMM_ARGS(at::BFloat16));
       }
       else if(transa_ && !transb_) {
-          std::cout << "TARANTULAS" << std::endl;
           gemm_impl<
             at::BFloat16,
             256,
@@ -252,7 +241,6 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             (CUDABLAS_GEMM_ARGS(at::BFloat16));
       }
       else if(!transa_ && transb_) {
-	      std::cout << "DEPTHCHARGE" << std::endl;
           gemm_impl<
             at::BFloat16,
             256,
@@ -289,7 +277,6 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             (CUDABLAS_GEMM_ARGS(at::BFloat16));
       }
       else if(!transa_ && !transb_) {
-          std::cout << "RAMPAGE" << std::endl;
           gemm_impl<
             at::BFloat16,
             256,
@@ -332,7 +319,6 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
   } else {
     {
       if(transa_ && transb_) {
-	      std::cout << "SILVERBOLT" << std::endl;
           gemm_impl<
             at::BFloat16,
             256,
@@ -369,7 +355,6 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             (CUDABLAS_GEMM_ARGS(at::BFloat16));
       }
       else if(transa_ && !transb_) {
-	      std::cout << "INFERNO" << std::endl;
           gemm_impl<
             at::BFloat16,
             256,
@@ -406,7 +391,6 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             (CUDABLAS_GEMM_ARGS(at::BFloat16));
       }
       else if(!transa_ && transb_) {
-	      std::cout << "QUICKSTRIKE" << std::endl;
           gemm_impl<
             at::BFloat16,
             256,
@@ -443,7 +427,6 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             (CUDABLAS_GEMM_ARGS(at::BFloat16));
       }
       else if(!transa_ && !transb_) {
-	      std::cout << "BLACKARACHNIA" << std::endl;
           gemm_impl<
             at::BFloat16,
             256,
