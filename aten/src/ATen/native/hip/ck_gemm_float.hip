@@ -365,7 +365,7 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
             1,
             S<1, 32, 1, 8>,
             S<4>,
-            true,
+            false,
             true,
             true>
             (CUDABLAS_GEMM_ARGS(float));
@@ -402,7 +402,7 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
             1,
             S<1, 32, 1, 8>,
             S<4>,
-            true,
+            false,
             true,
             false>
             (CUDABLAS_GEMM_ARGS(float));
@@ -439,7 +439,7 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
             1,
             S<1, 32, 1, 8>,
             S<4>,
-            true,
+            false,
             false,
             true>
             (CUDABLAS_GEMM_ARGS(float));
@@ -476,7 +476,7 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
             1,
             S<1, 32, 1, 8>,
             S<4>,
-            true,
+            false,
             false,
             false>
             (CUDABLAS_GEMM_ARGS(float));
