@@ -19,6 +19,8 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
   std::cout << "(DISPATCH bf16)TRANSB: " << transb << std::endl;
   bool transa_ = std::tolower(transa) != 'n';
   bool transb_ = std::tolower(transb) != 'n';
+  std::cout << "USE PADDING?: " << use_padding << std::endl;
+  std::cout << "M: " << m << std::endl;
 
   if (use_padding) {
     if (m <= 128) {
@@ -234,8 +236,8 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             8,
             0,
             S<8,32,1>,
-            S<0,2,1>,
-            S<0,2,1>,
+            S<1,0,2>,
+            S<1,0,2>,
             2,
             8,
             8,
@@ -264,17 +266,17 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             2,
             2,
             S<8,32,1>,
-            S<1,0,2>,
-            S<1,0,2>,
-            2,
-            8,
+            S<0,2,1>,
+            S<0,2,1>,
+            1,
+            4,
             8,
             0,
             S<8,32,1>,
-            S<1,0,2>,
-            S<1,0,2>,
-            2,
-            8,
+            S<0,2,1>,
+            S<0,2,1>,
+            1,
+            4,
             8,
             0,
             1,
@@ -384,14 +386,14 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             S<1,0,2>,
             S<1,0,2>,
             2,
-            4,
+            8,
             8,
             0,
             S<8,32,1>,
             S<1,0,2>,
             S<1,0,2>,
             2,
-            4,
+            8,
             8,
             0,
             1,
@@ -465,7 +467,7 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             S<0,2,1>,
             S<0,2,1>,
             1,
-            4,// should be 4?
+            4,
             8,
             0,
             1,
