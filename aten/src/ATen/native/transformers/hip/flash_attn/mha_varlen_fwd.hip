@@ -158,7 +158,7 @@ fmha_fwd_args get_ck_fmha_varlen_fwd_args(bool has_lse,
                          {drop_seed, drop_offset}};
 }
 
-std::vector<at::Tensor>
+std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor>
 mha_varlen_fwd(const at::Tensor &q,                   // total_q x num_heads x head_size, total_q := \sum_{i=0}^{b} s_i
                const at::Tensor &k,             // total_k x num_heads_k x head_size, total_k := \sum_{i=0}^{b} s_i or num_blocks x page_block_size x num_heads_k x head_size if there's a block_table.
                const at::Tensor &v,             // total_k x num_heads_k x head_size, total_k := \sum_{i=0}^{b} s_i or num_blocks x page_block_size x num_heads_k x head_size if there's a block_table.
@@ -369,6 +369,10 @@ mha_varlen_fwd(const at::Tensor &q,                   // total_q x num_heads x h
         if (out_.has_value()) { out_.value().copy_(out); }
     }
 
-    return {out, q_padded, k_padded, v_padded, out_padded, softmax_lse, p, rng_state};
+    //return kludge -- TODO:: REMOVE
+    at::Tensor seed_t = at::empty({}, at::dtype(at::kLong));
+    at::Tensor offset_t = at::empty({}, at::dtype(at::kLong));
+
+    return {out, q_padded, k_padded, v_padded, softmax_lse, seed_t, offset_t, p};
 }
 }

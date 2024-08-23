@@ -153,7 +153,7 @@ fmha_fwd_args get_ck_fmha_fwd_args(bool has_lse,
                          {drop_seed, drop_offset}};
 }
 
-std::vector<at::Tensor>
+std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor>
 mha_fwd(const at::Tensor &q,                            // batch_size x seqlen_q x num_heads x head_size
         const at::Tensor &k,                      // batch_size x seqlen_k x num_heads_k x head_size
         const at::Tensor &v,                      // batch_size x seqlen_k x num_heads_k x head_size
