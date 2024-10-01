@@ -20,17 +20,17 @@ endif()
 string(REPLACE ";" "," FMHA_FWD_APIS "${FMHA_FWD_ENABLE_APIS}")
 # generate a list of kernels, but not actually emit files at config sta
 execute_process(
-  COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/generate.py
-  --api ${FMHA_FWD_APIS} --list_blobs ${CMAKE_CURRENT_BINARY_DIR}/fwd_blob_list.txt
+  COMMAND python3 ${CMAKE_CURRENT_LIST_DIR}/../../../../../../../third_party/composable_kernel/example/ck_tile/01_fmha/generate.py
+  --api ${FMHA_FWD_APIS} --list_blobs ${CMAKE_CURRENT_LIST_DIR}/fwd_blob_list.txt
   RESULT_VARIABLE ret
 )
 if(ret AND NOT ret EQUAL 0)
-  message( FATAL_ERROR "CK Tile FMHA FAILED to genrate a list of FWD kernels via Python.")
+  message( FATAL_ERROR "CK Tile FMHA FAILED to generate a list of FWD kernels via Python.")
 endif()
 
 execute_process(
-  COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/generate.py
-  --api bwd --list_blobs ${CMAKE_CURRENT_BINARY_DIR}/bwd_blob_list.txt --receipt 3
+  COMMAND python3 ${CMAKE_CURRENT_LIST_DIR}/../../../../../../../third_party/composable_kernel/example/ck_tile/01_fmha/generate.py
+  --api bwd --list_blobs ${CMAKE_CURRENT_LIST_DIR}/bwd_blob_list.txt --receipt 3
   RESULT_VARIABLE ret
 )
 if(ret AND NOT ret EQUAL 0)
