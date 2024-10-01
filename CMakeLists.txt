@@ -916,11 +916,14 @@ if(USE_FLASH_ATTENTION)
   add_executable(${EXAMPLE_FMHA_BWD} EXCLUDE_FROM_ALL ${CMAKE_CURRENT_LIST_DIR}/third_party/composable_kernel/example/ck_tile/01_fmha/fmha_bwd.cpp)
   target_include_directories(${EXAMPLE_FMHA_BWD} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/third_party/composable_kernel/example/ck_tile/)
   target_sources(${EXAMPLE_FMHA_BWD} PRIVATE ${FMHA_BWD_GEN_BLOBS})
+
+  ]=]
   # NOTE: this is dangerous since will change the whole kernel to flush denormals
   #       WIP with compiler team for an exp2 intrinsic..., then remove this
   if(NOT DEFINED FMHA_FWD_FAST_EXP2)
     set(FMHA_FWD_FAST_EXP2 true)
   endif()
+
   set(EXAMPLE_FMHA_FWD_COMPILE_OPTIONS)
   set(EXAMPLE_FMHA_BWD_COMPILE_OPTIONS)
 
@@ -947,7 +950,6 @@ if(USE_FLASH_ATTENTION)
   # TODO: consider codegen a makefile by us
   set_property(GLOBAL PROPERTY RULE_MESSAGES OFF)
   
-  ]=]
   message("ANDY! WE MADE IT TO THE END OF OUR BLURB!")
 endif()
 
