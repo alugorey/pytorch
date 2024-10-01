@@ -900,7 +900,7 @@ if(USE_FLASH_ATTENTION)
 
   execute_process(COMMAND ls ${CMAKE_CURRENT_LIST_DIR})
 
-  #[=[
+  
   set(EXAMPLE_FMHA_FWD "tile_example_fmha_fwd")
   # not using add_example_executable() to add this target, since we don't want this to have
   # to be included in "make all/install/check"
@@ -917,7 +917,6 @@ if(USE_FLASH_ATTENTION)
   target_include_directories(${EXAMPLE_FMHA_BWD} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/third_party/composable_kernel/example/ck_tile/)
   target_sources(${EXAMPLE_FMHA_BWD} PRIVATE ${FMHA_BWD_GEN_BLOBS})
 
-  ]=]
   # NOTE: this is dangerous since will change the whole kernel to flush denormals
   #       WIP with compiler team for an exp2 intrinsic..., then remove this
   if(NOT DEFINED FMHA_FWD_FAST_EXP2)
