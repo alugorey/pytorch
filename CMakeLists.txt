@@ -872,15 +872,15 @@ message("AFTER USE_FLASH_ATTENTION IS CREATED")
 if(USE_FLASH_ATTENTION)
   message("MADE IT HERE")
   cmake_print_variables(Python3_EXECUTABLE)
-  execute_process(COMMAND python3 ${CMAKE_CURRENT_LIST_DIR}/third_party/composable_kernel/example/ck_tile/01_fmha/generate.py --api fwd,fwd_splitkv --list_blobs ${CMAKE_CURRENT_LIST_DIR}/fwd_blob_list.txt
+  execute_process(COMMAND python3 ${CMAKE_CURRENT_LIST_DIR}/third_party/composable_kernel/example/ck_tile/01_fmha/generate.py --api fwd,fwd_splitkv --list_blobs ${CMAKE_CURRENT_LIST_DIR}/aten/src/ATen/native/transformers/hip/flash_attn/fwd_blob_list.txt
   )
-  execute_process(COMMAND python3 ${CMAKE_CURRENT_LIST_DIR}/third_party/composable_kernel/example/ck_tile/01_fmha/generate.py --api bwd --list_blobs ${CMAKE_CURRENT_LIST_DIR}/bwd_blob_list.txt
+  execute_process(COMMAND python3 ${CMAKE_CURRENT_LIST_DIR}/third_party/composable_kernel/example/ck_tile/01_fmha/generate.py --api bwd --list_blobs ${CMAKE_CURRENT_LIST_DIR}/aten/src/ATen/native/transformers/hip/flash_attn/bwd_blob_list.txt
   )
   message("MADE IT PAST EXECUTE_PROCESS")
   # NOTE: for cmake, the FMHA_FWD_GEN_BLOBS/FMHA_BWD_GEN_BLOBS files must be in the same directory
   #       as current cmake list, otherwise will not figure out the dependency properly
-  file(STRINGS ${CMAKE_CURRENT_LIST_DIR}/fwd_blob_list.txt FMHA_FWD_GEN_BLOBS)
-  file(STRINGS ${CMAKE_CURRENT_LIST_DIR}/bwd_blob_list.txt FMHA_BWD_GEN_BLOBS)
+  file(STRINGS ${CMAKE_CURRENT_LIST_DIR}/aten/src/ATen/native/transformers/hip/flash_attn/fwd_blob_list.txt FMHA_FWD_GEN_BLOBS)
+  file(STRINGS ${CMAKE_CURRENT_LIST_DIR}/aten/src/ATen/native/transformers/hip/flash_attn/bwd_blob_list.txt FMHA_BWD_GEN_BLOBS)
 
   #add_custom_command(
   #  OUTPUT ${FMHA_FWD_GEN_BLOBS}
