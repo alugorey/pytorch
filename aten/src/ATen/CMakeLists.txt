@@ -185,12 +185,12 @@ if(USE_FLASH_ATTENTION)
 
   list(APPEND native_transformers_hip_hip ${flash_attention_hip_hip})
   list(APPEND native_transformers_src_hip_hip ${flash_attention_src_hip_hip})
-  list(APPEND native_transformers_hip_cpp ${flash_attention_hip_cpp})
   set_source_files_properties(
       ${flash_attention_hip_cpp}
       PROPERTIES
       COMPILE_FLAGS "-Wno-undefined-func-template"
   )
+  list(APPEND native_transformers_hip_cpp ${flash_attention_hip_cpp})
 endif()
 
 if(USE_MEM_EFF_ATTENTION)
