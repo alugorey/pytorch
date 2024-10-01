@@ -187,8 +187,8 @@ if(USE_FLASH_ATTENTION)
   list(APPEND native_transformers_src_hip_hip ${flash_attention_src_hip_hip})
   add_subdirectory(native/transformers/hip/flash_attn)
   set_source_files_properties(
-      ${flash_attention_hip_cpp}
-      DIRECTORY "native/transformers/hip/flash_attn/"
+      "native/transformers/hip/flash_attn/*.cpp"
+      DIRECTORY "native/transformers/hip/flash_attn"
       PROPERTIES
       COMPILE_FLAGS "-Wno-undefined-func-template"
   )
