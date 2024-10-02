@@ -227,7 +227,7 @@ mha_varlen_bwd(const at::Tensor &dout,                   // total_q x num_heads 
                //const float /*softcap*/,
                const bool deterministic,
                const at::Tensor philox_seed,
-               const at::Tensor philox_offset);
+               const at::Tensor philox_offset)
 {
 #ifdef FLASHATTENTION_DISABLE_BACKWARD
     TORCH_CHECK(false, "This flash attention build does not support backward.");
