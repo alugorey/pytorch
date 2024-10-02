@@ -51,7 +51,7 @@ file(STRINGS ${CMAKE_CURRENT_LIST_DIR}/bwd_blob_list.txt FMHA_BWD_GEN_BLOBS)
 #  --api ${FMHA_FWD_APIS} --output_dir ${CMAKE_CURRENT_LIST_DIR}
 #)
 
-execute_process(COMMAND python3 ${CMAKE_CURRENT_LIST_DIR}/../../../../../../../third_party/composable_kernel/example/ck_tile/01_fmha/generate.py --api ${FMHA_FWD_APIS} --output_dir ${CMAKE_CURRENT_LIST_DIR}/aten/src/ATen/native/transformers/hip/flash_attn/
+execute_process(COMMAND python3 ${CMAKE_CURRENT_LIST_DIR}/../../../../../../../third_party/composable_kernel/example/ck_tile/01_fmha/generate.py --api ${FMHA_FWD_APIS} --output_dir ${CMAKE_CURRENT_LIST_DIR}
 )
 
 #add_custom_command(
