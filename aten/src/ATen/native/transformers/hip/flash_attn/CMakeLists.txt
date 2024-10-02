@@ -68,7 +68,7 @@ set(EXAMPLE_FMHA_FWD "tile_example_fmha_fwd")
 # to be included in "make all/install/check"
 message("adding example ${EXAMPLE_FMHA_FWD}")
 add_executable(${EXAMPLE_FMHA_FWD} EXCLUDE_FROM_ALL ${CMAKE_CURRENT_LIST_DIR}/../../../../../../../third_party/composable_kernel/example/ck_tile/01_fmha/fmha_fwd.cpp)
-target_include_directories(${EXAMPLE_FMHA_FWD} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../../../../../../../third_party/composable_kernel/example/ck_tile/01_fmha/)
+target_include_directories(${EXAMPLE_FMHA_FWD} PUBLIC ${CMAKE_CURRENT_LIST_DIR}/../../../../../../../third_party/composable_kernel/example/ck_tile/01_fmha/)
 target_sources(${EXAMPLE_FMHA_FWD} PRIVATE ${FMHA_FWD_GEN_BLOBS})
 
 set(EXAMPLE_FMHA_BWD "tile_example_fmha_bwd")
@@ -76,7 +76,7 @@ set(EXAMPLE_FMHA_BWD "tile_example_fmha_bwd")
 # to be included in "make all/install/check"
 message("adding example ${EXAMPLE_FMHA_BWD}")
 add_executable(${EXAMPLE_FMHA_BWD} EXCLUDE_FROM_ALL ${CMAKE_CURRENT_LIST_DIR}/../../../../../../../third_party/composable_kernel/example/ck_tile/01_fmha/fmha_bwd.cpp)
-target_include_directories(${EXAMPLE_FMHA_BWD} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../../../../../../../third_party/composable_kernel/example/ck_tile/01_fmha/)
+target_include_directories(${EXAMPLE_FMHA_BWD} PUBLIC ${CMAKE_CURRENT_LIST_DIR}/../../../../../../../third_party/composable_kernel/example/ck_tile/01_fmha/)
 target_sources(${EXAMPLE_FMHA_BWD} PRIVATE ${FMHA_BWD_GEN_BLOBS})
 
 # NOTE: this is dangerous since will change the whole kernel to flush denormals
