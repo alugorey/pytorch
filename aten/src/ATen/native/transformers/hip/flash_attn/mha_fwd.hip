@@ -5,8 +5,8 @@
 
 #include "flash_common_hip.hpp"
 
-#include "fmha_fwd.hpp"
-#include "mask.hpp"
+#include <fmha_fwd.hpp>
+#include <mask.hpp>
 
 namespace pytorch_flash {
 

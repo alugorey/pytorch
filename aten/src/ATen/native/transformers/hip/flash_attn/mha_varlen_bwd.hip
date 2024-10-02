@@ -2,10 +2,10 @@
  * Copyright (c) 2024, Tri Dao.
  ******************************************************************************/
 
-#include "flash_common_hip.hpp"
+#include <ATen/native/transformers/hip/flash_attn/flash_common_hip.hpp>
 
 #include <fmha_bwd.hpp>
-#include "mask.hpp"
+#include <mask.hpp>
 
 namespace pytorch_flash {
 
