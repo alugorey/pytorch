@@ -1,3 +1,4 @@
+include(CMakePrintHelpers)
 # validate user-specified fmha_fwd API list
 set(FMHA_FWD_KNOWN_APIS "fwd;fwd_splitkv;fwd_appendkv")
 set(FMHA_FWD_ENABLE_APIS "fwd" CACHE STRING
@@ -18,6 +19,8 @@ if(NOT "fwd" IN_LIST FMHA_FWD_ENABLE_APIS)
 endif()
 
 string(REPLACE ";" "," FMHA_FWD_APIS "${FMHA_FWD_ENABLE_APIS}")
+message("HINATA")
+cmake_print_variables(FMHA_FWD_APIS)
 # generate a list of kernels, but not actually emit files at config sta
 execute_process(
   COMMAND python3 ${CMAKE_CURRENT_LIST_DIR}/../../../../../../../third_party/composable_kernel/example/ck_tile/01_fmha/generate.py
@@ -42,32 +45,38 @@ endif()
 file(STRINGS ${CMAKE_CURRENT_LIST_DIR}/fwd_blob_list.txt FMHA_FWD_GEN_BLOBS)
 file(STRINGS ${CMAKE_CURRENT_LIST_DIR}/bwd_blob_list.txt FMHA_BWD_GEN_BLOBS)
 
-add_custom_command(
-  OUTPUT ${FMHA_FWD_GEN_BLOBS}
-  COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/../../../../../../../third_party/composable_kernel/example/ck_tile/01_fmha/generate.py
-  --api ${FMHA_FWD_APIS} --output_dir ${CMAKE_CURRENT_LIST_DIR}
+#add_custom_command(
+#  OUTPUT ${FMHA_FWD_GEN_BLOBS}
+#  COMMAND python3 ${CMAKE_CURRENT_LIST_DIR}/../../../../../../../third_party/composable_kernel/example/ck_tile/01_fmha/generate.py
+#  --api ${FMHA_FWD_APIS} --output_dir ${CMAKE_CURRENT_LIST_DIR}
+#)
+
+execute_process(COMMAND python3 ${CMAKE_CURRENT_LIST_DIR}/third_party/composable_kernel/example/ck_tile/01_fmha/generate.py --api ${FMHA_FWD_APIS} --output_dir ${CMAKE_CURRENT_LIST_DIR}/aten/src/ATen/native/transformers/hip/flash_attn/
 )
 
-add_custom_command(
-  OUTPUT ${FMHA_BWD_GEN_BLOBS}
-  COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/../../../../../../../third_party/composable_kernel/example/ck_tile/01_fmha/generate.py
-  --api bwd --output_dir ${CMAKE_CURRENT_LIST_DIR} --receipt 3
+#add_custom_command(
+#  OUTPUT ${FMHA_BWD_GEN_BLOBS}
+#  COMMAND python3 ${CMAKE_CURRENT_LIST_DIR}/../../../../../../../third_party/composable_kernel/example/ck_tile/01_fmha/generate.py
+#  --api bwd --output_dir ${CMAKE_CURRENT_LIST_DIR} --receipt 3
+#)
+
+execute_process(COMMAND python3 ${CMAKE_CURRENT_LIST_DIR}/../../../../../../../third_party/composable_kernel/example/ck_tile/01_fmha/generate.py --api bwd --output_dir ${CMAKE_CURRENT_LIST_DIR} --receipt 3
 )
 
 set(EXAMPLE_FMHA_FWD "tile_example_fmha_fwd")
 # not using add_example_executable() to add this target, since we don't want this to have
 # to be included in "make all/install/check"
 message("adding example ${EXAMPLE_FMHA_FWD}")
-add_executable(${EXAMPLE_FMHA_FWD} EXCLUDE_FROM_ALL fmha_fwd.cpp)
-target_include_directories(${EXAMPLE_FMHA_FWD} PRIVATE ${CMAKE_CURRENT_LIST_DIR})
+add_executable(${EXAMPLE_FMHA_FWD} EXCLUDE_FROM_ALL ${CMAKE_CURRENT_LIST_DIR}/../../../../../../../third_party/composable_kernel/example/ck_tile/01_fmha/fmha_fwd.cpp)
+target_include_directories(${EXAMPLE_FMHA_FWD} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../../../../../../../third_party/composable_kernel/example/ck_tile/01_fmha/)
 target_sources(${EXAMPLE_FMHA_FWD} PRIVATE ${FMHA_FWD_GEN_BLOBS})
 
 set(EXAMPLE_FMHA_BWD "tile_example_fmha_bwd")
 # not using add_example_executable() to add this target, since we don't want this to have
 # to be included in "make all/install/check"
 message("adding example ${EXAMPLE_FMHA_BWD}")
-add_executable(${EXAMPLE_FMHA_BWD} EXCLUDE_FROM_ALL fmha_bwd.cpp)
-target_include_directories(${EXAMPLE_FMHA_BWD} PRIVATE ${CMAKE_CURRENT_LIST_DIR})
+add_executable(${EXAMPLE_FMHA_BWD} EXCLUDE_FROM_ALL ${CMAKE_CURRENT_LIST_DIR}/../../../../../../../third_party/composable_kernel/example/ck_tile/01_fmha/fmha_bwd.cpp)
+target_include_directories(${EXAMPLE_FMHA_BWD} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../../../../../../../third_party/composable_kernel/example/ck_tile/01_fmha/)
 target_sources(${EXAMPLE_FMHA_BWD} PRIVATE ${FMHA_BWD_GEN_BLOBS})
 
 # NOTE: this is dangerous since will change the whole kernel to flush denormals
