@@ -4,7 +4,7 @@
 
 #include "flash_common_hip.hpp"
 
-#include "fmha_bwd.hpp"
+#include <fmha_bwd.hpp>
 #include "mask.hpp"
 
 namespace pytorch_flash {
