@@ -69,7 +69,7 @@ set(EXAMPLE_FMHA_FWD "tile_example_fmha_fwd")
 message("adding example ${EXAMPLE_FMHA_FWD}")
 add_executable(${EXAMPLE_FMHA_FWD} EXCLUDE_FROM_ALL ${CMAKE_CURRENT_LIST_DIR}/../../../../../../../third_party/composable_kernel/example/ck_tile/01_fmha/fmha_fwd.cpp)
 target_include_directories(${EXAMPLE_FMHA_FWD} PUBLIC ${CMAKE_CURRENT_LIST_DIR}/../../../../../../../third_party/composable_kernel/example/ck_tile/01_fmha/)
-target_sources(${EXAMPLE_FMHA_FWD} PRIVATE ${FMHA_FWD_GEN_BLOBS})
+target_sources(${EXAMPLE_FMHA_FWD} PUBLIC ${FMHA_FWD_GEN_BLOBS})
 
 set(EXAMPLE_FMHA_BWD "tile_example_fmha_bwd")
 # not using add_example_executable() to add this target, since we don't want this to have
@@ -77,7 +77,7 @@ set(EXAMPLE_FMHA_BWD "tile_example_fmha_bwd")
 message("adding example ${EXAMPLE_FMHA_BWD}")
 add_executable(${EXAMPLE_FMHA_BWD} EXCLUDE_FROM_ALL ${CMAKE_CURRENT_LIST_DIR}/../../../../../../../third_party/composable_kernel/example/ck_tile/01_fmha/fmha_bwd.cpp)
 target_include_directories(${EXAMPLE_FMHA_BWD} PUBLIC ${CMAKE_CURRENT_LIST_DIR}/../../../../../../../third_party/composable_kernel/example/ck_tile/01_fmha/)
-target_sources(${EXAMPLE_FMHA_BWD} PRIVATE ${FMHA_BWD_GEN_BLOBS})
+target_sources(${EXAMPLE_FMHA_BWD} PUBLIC ${FMHA_BWD_GEN_BLOBS})
 
 # NOTE: this is dangerous since will change the whole kernel to flush denormals
 #       WIP with compiler team for an exp2 intrinsic..., then remove this
@@ -115,8 +115,8 @@ endif()
 list(APPEND EXAMPLE_FMHA_FWD_COMPILE_OPTIONS -Wno-float-equal)
 list(APPEND EXAMPLE_FMHA_BWD_COMPILE_OPTIONS -Wno-float-equal)
 
-target_compile_options(${EXAMPLE_FMHA_FWD} PRIVATE ${EXAMPLE_FMHA_FWD_COMPILE_OPTIONS})
-target_compile_options(${EXAMPLE_FMHA_BWD} PRIVATE ${EXAMPLE_FMHA_BWD_COMPILE_OPTIONS})
+target_compile_options(${EXAMPLE_FMHA_FWD} PUBLIC ${EXAMPLE_FMHA_FWD_COMPILE_OPTIONS})
+target_compile_options(${EXAMPLE_FMHA_BWD} PUBLIC ${EXAMPLE_FMHA_BWD_COMPILE_OPTIONS})
 
 # TODO: we have to turn off this global prop, otherwise the progress bar generated
 # by cmake will print too many files, execvp: /bin/sh: Argument list too long
