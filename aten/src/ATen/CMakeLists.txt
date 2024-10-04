@@ -166,6 +166,18 @@ file(GLOB flash_attention_cuda_cu "native/transformers/cuda/flash_attn/*.cu")
 file(GLOB flash_attention_cuda_kernels_cu "native/transformers/cuda/flash_attn/kernels/*.cu")
 file(GLOB flash_attention_cuda_cpp "native/transformers/cuda/flash_attn/*.cpp")
 
+# if USE_CK_FLASH_ATTENTION
+# this should generate the files before anything eelse
+add_subdirectory(native/transformers/hip/flash_attn)
+#set_source_files_properties(
+#      "native/transformers/hip/flash_attn/*.cpp"
+#      DIRECTORY "native/transformers/hip/flash_attn"
+#      PROPERTIES
+#      COMPILE_FLAGS "-Wno-undefined-func-template"
+#  )
+
+#endif
+
 # flash_attention sources
 file(GLOB flash_attention_hip_hip "native/transformers/hip/flash_attn/*.hip")
 file(GLOB flash_attention_src_hip_hip "native/transformers/hip/flash_attn/src/*.hip")
@@ -185,13 +197,13 @@ if(USE_FLASH_ATTENTION)
 
   list(APPEND native_transformers_hip_hip ${flash_attention_hip_hip})
   list(APPEND native_transformers_src_hip_hip ${flash_attention_src_hip_hip})
-  add_subdirectory(native/transformers/hip/flash_attn)
-  set_source_files_properties(
-      "native/transformers/hip/flash_attn/*.cpp"
-      DIRECTORY "native/transformers/hip/flash_attn"
-      PROPERTIES
-      COMPILE_FLAGS "-Wno-undefined-func-template"
-  )
+#  add_subdirectory(native/transformers/hip/flash_attn)
+#  set_source_files_properties(
+#      "native/transformers/hip/flash_attn/*.cpp"
+#      DIRECTORY "native/transformers/hip/flash_attn"
+#      PROPERTIES
+#      COMPILE_FLAGS "-Wno-undefined-func-template"
+#  )
   list(APPEND native_transformers_hip_cpp ${flash_attention_hip_cpp})
 endif()
 
