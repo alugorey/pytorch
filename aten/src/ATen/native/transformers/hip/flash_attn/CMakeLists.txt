@@ -63,7 +63,23 @@ execute_process(COMMAND python3 ${CMAKE_CURRENT_LIST_DIR}/../../../../../../../t
 
 execute_process(COMMAND python3 ${CMAKE_CURRENT_LIST_DIR}/../../../../../../../third_party/composable_kernel/example/ck_tile/01_fmha/generate.py --api bwd --output_dir ${CMAKE_CURRENT_LIST_DIR} --receipt 3
 )
+message("CHANGING FILE EXTENSIONS TO HIP!")
+# Need to create script to run bash for-loop over generated files since it's not possible directly
+# in `execute_process`
 
+
+#file(WRITE change_cpp_to_hip_ext.sh "
+#!/bin/bash
+#for file in *.cpp; do mv -- \"$file\" \"${file%.cpp}.hip\"; done
+#")
+
+#execute_process(COMMAND chmod +x change_cpp_to_hip_ext.sh)
+
+
+
+execute_process(COMMAND bash -c "for file in ${CMAKE_CURRENT_LIST_DIR}/*.cpp; do mv -- \"$file\" \"\${file%.cpp}.hip\"; done")
+
+message("FINISHED CHANGING EXTENSIONS TO HIP!")
 message("ALPHA - END MY CMAKE BLURB")
 
 #[==[
