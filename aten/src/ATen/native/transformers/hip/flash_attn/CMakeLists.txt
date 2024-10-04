@@ -1,4 +1,5 @@
 include(CMakePrintHelpers)
+message("ALPHA: MADE IT TO MY CMAKELISTS")
 # validate user-specified fmha_fwd API list
 set(FMHA_FWD_KNOWN_APIS "fwd;fwd_splitkv;fwd_appendkv")
 set(FMHA_FWD_ENABLE_APIS "fwd" CACHE STRING
@@ -63,6 +64,9 @@ execute_process(COMMAND python3 ${CMAKE_CURRENT_LIST_DIR}/../../../../../../../t
 execute_process(COMMAND python3 ${CMAKE_CURRENT_LIST_DIR}/../../../../../../../third_party/composable_kernel/example/ck_tile/01_fmha/generate.py --api bwd --output_dir ${CMAKE_CURRENT_LIST_DIR} --receipt 3
 )
 
+message("ALPHA - END MY CMAKE BLURB")
+
+#[==[
 set(EXAMPLE_FMHA_FWD "tile_example_fmha_fwd")
 # not using add_example_executable() to add this target, since we don't want this to have
 # to be included in "make all/install/check"
@@ -123,3 +127,5 @@ target_compile_options(${EXAMPLE_FMHA_BWD} PUBLIC ${EXAMPLE_FMHA_BWD_COMPILE_OPT
 # however, this property may affect global
 # TODO: consider codegen a makefile by us
 set_property(GLOBAL PROPERTY RULE_MESSAGES OFF)
+message("GAMMA - SHOULD NOT SEE THIS")
+]==]
