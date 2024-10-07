@@ -17,6 +17,10 @@ cmake_policy(SET CMP0069 NEW)
 # and it's possible on our Windows configs.
 cmake_policy(SET CMP0092 NEW)
 
+include(CMakePrintHelpers)
+
+
+
 # Prohibit in-source builds
 if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
   message(FATAL_ERROR "In-source build are not supported")
@@ -773,7 +777,7 @@ set(CAFFE2_ALLOWLIST
 if(NOT CMAKE_BUILD_TYPE)
   message(STATUS "Build type not set - defaulting to Release")
   set(CMAKE_BUILD_TYPE
-      "Release"
+      "Debug"
       CACHE
         STRING
         "Choose the type of build from: Debug Release RelWithDebInfo MinSizeRel Coverage."
@@ -851,6 +855,8 @@ endif()
 # aotriton build decision later.
 
 include(cmake/Dependencies.cmake)
+message("BEFORE USE_FLASH ATTENTION IS SUPPOSEDLY CREATED")
+cmake_print_variables(USE_FLASH_ATTENTION)
 
 cmake_dependent_option(
   USE_FLASH_ATTENTION
@@ -859,6 +865,9 @@ cmake_dependent_option(
   ON
   "USE_CUDA OR USE_ROCM;NOT MSVC"
   OFF)
+
+message("AFTER USE_FLASH_ATTENTION IS CREATED")
+
 
 # We are currenlty not using alibi attention for Flash So we disable this
 # feature by default We dont currently document this feature because we don't
@@ -871,7 +880,7 @@ cmake_dependent_option(
   USE_MEM_EFF_ATTENTION
   "Enable memory-efficient attention for scaled dot product attention.\
   Will be disabled if not supported by the platform" ON
-  "USE_CUDA OR USE_ROCM" OFF)
+  "USE_CUDA" OFF)
 
 if(DEBUG_CUDA)
   string(APPEND CMAKE_CUDA_FLAGS_DEBUG " -lineinfo")
