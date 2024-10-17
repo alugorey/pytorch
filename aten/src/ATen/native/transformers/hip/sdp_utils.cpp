@@ -34,7 +34,6 @@
 //Sanity
 #undef USE_AOTRITON
 
-
 /**
 * Note [SDPA Runtime Dispatch]
 * SDPA relies on a runtime dispatch mechanism to select the appropriate
@@ -235,6 +234,8 @@ bool check_flash_attention_hardware_support(sdp_params const& params, bool debug
       return false;
     }
   }
+#elif USE_CK_FLASH_ATTENTION
+  return true;
 #else
   return false;
 #endif
@@ -279,6 +280,8 @@ bool check_mem_efficient_hardware_support(sdp_params const& params, bool debug) 
       return false;
     }
   }
+#elif USE_CK_FLASH_ATTENTION
+  return true;
 #else
   return false;
 #endif
