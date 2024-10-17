@@ -175,6 +175,11 @@ endif()
 
 # flash_attention sources
 file(GLOB flash_attention_hip_hip "native/transformers/hip/flash_attn/*.hip")
+if(USE_CK_FLASH_ATTENTION)
+  add_executable(flash_attention_hip_hip_exe ${flash_attention_hip_hip})
+  target_compile_options(flash_attention_hip_hip_exe PRIVATE -Wno-undefined-func-template)
+
+endif()
 file(GLOB flash_attention_src_hip_hip "native/transformers/hip/flash_attn/src/*.hip")
 
 #Mem_eff attention sources
