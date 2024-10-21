@@ -2064,6 +2064,14 @@ Call this whenever a new thread is created in order to propagate values from
         return false;
 #endif
       });
+  py_module.def(
+      "_can_use_ck_flash_attention",
+      [](const sdp::sdp_params& params, bool debug) {
+#ifdef USE_ROCM
+        return sdp::can_use_ck_flash_attention(params, debug);
+#else
+        return false;
+#endif
 
   py::enum_<at::LinalgBackend>(py_module, "_LinalgBackend")
       .value("Default", at::LinalgBackend::Default)

@@ -32,6 +32,7 @@ __all__ = [
     "can_use_efficient_attention",
     "can_use_cudnn_attention",
     "sdp_kernel",
+    "can_use_ck_flash_attention",
 ]
 
 
@@ -355,6 +356,26 @@ def is_flash_attention_available() -> bool:
         in non-CUDA environments.
     """
     return torch._C._is_flash_attention_available()
+
+
+def can_use_ck_flash_attention(params: SDPAParams, debug: bool = False) -> bool;
+    r"""Check if CK Flash Attention can be utilized in scaled_dot_product_attention.
+
+    Args:
+        params: An instance of SDPAParams containing the tensors for query,
+                key, value, an optional attention mask, dropout rate, and
+                a flag indicating if the attention is causal.
+        debug: Whether to logging.warn debug information as to why FlashAttention could not be run.
+            Defaults to False.
+
+    Returns:
+        True if CK FlashAttention can be used with the given parameters; otherwise, False.
+
+    Note:
+        This function is dependent on a ROCm-enabled build of PyTorch. It will return False
+        in non-ROCm environments.
+    """
+    return torch._C._can_use_ck_flash_attention(params, debug)
 
 
 def can_use_flash_attention(params: SDPAParams, debug: bool = False) -> bool:

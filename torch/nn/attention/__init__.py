@@ -37,6 +37,7 @@ r"""An enum-like class that contains the different backends for scaled dot produ
         - FLASH_ATTENTION: The flash attention backend for scaled dot product attention.
         - EFFICIENT_ATTENTION: The efficient attention backend for scaled dot product attention.
         - CUDNN_ATTENTION: The cuDNN backend for scaled dot product attention.
+        - CK_FLASH_ATTENTION: The composable kernel backend for scaled dot product attention
 
     See :func:`torch.nn.attention.sdpa_kernel` for more details.
 
@@ -65,6 +66,7 @@ _backend_names = {
     "flash": "FLASH_ATTENTION",
     "mem_efficient": "EFFICIENT_ATTENTION",
     "math": "MATH",
+    "ck": "CK_FLASH_ATTENTION",
 }
 
 
