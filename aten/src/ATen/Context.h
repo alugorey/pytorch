@@ -227,6 +227,9 @@ class TORCH_API Context {
   void setSDPUseOverrideable(bool);
   bool userEnabledOverrideableSDP() const;
 
+  void setSDPUseCK(bool);
+  bool userEnabledCKSDP() const;
+
   at::LinalgBackend linalgPreferredBackend() const;
   void setLinalgPreferredBackend(at::LinalgBackend);
 
@@ -377,6 +380,11 @@ class TORCH_API Context {
   bool enabled_mem_efficientSDP = true;
   bool enabled_mathSDP = true;
   bool enabled_cudnnSDP = true;
+#ifdef USE_ROCM
+  bool enabled_ckSDP = true;
+#else
+  bool enabled_ckSDP = false;
+#endif
   bool enabled_overrideable = true;
   bool allow_fp16_bf16_reduction_mathSDP = false;
 #ifdef USE_ROCM

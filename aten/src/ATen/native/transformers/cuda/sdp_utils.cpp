@@ -70,6 +70,9 @@ std::array<SDPBackend, num_backends> priority_order(sdp_params const& params) {
       SDPBackend::flash_attention,
       SDPBackend::cudnn_attention,
       SDPBackend::efficient_attention,
+#if defined(USE_ROCM)
+      SDPBackend::ck_attention,
+#endif
       SDPBackend::math};
   constexpr std::array<SDPBackend, num_backends> cudnn_order{
       SDPBackend::cudnn_attention,
@@ -213,22 +216,27 @@ bool check_flash_attention_hardware_support(sdp_params const& params, bool debug
   auto dprops = at::cuda::getCurrentDeviceProperties();
 #if USE_ROCM
 #if USE_AOTRITON
-  auto stream = at::cuda::getCurrentCUDAStream().stream();
-  if (hipSuccess != aotriton::v2::flash::check_gpu(stream)) {
-      auto dprops = at::cuda::getCurrentDeviceProperties();
-      if (debug) {
-          TORCH_WARN(
-                  "Flash attention was not compiled for current AMD GPU architecture. Attempting to run on architecture ", dprops->gcnArchName);
+  if (at::globalContext().userEnabledCKSDP()){
+    // user explicitly asked for CK. For now just return true.
+    return true;
+  } else {
+    auto stream = at::cuda::getCurrentCUDAStream().stream();
+    if (hipSuccess != aotriton::v2::flash::check_gpu(stream)) {
+        auto dprops = at::cuda::getCurrentDeviceProperties();
+        if (debug) {
+            TORCH_WARN(
+                    "Flash attention was not compiled for current AMD GPU architecture. Attempting to run on architecture ", dprops->gcnArchName);
+        }
+        return false;
+    }
+    c10::string_view arch(dprops->gcnArchName);
+    if (arch == "gfx1100") {
+      static const bool enable_navi3x = c10::utils::check_env("TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL") == true;
+      if (!enable_navi3x) {
+        TORCH_WARN_ONCE("Flash attention support on Navi31 GPU is still experimental."
+                        " Enable it with TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL=1.");
+        return false;
       }
-      return false;
-  }
-  c10::string_view arch(dprops->gcnArchName);
-  if (arch == "gfx1100") {
-    static const bool enable_navi3x = c10::utils::check_env("TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL") == true;
-    if (!enable_navi3x) {
-      TORCH_WARN_ONCE("Flash attention support on Navi31 GPU is still experimental."
-                      " Enable it with TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL=1.");
-      return false;
     }
   }
 #else
@@ -758,6 +766,11 @@ SDPBackend select_sdp_backend(sdp_params const& kernel_params) {
           return SDPBackend::efficient_attention;
         }
         break;
+      case SDPBackend::ck_attention:
+        if (sdp::can_use_ck_flash_attention(kernel_params, print_debug)) {
+          return SDPBackend::ck_attention;
+        }
+        break;
       case SDPBackend::math:
         if (ctx.userEnabledMathSDP()) {
           return SDPBackend::math;
@@ -781,6 +794,8 @@ SDPBackend select_sdp_backend(sdp_params const& kernel_params) {
   sdp::can_use_flash_attention(kernel_params, print_debug);
   TORCH_WARN("CuDNN attention kernel not used because:");
   sdp::can_use_cudnn_attention(kernel_params, print_debug);
+  TORCH_WARN("CK flash attention kernel not used because:");
+  sdp::can_use_ck_flash_attention(kernel_params, print_debug);
   TORCH_CHECK(!print_debug, "No available kernel. Aborting execution.")
   return SDPBackend::error;
 }

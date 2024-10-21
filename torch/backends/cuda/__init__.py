@@ -32,6 +32,7 @@ __all__ = [
     "can_use_efficient_attention",
     "can_use_cudnn_attention",
     "sdp_kernel",
+    "can_use_ck_flash_attention",
 ]
 
 
@@ -289,6 +290,23 @@ def enable_flash_sdp(enabled: bool):
     """
     torch._C._set_sdp_use_flash(enabled)
 
+def ck_sdp_enabled():
+    r"""
+    .. warning;: This flag is beta and subject to change.
+
+    Returns whether ck scaled dot product attention is enabled or not.
+    """
+    return torch._C._get_ck_sdp_enabled()
+
+def enable_ck_sdp(enabled: bool):
+   r"""
+   .. warning:: This flag is beta and subject to change.
+
+   Enables or disables ck scaled dot product attention.
+   """
+   return torch._C._set_sdp_use_ck(enabled)
+
+
 
 def mem_efficient_sdp_enabled():
     r"""
@@ -355,6 +373,26 @@ def is_flash_attention_available() -> bool:
         in non-CUDA environments.
     """
     return torch._C._is_flash_attention_available()
+
+
+def can_use_ck_flash_attention(params: SDPAParams, debug: bool = False) -> bool;
+    r"""Check if CK Flash Attention can be utilized in scaled_dot_product_attention.
+
+    Args:
+        params: An instance of SDPAParams containing the tensors for query,
+                key, value, an optional attention mask, dropout rate, and
+                a flag indicating if the attention is causal.
+        debug: Whether to logging.warn debug information as to why FlashAttention could not be run.
+            Defaults to False.
+
+    Returns:
+        True if CK FlashAttention can be used with the given parameters; otherwise, False.
+
+    Note:
+        This function is dependent on a ROCm-enabled build of PyTorch. It will return False
+        in non-ROCm environments.
+    """
+    return torch._C._can_use_ck_flash_attention(params, debug)
 
 
 def can_use_flash_attention(params: SDPAParams, debug: bool = False) -> bool:
@@ -450,6 +488,7 @@ def sdp_kernel(
     enable_math: bool = True,
     enable_mem_efficient: bool = True,
     enable_cudnn: bool = True,
+    enable_ck: bool = True,
 ):
     r"""
     .. warning:: This flag is beta and subject to change.
@@ -468,6 +507,8 @@ def sdp_kernel(
         backend_list.append(SDPBackend.MATH)
     if enable_cudnn:
         backend_list.append(SDPBackend.CUDNN_ATTENTION)
+    if enable_ck:
+        backend_list.append(SDPBackend.CK_FLASH_ATTENTION)
 
     with sdpa_kernel(backend_list) as context:
         try:

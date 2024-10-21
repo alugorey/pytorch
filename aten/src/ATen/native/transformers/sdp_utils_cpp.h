@@ -22,14 +22,15 @@
 
 namespace sdp {
 
-constexpr int32_t num_backends = 5;
+constexpr int32_t num_backends = 6;
 enum class SDPBackend {
   error = -1,
   math = 0,
   flash_attention = 1,
   efficient_attention = 2,
   cudnn_attention = 3,
-  overrideable = 4
+  overrideable = 4,
+  ck_attention = 5
 };
 
 // Note that if this changed make sure to update
@@ -551,7 +552,7 @@ inline bool check_runtime_disabled_flash(sdp_params const& params, bool debug) {
 }
 
 inline bool check_runtime_disabled_mem_efficient(sdp_params const& params, bool debug) {
-  // We check the global context to see if user has explicitly turned of
+  // We check the global context to see if user has explicitly turned off
   // mem_efficient sdp kernels
   if (!at::globalContext().userEnabledMemEfficientSDP()) {
     if (debug) {
@@ -562,5 +563,16 @@ inline bool check_runtime_disabled_mem_efficient(sdp_params const& params, bool 
   return true;
 }
 
+inline bool check_runtime_disabled_ck_sdpa(sdp_params const& params, bool debug) {
+  // We check the global context to see if user has explicitly turned off
+  // ck attention sdp kernels
+  if(!at::globalContext().userEnabledCKSDP()) {
+    if (debug) {
+      TORCH_WARN("CK SDPA has been runtime disabled.");
+    }
+    return false;
+  }
+  return true;
+}
 
 } // namespace sdp

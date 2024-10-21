@@ -145,6 +145,14 @@ void Context::setSDPUseMath(bool e) {
   enabled_mathSDP = e;
 }
 
+bool Context::userEnabledCKSDP() const {
+  return enabled_ckSDP;
+}
+
+void Context::setSDPUseCK(bool e) {
+  enabled_ckSDP = e;
+}
+
 bool Context::allowFP16BF16ReductionMathSDP() const {
   return allow_fp16_bf16_reduction_mathSDP;
 }

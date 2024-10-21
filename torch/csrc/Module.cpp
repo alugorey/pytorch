@@ -708,7 +708,7 @@ PyObject* THPModule_setSDPUseMemEfficient(PyObject* _unused, PyObject* arg) {
   HANDLE_TH_ERRORS
   TORCH_CHECK(
       PyBool_Check(arg),
-      "set_sdp_use_math expects a bool, "
+      "set_sdp_use_mem_efficient expects a bool, "
       "but got ",
       THPUtils_typename(arg));
   at::globalContext().setSDPUseMemEfficient(arg == Py_True);
@@ -735,6 +735,23 @@ PyObject* THPModule_setSDPUseMath(PyObject* _unused, PyObject* arg) {
 PyObject* THPModule_userEnabledMathSDP(PyObject* _unused, PyObject* noargs) {
   if (at::globalContext().userEnabledMathSDP())
     Py_RETURN_TRUE;
+  else
+    Py_RETURN_FALSE;
+}
+PyObject* THPModule_setSDPUseCK(PyObject* _unused, PyObject* arg) {
+  HANDLE_TH_ERRORS
+  TORCH_CHECK(
+      PyBool_Check(arg),
+      "set_sdp_use_ck expects a bool, "
+      "but got ",
+      THPUtils_typename(arg));
+  at::globalContext().setSDPUseCK(arg == Py_True);
+  Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+}
+PyObject* THPModule_userEnabledCKSDP(PyObject* _unused, PyObject* noargs) {
+  if (at::globalContext().userEnabledCKSDP())
+   py_RETURN_TRUE;
   else
     Py_RETURN_FALSE;
 }
@@ -2064,6 +2081,14 @@ Call this whenever a new thread is created in order to propagate values from
         return false;
 #endif
       });
+  py_module.def(
+      "_can_use_ck_flash_attention",
+      [](const sdp::sdp_params& params, bool debug) {
+#ifdef USE_ROCM
+        return sdp::can_use_ck_flash_attention(params, debug);
+#else
+        return false;
+#endif
 
   py::enum_<at::LinalgBackend>(py_module, "_LinalgBackend")
       .value("Default", at::LinalgBackend::Default)
