@@ -406,6 +406,10 @@ class TORCH_API Context {
 #endif
       ? at::BlasBackend::Cublaslt
       : at::BlasBackend::Cublas;
+  at::ROCmFABackend rocm_fa_preferred_backend =
+      c10::utils::check_env("TORCH_ROCM_FA_PREFER_CK") == true
+      ? at::ROCmFABackend::Ck
+      : at::ROCmFABackend::Default;
 #ifdef C10_MOBILE
   bool release_original_weights = true;
 #else
