@@ -33,6 +33,7 @@ __all__ = [
     "can_use_cudnn_attention",
     "sdp_kernel",
     "can_use_ck_flash_attention",
+    "enable_ck_sdp",
 ]
 
 

@@ -751,9 +751,9 @@ PyObject* THPModule_setSDPUseCK(PyObject* _unused, PyObject* arg) {
 }
 PyObject* THPModule_userEnabledCKSDP(PyObject* _unused, PyObject* noargs) {
   if (at::globalContext().userEnabledCKSDP())
-   py_RETURN_TRUE;
+   Py_RETURN_TRUE;
   else
-    Py_RETURN_FALSE;
+   Py_RETURN_FALSE;
 }
 PyObject* THPModule_setAllowFP16BF16ReductionMathSDP(
     PyObject* _unused,
