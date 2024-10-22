@@ -263,6 +263,10 @@ def preferred_blas_library(
 
     return torch._C._get_blas_preferred_backend()
 
+_ROCMFABackends = {
+    "default": torch._C._
+
+
 
 from torch._C import _SDPAParams as SDPAParams, _SDPBackend as SDPBackend
 
