@@ -215,6 +215,10 @@ bool check_flash_attention_hardware_support(sdp_params const& params, bool debug
   using sm90 = SMVersion<9, 0>;
   auto dprops = at::cuda::getCurrentDeviceProperties();
 #if USE_ROCM
+// TEMP FOR TESTING
+#if defined(USE_CK_FLASH_ATTENTION)
+  return true;
+#endif
 #if USE_AOTRITON
   if (at::globalContext().userEnabledCKSDP()){
     // User explicitly ran with CK, return true for now
