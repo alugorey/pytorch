@@ -217,7 +217,7 @@ bool check_flash_attention_hardware_support(sdp_params const& params, bool debug
 #if USE_ROCM
 #if USE_AOTRITON
   if (at::globalContext().userEnabledCKSDP()){
-    // user explicitly asked for CK. For now just return true.
+    // User explicitly ran with CK, return true for now
     return true;
   } else {
     auto stream = at::cuda::getCurrentCUDAStream().stream();
@@ -740,7 +740,8 @@ SDPBackend select_sdp_backend(sdp_params const& kernel_params) {
   // 3. Math fallback
   auto& ctx = at::globalContext();
   if (!ctx.userEnabledMathSDP() && !ctx.userEnabledFlashSDP() &&
-      !ctx.userEnabledMemEfficientSDP() && !ctx.userEnabledCuDNNSDP()) {
+      !ctx.userEnabledMemEfficientSDP() && !ctx.userEnabledCuDNNSDP() &&
+      !ctx.userEnabledCKSDP()) {
     return SDPBackend::error;
   }
   // Get ideal kernel ordering
