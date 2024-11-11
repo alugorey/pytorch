@@ -3,6 +3,7 @@
 #include <ATen/native/hip/ck_gemm.h>
 #include <ATen/native/hip/ck_gemm_template.h>
 #include <ck/utility/sequence.hpp>
+#include <iostream>
 
 template <ck::index_t... Is>
 using S = ck::Sequence<Is...>;
@@ -20,6 +21,7 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
   if (use_padding) {
     if (m <= 128) {
       if(transa_ && transb_) {
+	     std::cout << "PADDED SMALL TT" << std::endl;
          gemm_impl<
             at::BFloat16,
             256,
@@ -56,6 +58,7 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             (CUDABLAS_GEMM_ARGS(at::BFloat16));
       }
       else if(transa_ && !transb_) {
+	    std::cout << "PADDED SMALL TN" << std::endl;
         gemm_impl<
             at::BFloat16,
             256,
@@ -92,6 +95,7 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             (CUDABLAS_GEMM_ARGS(at::BFloat16));
       }
       else if(!transa_ && transb_) {
+	  	  std::cout << "PADDED SMALL NT" << std::endl;
           gemm_impl<
             at::BFloat16,
             256,
@@ -128,6 +132,7 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             (CUDABLAS_GEMM_ARGS(at::BFloat16));
       }
       else if(!transa_ && !transb_) {
+	      std::cout << "PADDED SMALL NN" << std::endl;
           gemm_impl<
            at::BFloat16,
             256,
@@ -167,8 +172,9 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
         TORCH_CHECK(false, "unreachable");
       }
 
-    } else {
+    } else { // !( m <= 128 )
       if(transa_ && transb_) {
+	    std::cout << "PADDED MED TT" << std::endl;
         gemm_impl<
             at::BFloat16,
             256,
@@ -205,18 +211,19 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             (CUDABLAS_GEMM_ARGS(at::BFloat16));
       }
       else if(transa_ && !transb_) {
+	      std::cout << "PADDED MED TN" << std::endl;
           gemm_impl<
             at::BFloat16,
-            256,
-            128,
-            128,
+            256, // changed
+            128, // changed
+            128, // changed
             64,
             8,
             8,
             32,
             32,
-            2,
-            2,
+            2,   //changed
+            2,   //changed
             S<8,32,1>,
             S<1,0,2>,
             S<1,0,2>,
@@ -234,13 +241,14 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             1,
             1,
             S<1, 32, 1, 8>,
-            S<4>,
+            S<4>, // changed
             true,
             true,
             false>
             (CUDABLAS_GEMM_ARGS(at::BFloat16));
       }
       else if(!transa_ && transb_) {
+	      std::cout << "PADDED MED NT" << std::endl;
           gemm_impl<
             at::BFloat16,
             256,
@@ -277,6 +285,7 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             (CUDABLAS_GEMM_ARGS(at::BFloat16));
       }
       else if(!transa_ && !transb_) {
+	      std::cout << "PADDED MED NN" << std::endl;
           gemm_impl<
             at::BFloat16,
             256,
@@ -316,9 +325,10 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
         TORCH_CHECK(false, "unreachable");
       }
     }
-  } else {
+  } else { // !(use_padding)
     {
       if(transa_ && transb_) {
+	      std::cout << "UNPADDED TT" << std::endl;
           gemm_impl<
             at::BFloat16,
             256,
@@ -355,6 +365,7 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             (CUDABLAS_GEMM_ARGS(at::BFloat16));
       }
       else if(transa_ && !transb_) {
+	      std::cout << "UNPADDED TN" << std::endl;
           gemm_impl<
             at::BFloat16,
             256,
@@ -391,6 +402,7 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             (CUDABLAS_GEMM_ARGS(at::BFloat16));
       }
       else if(!transa_ && transb_) {
+	      std::cout << "UNPADDED NT" << std::endl;
           gemm_impl<
             at::BFloat16,
             256,
@@ -427,6 +439,7 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             (CUDABLAS_GEMM_ARGS(at::BFloat16));
       }
       else if(!transa_ && !transb_) {
+	      std::cout << "UNPADDED NN" << std::endl;
           gemm_impl<
             at::BFloat16,
             256,
