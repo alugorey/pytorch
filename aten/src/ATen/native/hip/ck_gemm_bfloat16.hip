@@ -211,7 +211,7 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             (CUDABLAS_GEMM_ARGS(at::BFloat16));
       }
       else if(transa_ && !transb_) {
-	      std::cout << "PADDED MED TN" << std::endl;
+	      //std::cout << "PADDED MED TN" << std::endl;
           gemm_impl<
             at::BFloat16,
             256, // changed
@@ -220,18 +220,18 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             64,
             8,
             8,
-            32,
-            32,
-            2,   //changed
-            2,   //changed
-            S<8,32,1>,
+            16, //changed
+            16, //changed
+            4,   //changed
+            4,   //changed
+            S<4,64,1>, //changed
             S<1,0,2>,
             S<1,0,2>,
             2,
             8,
             8,
             0,
-            S<8,32,1>,
+            S<4,64,1>,
             S<1,0,2>,
             S<1,0,2>,
             2,
@@ -239,12 +239,14 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
             8,
             0,
             1,
-            1,
-            S<1, 32, 1, 8>,
-            S<4>, // changed
+            2, //changed
+            S<1, 32, 1, 8>, // changed
+            S<8>, // changed
+            true, // PADDING
             true,
-            true,
-            false>
+            false,
+			ck::BlockGemmPipelineScheduler::Intrawave,
+			ck::BlockGemmPipelineVersion::v3>
             (CUDABLAS_GEMM_ARGS(at::BFloat16));
       }
       else if(!transa_ && transb_) {
