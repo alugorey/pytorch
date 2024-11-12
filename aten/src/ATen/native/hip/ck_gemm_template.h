@@ -157,7 +157,9 @@ template <
     typename CDE_SCALAR_VEC,
     bool PADDING = false,
     bool TRANSA = false,
-    bool TRANSB = false>
+    bool TRANSB = false,
+	ck::BlockGemmPipelineScheduler LOOP_SCHED = ck::BlockGemmPipelineScheduler::Intrawave,
+	ck::BlockGemmPipelineVersion PIPE_VER = ck::BlockGemmPipelineVersion::v1>
 void gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   // Get input information.
   int M = m;
@@ -197,7 +199,6 @@ void gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   static constexpr auto GemmMNKPadding =
       ck::tensor_operation::device::GemmSpecialization::MNKPadding;
   static constexpr auto GemmSpec = PADDING ? GemmMNKPadding : GemmDefault;
-
 
   using DeviceGemmInstance =
     ck::tensor_operation::device::DeviceGemmMultiD_Xdl_CShuffle_V3<ALayout,
@@ -241,7 +242,9 @@ void gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
                                                                    CMPER_WAVE,
                                                                    CNPER_WAVE,
                                                                    BLOCK_CLUSTER_LENS,
-                                                                   CDE_SCALAR_VEC>;
+                                                                   CDE_SCALAR_VEC,
+                                                                   LOOP_SCHED,
+                                                                   PIPE_VER>;
 
 
   auto gemm = DeviceGemmInstance{};
