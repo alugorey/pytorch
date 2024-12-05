@@ -5,7 +5,7 @@
 #include <ATen/native/transformers/hip/flash_attn/flash_common_hip.hpp>
 #include <fmha_fwd.hpp>
 #include <mask.hpp>
-
+#include <iostream>
 
 
 namespace pytorch_flash {
@@ -50,7 +50,7 @@ fmha_fwd_args get_ck_fmha_fwd_args(bool has_lse,
                                    at::Tensor dropout_randval,
                                    float softmax_scale,
                                    float p_dropout,
-                                   std::pair<uint64_t*, uint64_t*> drop_seed_offset)
+                                   std::variant<std::pair<uint64_t, uint64_t>, std::pair<const void*, const void*>> drop_seed_offset)
 {
     // q: (batch_size, seqlen_q, nheads, d)
     // k: (batch_size, seqlen_k, nheads_k, d)
@@ -275,15 +275,41 @@ mha_fwd_ck(const at::Tensor &q,                      // batch_size x seqlen_q x 
         p = at::empty({ 0 }, opts);
     }
 
-    int64_t counter_offset = batch_size * num_heads * ck_tile::get_warp_size();
-    auto rng_state = at::empty({2}, opts.dtype(at::kLong));
-    auto rng_state_ptr = reinterpret_cast<uint64_t*>(rng_state.data_ptr());
-
-
 
     at::Tensor seed_t, offset_t;
-
+    uint64_t u_seed_t, u_offset_t;
     if (p_dropout > 0.0)  {
+        auto gen = at::get_generator_or_default<at::CUDAGeneratorImpl>(std::nullopt, at::cuda::detail::getDefaultCUDAGenerator());
+        // number of times random will be generated per thread, to offset philox counter in thc random
+        // state
+        // We use a custom RNG that increases the offset by batch_size * nheads * 32.
+        int64_t counter_offset = batch_size * num_heads * 32;
+        // See Note [Acquire lock when using random generators]
+        std::lock_guard<std::mutex> lock(gen->mutex_);
+        at::PhiloxCudaState philox_state = gen->philox_cuda_state(counter_offset);
+        if (at::cuda::currentStreamCaptureStatus() == at::cuda::CaptureStatus::None) {
+          auto [seed, offset] = at::cuda::philox::unpack(philox_state);
+          u_seed_t = static_cast<uint64_t>(seed);
+          u_offset_t = static_cast<uint64_t>(offset);
+          seed_t = at::scalar_tensor(at::Scalar(static_cast<int64_t>(seed)), at::dtype(at::kLong));
+          offset_t = at::scalar_tensor(at::Scalar(static_cast<int64_t>(offset)), at::dtype(at::kLong));
+        } else {
+          seed_t = at::empty({}, at::dtype(at::kLong).device(at::kCUDA));
+          offset_t = at::empty({}, at::dtype(at::kLong).device(at::kCUDA));
+        }
+    } else {
+        if (at::cuda::currentStreamCaptureStatus() != at::cuda::CaptureStatus::None) {
+            seed_t = at::empty({}, at::dtype(at::kLong).device(at::kCUDA));
+            offset_t = at::empty({}, at::dtype(at::kLong).device(at::kCUDA));
+        } else {
+            seed_t = at::empty({}, at::dtype(at::kLong));
+            offset_t = at::empty({}, at::dtype(at::kLong));
+        }
+
+    }
+/*
+    if (p_dropout > 0.0)  {
+        std::cout << "MADE IT TO P_DROPOUT CHECK!" << std::endl;
         auto gen = at::get_generator_or_default<at::CUDAGeneratorImpl>(
             gen_, at::cuda::detail::getDefaultCUDAGenerator());
         // See Note [Acquire lock when using random generators]
@@ -295,17 +321,18 @@ mha_fwd_ck(const at::Tensor &q,                      // batch_size x seqlen_q x 
 
         hipLaunchKernelGGL(
             flash::ParsePhiloxCudaState, dim3(1), dim3(64), 0, at::hip::getCurrentHIPStreamMasqueradingAsCUDA(), philox_args, rng_state_ptr);
-        seed_t = at::scalar_tensor(at::Scalar(static_cast<uint64_t>(rng_state_ptr[0])), at::dtype(at::kLong));
-        offset_t = at::scalar_tensor(at::Scalar(static_cast<uint64_t>(rng_state_ptr[1])), at::dtype(at::kLong));
+        seed_t = at::scalar_tensor(at::Scalar(static_cast<int64_t>(rng_state_ptr[0])), at::dtype(at::kLong));
+        offset_t = at::scalar_tensor(at::Scalar(static_cast<int64_t>(rng_state_ptr[1])), at::dtype(at::kLong));
+		std::cout << "AFTER THE STUFF IN THE P_DROPOUT_CHECK!" << std::endl;
     }
     else
     {
         seed_t = at::empty({}, at::dtype(at::kLong).device(at::kCUDA));
         offset_t = at::empty({}, at::dtype(at::kLong).device(at::kCUDA));
     }
-
+*/
     if (seqlen_k > 0) {
-        auto drop_seed_offset = std::make_pair(rng_state_ptr, rng_state_ptr + 1);
+        auto drop_seed_offset = std::make_pair(u_seed_t, u_offset_t);
         auto stream = at::cuda::getCurrentHIPStream().stream();
         ck_tile::stream_config stream_config{stream};
 

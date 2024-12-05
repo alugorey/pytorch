@@ -5,6 +5,8 @@
 #include <ATen/native/transformers/hip/flash_attn/flash_common_hip.hpp>
 #include <fmha_bwd.hpp>
 #include <mask.hpp>
+#include <iostream>
+
 
 namespace pytorch_flash {
 
@@ -50,7 +52,7 @@ fmha_bwd_args get_ck_fmha_bwd_args(const mask_info &mask,
                                    at::Tensor dv,
                                    float softmax_scale,
                                    float p_dropout,
-                                   std::pair<uint64_t*, uint64_t*> drop_seed_offset)
+                                   std::variant<std::pair<uint64_t, uint64_t>, std::pair<const void*, const void*>> drop_seed_offset)
 {
     // q: (batch_size, seqlen_q, nheads, hdim)
     ck_tile::index_t batch_stride_q = q.stride(0);
@@ -217,9 +219,11 @@ mha_bwd_ck(const at::Tensor &dout,                   // batch_size x seqlen_q x 
 #ifdef FLASHATTENTION_DISABLE_BACKWARD
     TORCH_CHECK(false, "This flash attention build does not support backward.");
 #endif
+    std::cout << "MHA_BWD_CK 0" << std::endl;
     if (is_causal) { window_size_right = 0; }
 
     bool is_dropout = p_dropout > 0.0;
+    std::cout << "MHA_BWD_CK 1" << std::endl;
     auto stream = at::cuda::getCurrentHIPStream().stream();
 
     auto q_dtype = q.dtype();
@@ -343,19 +347,53 @@ mha_bwd_ck(const at::Tensor &dout,                   // batch_size x seqlen_q x 
         dk_expanded = dk;
         dv_expanded = dv;
     }
+    std::cout << "MHA_BWD_CK 2" << std::endl;
+    std::variant<std::pair<uint64_t, uint64_t>, std::pair<const void*, const void*>> drop_seed_offset;
+    /*
+	std::cout << philox_seed << std::endl;
+	std::cout << philox_offset << std::endl;
+    std::cout << philox_seed.device() << std::endl;
+	std::cout << philox_offset.device() << std::endl;
+	*/
 
-    uint64_t drop_seed = 1, drop_offset = 0;
-    drop_seed = *philox_seed.data_ptr<int64_t>();
-    drop_offset = *philox_offset.data_ptr<int64_t>();
-    auto drop_seed_offset = std::make_pair(&drop_seed, &drop_offset);
+	
 
+//	drop_seed = *philox_seed.data_ptr<int64_t>();
+//    drop_offset = *philox_offset.data_ptr<int64_t>();
+    at::PhiloxCudaState philox_args;
+	if (is_dropout) {
+	    int64_t * seed_temp = philox_seed.data_ptr<int64_t>();
+		int64_t * offset_temp = philox_offset.data_ptr<int64_t>();
+		
+        if (at::cuda::currentStreamCaptureStatus() ==
+                at::cuda::CaptureStatus::None)
+        {
+		    std::cout << "ALPHA" << std::endl;
+			philox_args = at::PhiloxCudaState(*philox_seed.data_ptr<int64_t>(), *philox_offset.data_ptr<int64_t>());
+			//drop_seed_offset = std::make_pair(static_cast<uint64_t>(*seed_temp), static_cast<uint64_t>(*offset_temp));
+			drop_seed_offset = std::make_pair(static_cast<uint64_t>(philox_args.seed_.val), static_cast<uint64_t>(philox_args.offset_.val));
+        } else { // dropout + capture
+		    std::cout << "BETA" << std::endl;
+			philox_args = at::PhiloxCudaState(
+                philox_seed.data_ptr<int64_t>(), philox_offset.data_ptr<int64_t>(), 0);
+            //drop_seed_offset = std::make_pair(reinterpret_cast<uint64_t*>(seed_temp), reinterpret_cast<uint64_t*>(offset_temp));
+			drop_seed_offset = std::make_pair(
+			      *(reinterpret_cast<uint64_t*>(philox_args.seed_.ptr)),
+				  *(reinterpret_cast<uint64_t*>(philox_args.offset_.ptr)));
+        }
+    }
+
+
+    //auto drop_seed_offset = std::make_pair(drop_seed, drop_offset);
+
+    std::cout << "MHA_BWD_CK 3" << std::endl;
 
     if (seqlen_q > 0) {
         ck_tile::stream_config stream_config{stream};
         dq.zero_(); // ck use atomic operation on dq
         auto traits =
             get_ck_fmha_bwd_traits(mask, q_dtype_str, head_size_8x, is_dropout, alibi_slopes_.has_value(), deterministic);
-
+		std::cout << "MHA_BWD_CK 4" << std::endl;
         auto args =
             get_ck_fmha_bwd_args(
                 mask,
@@ -380,8 +418,11 @@ mha_bwd_ck(const at::Tensor &dout,                   // batch_size x seqlen_q x 
                 softmax_scale,
                 p_dropout,
                 drop_seed_offset);
-
+		
+        std::cout << "MHA_BWD_CK 5" << std::endl;
         float t = fmha_bwd(traits, args, stream_config);
+
+        std::cout << "MHA_BWD_CK 6" << std::endl;
         TORCH_CHECK(t >= 0, "invalid argument for fmha_bwd");
     } else {
         // If seqlen_q == 0, then we have an empty tensor. We need to set the output to 0.

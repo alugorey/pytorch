@@ -3416,6 +3416,8 @@ class TestSDPACudaOnly(NNTestCase):
                                                          dtype: torch.dtype,
                                                          scale: str,
                                                          fused_kernel: SDPBackend):
+        print("FUSED_KERNEL: ", fused_kernel)
+        #dropout_p = 0.0
         def _get_mem_eff_drop_mask(batch_size, n_heads, q_len, kv_len, dropout_p, seed, offset, device=device):
             mask = torch.empty((batch_size, n_heads, q_len, kv_len), device=device, dtype=torch.float32)
             rand_uniform = torch._fill_mem_eff_dropout_mask_(mask, dropout_p, seed, offset)
@@ -3483,21 +3485,30 @@ class TestSDPACudaOnly(NNTestCase):
         with torch.cuda.stream(s):
             # Create real output
             output_tuple = fused_op(query, key, value, **kwargs)
-
+        print("ALPHA")
         torch.cuda.current_stream().wait_stream(s)
         out = output_tuple[0]
         upstream_grad = torch.rand_like(out, requires_grad=False)
         s.wait_stream(torch.cuda.current_stream())
+
+        print("BETA")
         with torch.cuda.stream(s):
+            print("before")
             out.backward(upstream_grad)
+            print("after")
+
+        print("GAMMA")
         for x in (query, key, value):
             x.grad = None
+
         g = torch.cuda.CUDAGraph()
         # Create real output
+
         with torch.cuda.graph(g):
             tmp = torch.rand_like(query, device=query.device)  # test non-zero intragraph offset
             # Create real output
             output_tuple = fused_op(query, key, value, **kwargs)
+            print("ANDY")
             assert all(not isinstance(o, torch.Tensor) or o.is_cuda for o in output_tuple)
         g.replay()
         out_first = output_tuple[0].clone()
@@ -3507,6 +3518,9 @@ class TestSDPACudaOnly(NNTestCase):
             self.assertEqual(out_first, out, atol=0, rtol=0)
         else:
             # replays produce different results
+            print(out_first)
+            print("@#$@#$@#$@#$@#$@#$")
+            print(out)
             self.assertNotEqual(out_first, out)
 
         with sdpa_kernel(backends=[SDPBackend.MATH]):
@@ -3530,7 +3544,6 @@ class TestSDPACudaOnly(NNTestCase):
                 out_lp_ref = torch.ops.aten._scaled_dot_product_attention_math(
                     query, key, value, dropout_p=dropout_p, is_causal=is_causal,
                     dropout_mask=dropout_mask)[0]
-
         g1 = torch.cuda.CUDAGraph()
         with torch.cuda.graph(g1):
             grads = torch.autograd.grad(out, (query, key, value), upstream_grad)
@@ -4061,4 +4074,5 @@ instantiate_device_type_tests(TestSDPACpuOnly, globals(), only_for=("cpu"))
 instantiate_device_type_tests(TestAttnBias, globals(), only_for=device_types)
 
 if __name__ == '__main__':
+    torch.backends.cuda.preferred_rocm_fa_library("ck")
     run_tests()
