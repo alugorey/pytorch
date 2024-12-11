@@ -1,3 +1,4 @@
+cmake_policy(SET CMP0007 NEW)
 # generate a list of kernels, but not actually emit files at config stage
 execute_process(
   COMMAND python3 ${CMAKE_CURRENT_LIST_DIR}/../../../../../../../../third_party/composable_kernel/example/ck_tile/01_fmha/generate.py
@@ -36,12 +37,14 @@ if(ret AND NOT ret EQUAL 0)
 endif()
 
 
+#set(CK_SUPPORTED_GFX_ARCHS "gfx90a,gfx940")
+
 # Finally, parse supported CK supported archs string and add ifdefs to generated files
 set(GFX_LIST ${CK_SUPPORTED_GFX_ARCHS})
-
+message("gfx list: ${GFX_LIST}")
 if(NOT "${GFX_LIST}" STREQUAL "")
   string(REPLACE "," ";" GFX_LIST ${GFX_LIST})
-
+  message("gfx list: ${GFX_LIST}")
   # Start the final string
   set(HEADER "#if (")
 
@@ -49,10 +52,10 @@ if(NOT "${GFX_LIST}" STREQUAL "")
     # Append the condition
     set(HEADER "${HEADER}defined(__${SUBSTRING}__) || ")
   endforeach()
-
+  message("current header: ${HEADER}")
   string(REGEX REPLACE " \\|\\| $"
                     ")" HEADER "${HEADER}")
-
+  message("current header: ${HEADER}")
   set(FOOTER "#endif")
   set(FWD_LIST "fwd_blob_list.txt")
   set(BWD_LIST "bwd_blob_list.txt")
@@ -65,21 +68,43 @@ if(NOT "${GFX_LIST}" STREQUAL "")
   string(REPLACE "\n" ";" FULL_LIST "${FULL_LIST}")
 
   # Add ifdef header and footer
-  foreach(INSTANCE IN LISTS FULL_LIST)
+# message("Full list: ${FULL_LIST}")
+# list(LENGTH FULL_LIST len)
+# message("List length: ${len}")
+ foreach(INSTANCE IN LISTS FULL_LIST)
     if(EXISTS ${INSTANCE})
-      file(READ ${INSTANCE} CURR_FILE)
+      if(NOT "${INSTANCE}" STREQUAL "")
+        #file(READ ${INSTANCE} CURR_FILE)
 
-      file(WRITE ${INSTANCE} "${HEADER}\n")
+        #file(WRITE ${INSTANCE} "${HEADER}\n")
 
-      file(APPEND ${INSTANCE} "${CURR_FILE}")
+        #file(APPEND ${INSTANCE} "${CURR_FILE}")
 
-      file(APPEND ${INSTANCE} "\n${FOOTER}")
+        #file(APPEND ${INSTANCE} "\n${FOOTER}")
+       # Add HEADER immediately after the line containing "include \"fmha_"
+        execute_process(
+            COMMAND sed -i -e "/include \"fmha_/a ${HEADER}" ${INSTANCE}
+            RESULT_VARIABLE HEADER_RESULT
+        )
+        if (NOT HEADER_RESULT EQUAL 0)
+            message(WARNING "Failed to add HEADER to file: ${INSTANCE}")
+        endif()
 
+        # Add FOOTER at the end of the file
+        execute_process(
+            COMMAND sed -i -e "\$a ${FOOTER}" ${INSTANCE}
+            RESULT_VARIABLE FOOTER_RESULT
+        )
+        if (NOT FOOTER_RESULT EQUAL 0)
+            message(WARNING "Failed to add FOOTER to file: ${INSTANCE}")
+        endif() 
+      endif()
     else()
       message(WARNING "File ${INSTANCE} does not exist. Skipping.")
     endif()
   endforeach()
 endif()
+
 # add ifdefs to prevent calling stubbed out instances
 #set(MHA_FILES "${CMAKE_CURRENT_SOURCE_DIR}/mha_fwd_ck.hip;${CMAKE_CURRENT_SOURCE_DIR}/mha_bwd_ck.hip;${CMAKE_CURRENT_SOURCE_DIR}/mha_varlen_fwd_ck.hip;${CMAKE_CURRENT_SOURCE_DIR}/mha_varlen_bwd_ck.hip")
 #execute_process(COMMAND ls)
@@ -108,7 +133,6 @@ endif()
 #        message(WARNING "File ${MHA} does not exist. Skipping.")
 #    endif()
 #endforeach()
-
 # Change file extensions to .hip
 execute_process(COMMAND bash -c "for file in ${CMAKE_CURRENT_LIST_DIR}/*.cpp; do mv -- \"$file\" \"\${file%.cpp}.hip\"; done"
   RESULT_VARIABLE ret
