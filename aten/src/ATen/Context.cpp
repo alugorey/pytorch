@@ -351,7 +351,25 @@ void Context::setROCmFAPreferredBackend(at::ROCmFABackend b) {
   // TODO: add plumbing for hasCK for validity checking
   TORCH_CHECK((b != at::ROCmFABackend::Ck) || hasROCM(),
       "Cannot set preferred flash attention backend to Ck if PyTorch has not been compiled for ROCm.");
-  rocm_fa_preferred_backend = b;
+  if(b == at::ROCmFAPreferredBackend) {
+    static const bool ck_unsupported = []() {
+      static const std::vector<std::string> archs = {
+          "gfx90a",  "gfx942"
+      };
+      for (auto index: c10::irange(getNumGPUs())) {
+        if (!detail::getCUDAHooks().isGPUArch(index, archs)) {
+          TORCH_WARN_ONCE(
+            "Attempting to use CK on an unsupported architecture! Cannot set backend to CK");
+          return;
+        }
+      }
+      rocm_fa_preferred_backend = b;
+    }
+  }
+  else {
+     rocm_fa_preferred_backend = b;
+  }
+
 }
 
 
