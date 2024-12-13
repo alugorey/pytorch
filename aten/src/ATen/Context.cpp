@@ -355,6 +355,9 @@ void Context::setROCmFAPreferredBackend(at::ROCmFABackend b) {
 #ifdef USE_ROCM
   if(b == at::ROCmFABackend::Ck) {
     static const bool ck_unsupported = []() {
+#if !defined(USE_CK_FLASH_ATTENTION)
+      return true;
+#else
       static const std::vector<std::string> archs = {
           "gfx90a",  "gfx942"
       };
@@ -366,14 +369,16 @@ void Context::setROCmFAPreferredBackend(at::ROCmFABackend b) {
         }
       }
       return false;
+#endif
     }();
     if(!ck_unsupported) rocm_fa_preferred_backend = b;
   }
   else {
      rocm_fa_preferred_backend = b;
   }
+
 #endif
-  rocm_fa_preferred_backend = b;
+  TORCH_WARN_ONCE("Attempting to use CK on non-ROCm environment. This is a no-op");
 }
 
 
