@@ -85,7 +85,9 @@ def evaluate_platform_supports_fp8():
     if torch.cuda.is_available():
         if torch.version.hip:
             gcnArchName = torch.cuda.get_device_properties(0).gcnArchName
-            return 'gfx94' in gcnArchName or 'gfx120' in gcnArchName
+            for arch in ['gfx94', 'gfx950', 'gfx120']:
+                if arch in gcnArchName:
+                    return True
         else:
             return SM90OrLater or torch.cuda.get_device_capability() == (8, 9)
     return False

@@ -50,7 +50,7 @@ if TEST_SCIPY:
 def blaslt_supported_device():
     if torch.cuda.is_available():
         if torch.version.hip:
-            for arch in ['gfx90a', 'gfx94']:
+            for arch in ['gfx90a', 'gfx94', 'gfx950', 'gfx120']:
                 if arch in torch.cuda.get_device_properties(0).gcnArchName:
                     return True
         else:
