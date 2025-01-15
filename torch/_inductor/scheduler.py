@@ -739,7 +739,10 @@ class BaseSchedulerNode:
 
         dtype = buf.node.maybe_get_dtype()
         try:
-            gpu_memory_bandwidth = get_gpu_dram_gbps()
+            #gpu_memory_bandwidth = get_gpu_dram_gbps()
+            # This triton call returns 0 for now, so hardcode this work gfx950 workaround
+            gpu_memory_bandwidth = 1300000 # Using gfx942 amount in khz
+            
             gpu_flops = get_device_tflops(dtype) * 10**12
         except Exception:
             return 0
