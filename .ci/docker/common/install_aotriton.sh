@@ -9,7 +9,7 @@ TARBALL='aotriton.tar.gz'
 read -d "\n" VER MANYLINUX ROCMBASE PINNED_COMMIT SHA256 < aotriton_version.txt || true
 ARCH=$(uname -m)
 AOTRITON_INSTALL_PREFIX="$1"
-AOTRITON_URL="https://github.com/ROCm/aotriton/releases/download/${VER}/aotriton-${VER}-${MANYLINUX}_${ARCH}-${ROCMBASE}-shared.tar.gz"
+AOTRITON_URL="https://compute-artifactory.amd.com/artifactory/rocm-generic-local/aotriton/aotriton-${VER}-${MANYLINUX}_${ARCH}-${ROCMBASE}-shared.tar.gz"
 
 cd "${AOTRITON_INSTALL_PREFIX}"
 # Must use -L to follow redirects

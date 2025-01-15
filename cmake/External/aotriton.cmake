@@ -64,8 +64,8 @@ if(NOT __AOTRITON_INCLUDED)
                                   "${__AOTRITON_VER}-${__AOTRITON_MANYLINUX}"
                                   "_${__AOTRITON_ARCH}-${__AOTRITON_ROCM}"
                                   "-shared.tar.gz")
-    string(CONCAT __AOTRITON_URL "https://github.com/ROCm/aotriton/releases/download/"
-                                 "${__AOTRITON_VER}/${__AOTRITON_FILE}")
+    string(CONCAT __AOTRITON_URL "https://compute-artifactory.amd.com/artifactory/rocm-generic-local/aotriton/"
+                                 "${__AOTRITON_FILE}")
     ExternalProject_Add(aotriton_external
       URL "${__AOTRITON_URL}"
       URL_HASH SHA256=${__AOTRITON_SHA256}
