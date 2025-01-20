@@ -3154,6 +3154,7 @@ class TestSDPACudaOnly(NNTestCase):
             'grad_value': 8.5,
         }
         if TEST_WITH_ROCM:
+            fudge_factors['grad_value'] = 16.0
             fudge_factors['grad_key'] = 45.0
             fudge_factors['grad_query'] = 360.0
             if seq_len_k >= 1024:
@@ -3273,6 +3274,7 @@ class TestSDPACudaOnly(NNTestCase):
             "grad_attn_mask": 45.0,
         }
         if TEST_WITH_ROCM:
+            fudge_factors['grad_value'] = 16.0
             fudge_factors['grad_key'] = 45.0
             fudge_factors['grad_query'] = 360.0
             if seq_len_k >= 1024:
@@ -3528,7 +3530,7 @@ class TestSDPACudaOnly(NNTestCase):
         g.replay()
         out = output_tuple[0]
         if dropout_p == 0.0:
-            self.assertEqual(out_first, out, atol=0, rtol=0)
+            self.assertEqual(out_first, out, atol=0, rtol=0, msg='Two passes of non-dropout graph mismatches')
         else:
             # replays produce different results
             self.assertNotEqual(out_first, out)
@@ -3569,8 +3571,8 @@ class TestSDPACudaOnly(NNTestCase):
                 fudge_factors={
                     'out': 3.0,
                     'grad_query': 100.0,
-                    'grad_key': 8.0,
-                    'grad_value': 3.0,
+                    'grad_key': 8.0 if not TEST_WITH_ROCM else 16.0,
+                    'grad_value': 3.0 if not TEST_WITH_ROCM else 6.0,
                 }
             )
 

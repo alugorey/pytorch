@@ -39,7 +39,7 @@ IS_SM89 = LazyVal(lambda: torch.cuda.is_available() and torch.cuda.get_device_ca
 def CDNA2OrLater():
     if TEST_WITH_ROCM:
         gcn_arch_name = torch.cuda.get_device_properties('cuda').gcnArchName
-        return any(arch in gcn_arch_name for arch in {"gfx90a", "gfx940", "gfx941", "gfx942"})
+        return any(arch in gcn_arch_name for arch in {"gfx90a", "gfx940", "gfx941", "gfx942", "gfx950"})
     return False
 
 def evaluate_gfx_arch_exact(matching_arch):
@@ -54,14 +54,14 @@ GFX942_Exact = LazyVal(lambda: evaluate_gfx_arch_exact('gfx942:sramecc+:xnack-')
 
 def evaluate_platform_supports_flash_attention():
     if TEST_WITH_ROCM:
-        return evaluate_gfx_arch_exact('gfx90a:sramecc+:xnack-') or evaluate_gfx_arch_exact('gfx942:sramecc+:xnack-')
+        return CDNA2OrLater()
     if TEST_CUDA:
         return not IS_WINDOWS and SM80OrLater
     return False
 
 def evaluate_platform_supports_efficient_attention():
     if TEST_WITH_ROCM:
-        return evaluate_gfx_arch_exact('gfx90a:sramecc+:xnack-') or evaluate_gfx_arch_exact('gfx942:sramecc+:xnack-')
+        return CDNA2OrLater()
     if TEST_CUDA:
         return True
     return False
