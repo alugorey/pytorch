@@ -728,8 +728,12 @@ Tensor scaled_dot_product_attention(
         Tensor value_padded = pad_last_dim<8, false>(value);
         // We need to calculate the scale based off the OG head dim size
         auto og_scale = sdp::calculate_scale(query_, scale);
+        // If attn_bias was given, blindly pass to lower levels. They will know what to do with it
+        if (attn_mask.has_value()) {
+        attn_mask.value() = preprocess_mask(attn_mask.value(), query_, key, value);;
+        }
         auto out_lse_softmax = at::_scaled_dot_product_flash_attention(
-            query_padded, key_padded, value_padded, dropout_p, is_causal, false /*return_debug_mask*/, og_scale.guard_float("attention.cpp", 735));
+            query_padded, key_padded, value_padded, attn_mask, dropout_p, is_causal, false /*return_debug_mask*/, og_scale.guard_float("attention.cpp", 735));
         return post_process_flash_output(std::get<0>(out_lse_softmax), og_size);
       }
       // For the CPU case we do not need to pad the last dim

@@ -761,6 +761,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> _scaled_dot_product_flash_attenti
     const at::Tensor& grad_out_,
     const at::Tensor& query,
     const at::Tensor& key,
+    const std::optional<Tensor>& attn_bias,
     const at::Tensor& value,
     const at::Tensor& out,
     const at::Tensor& logsumexp,

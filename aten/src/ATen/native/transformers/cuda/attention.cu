@@ -682,6 +682,7 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt, Tensor, Ten
     const Tensor& query,
     const Tensor& key,
     const Tensor& value,
+    const std::optional<Tensor>& attn_bias,
     double dropout_p,
     bool is_causal,
     bool return_debug_mask,
