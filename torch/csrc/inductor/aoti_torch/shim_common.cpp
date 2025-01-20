@@ -528,10 +528,13 @@ AOTITorchError aoti_torch__fft_c2c(
   });
 }
 
-AOTITorchError aoti_torch__scaled_dot_product_flash_attention_v2(
+
+
+AOTITorchError aoti_torch__scaled_dot_product_flash_attention_v3(
     AtenTensorHandle query,
     AtenTensorHandle key,
     AtenTensorHandle value,
+    AtenTensorHandle attn_bias, // optional argument
     double dropout_p,
     int is_causal,
     int return_debug_mask,
@@ -546,16 +549,19 @@ AOTITorchError aoti_torch__scaled_dot_product_flash_attention_v2(
     AtenTensorHandle* ret7, // returns new reference
     AtenTensorHandle* ret8 // returns new reference
 ) {
-  AOTI_TORCH_CONVERT_EXCEPTION_TO_ERROR_CODE({
+AOTI_TORCH_CONVERT_EXCEPTION_TO_ERROR_CODE({
     at::Tensor* query_tensor = tensor_handle_to_tensor_pointer(query);
     at::Tensor* key_tensor = tensor_handle_to_tensor_pointer(key);
     at::Tensor* value_tensor = tensor_handle_to_tensor_pointer(value);
     auto optional_scale = pointer_to_optional(scale);
+    auto optional_attn_bias =
+        pointer_to_optional(tensor_handle_to_tensor_pointer(attn_bias));
     auto [r0, r1, r2, r3, r4, r5, r6, r7, r8] =
         at::_scaled_dot_product_flash_attention(
             *query_tensor,
             *key_tensor,
             *value_tensor,
+            optional_attn_bias,
             dropout_p,
             is_causal,
             return_debug_mask,
@@ -576,6 +582,44 @@ AOTITorchError aoti_torch__scaled_dot_product_flash_attention_v2(
     *ret7 = new_tensor_handle(std::move(r7));
     *ret8 = new_tensor_handle(std::move(r8));
   });
+}
+
+
+AOTITorchError aoti_torch__scaled_dot_product_flash_attention_v2(
+    AtenTensorHandle query,
+    AtenTensorHandle key,
+    AtenTensorHandle value,
+    double dropout_p,
+    int is_causal,
+    int return_debug_mask,
+    double* scale, // optional argument
+    AtenTensorHandle* ret0, // returns new reference
+    AtenTensorHandle* ret1, // returns new reference
+    AtenTensorHandle* ret2, // returns new reference
+    AtenTensorHandle* ret3, // returns new reference
+    int64_t* ret4,
+    int64_t* ret5,
+    AtenTensorHandle* ret6, // returns new reference
+    AtenTensorHandle* ret7, // returns new reference
+    AtenTensorHandle* ret8 // returns new reference
+) {
+  return aoti_torch__scaled_dot_product_flash_attention_v3(
+      query,
+      key,
+      value,
+      dropout_p,
+      is_causal,
+      return_debug_mask,
+      &scale,
+      ret0,
+      ret1,
+      ret2,
+      ret3,
+      ret4,
+      ret5,
+      ret6,
+      ret7,
+      ret8);
 }
 
 AOTITorchError aoti_torch__scaled_dot_product_flash_attention(
