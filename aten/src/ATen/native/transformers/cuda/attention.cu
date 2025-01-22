@@ -896,6 +896,7 @@ _flash_attention_forward(
     const Tensor& query,
     const Tensor& key,
     const Tensor& value,
+    const std::optional<Tensor>& attn_bias,
     const std::optional<Tensor>& cumulative_sequence_length_q,
     const std::optional<Tensor>& cumulative_sequence_length_k,
     int64_t max_seqlen_batch_q,

@@ -63,6 +63,7 @@ std::tuple<Tensor, Tensor, Tensor> _flash_attention_backward(
     const Tensor& query,
     const Tensor& key,
     const Tensor& value,
+    const std::optional<Tensor>& attn_bias,
     const Tensor& out,
     const Tensor& logsumexp,
     const Tensor& cumulative_sequence_length_q,
