@@ -791,6 +791,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> _scaled_dot_product_flash_attenti
     q_t,
     k_t,
     v_t,
+    c10::nullopt,
     out_t,
     logsumexp,
     cumulative_sequence_length_q,

@@ -719,6 +719,7 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt, Tensor, Ten
               v_t,
               std::nullopt,
               std::nullopt,
+              std::nullopt,
               max_seqlen_batch_q,
               max_seqlen_batch_k,
               dropout_p,
