@@ -129,12 +129,13 @@ install_centos() {
   fi
   # precompiled miopen kernels; search for all unversioned packages
   # if search fails it will abort this script; use true to avoid case where search fails
-  MIOPENHIPGFX=$(yum -q search miopen-hip-gfx | grep miopen-hip-gfx | awk '{print $1}'| grep -F kdb. || true)
-  if [[ "x${MIOPENHIPGFX}" = x ]]; then
-    echo "miopen-hip-gfx package not available" && exit 1
-  else
-    yum install -y ${MIOPENHIPGFX}
-  fi
+  # MI355 is not having MIOpen-hip-gfx packages
+  #MIOPENHIPGFX=$(yum -q search miopen-hip-gfx | grep miopen-hip-gfx | awk '{print $1}'| grep -F kdb. || true)
+  #if [[ "x${MIOPENHIPGFX}" = x ]]; then
+  #  echo "miopen-hip-gfx package not available" && exit 1
+  #else
+  #  yum install -y ${MIOPENHIPGFX}
+  #fi
 
   # ROCm 6.0 had a regression where journal_mode was enabled on the kdb files resulting in permission errors at runtime
   for kdb in /opt/rocm/share/miopen/db/*.kdb
