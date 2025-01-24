@@ -603,23 +603,37 @@ AOTITorchError aoti_torch__scaled_dot_product_flash_attention_v2(
     AtenTensorHandle* ret7, // returns new reference
     AtenTensorHandle* ret8 // returns new reference
 ) {
-  return aoti_torch__scaled_dot_product_flash_attention_v3(
-      query,
-      key,
-      value,
-      dropout_p,
-      is_causal,
-      return_debug_mask,
-      &scale,
-      ret0,
-      ret1,
-      ret2,
-      ret3,
-      ret4,
-      ret5,
-      ret6,
-      ret7,
-      ret8);
+AOTI_TORCH_CONVERT_EXCEPTION_TO_ERROR_CODE({
+    at::Tensor* query_tensor = tensor_handle_to_tensor_pointer(query);
+    at::Tensor* key_tensor = tensor_handle_to_tensor_pointer(key);
+    at::Tensor* value_tensor = tensor_handle_to_tensor_pointer(value);
+    auto optional_scale = pointer_to_optional(scale);
+    auto [r0, r1, r2, r3, r4, r5, r6, r7, r8] =
+        at::_scaled_dot_product_flash_attention(
+            *query_tensor,
+            *key_tensor,
+            *value_tensor,
+            std::nullopt,
+            dropout_p,
+            is_causal,
+            return_debug_mask,
+            optional_scale);
+
+    *ret0 = new_tensor_handle(std::move(r0));
+    *ret1 = new_tensor_handle(std::move(r1));
+    // ret2 and ret3 may be null
+    if (ret2) {
+      *ret2 = new_tensor_handle(std::move(r2));
+    }
+    if (ret3) {
+      *ret3 = new_tensor_handle(std::move(r3));
+    }
+    *ret4 = r4.expect_int();
+    *ret5 = r5.expect_int();
+    *ret6 = new_tensor_handle(std::move(r6));
+    *ret7 = new_tensor_handle(std::move(r7));
+    *ret8 = new_tensor_handle(std::move(r8));
+  });
 }
 
 AOTITorchError aoti_torch__scaled_dot_product_flash_attention(
