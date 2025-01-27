@@ -485,6 +485,7 @@ _scaled_dot_product_flash_attention_batch_rule(
   const Tensor& query, std::optional<int64_t> query_bdim,
   const Tensor& key, std::optional<int64_t> key_bdim,
   const Tensor& value, std::optional<int64_t> value_bdim,
+  const std::optional<Tensor>& attn_bias_value, std::optional<int64_t> att_bias_bdim,
   double dropout_p,
   bool is_causal,
   bool return_debug_mask,
@@ -508,7 +509,7 @@ _scaled_dot_product_flash_attention_batch_rule(
   value_ = value_.flatten(0, 1);
 
   auto [res0, res1, res2, res3, res4, res5, res6, res7, res8] = at::_scaled_dot_product_flash_attention(
-      query_, key_, value_, dropout_p, is_causal, return_debug_mask, scale);
+      query_, key_, value_, std::nullopt, dropout_p, is_causal, return_debug_mask, scale);
 
   res0 = reshape_dim_outof(0, batch_size, res0);
   res1 = reshape_dim_outof(0, batch_size, res1);

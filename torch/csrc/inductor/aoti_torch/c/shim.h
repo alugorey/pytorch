@@ -385,6 +385,29 @@ aoti_torch__scaled_dot_product_flash_attention_v2(
 );
 
 AOTI_TORCH_EXPORT AOTITorchError
+aoti_torch__scaled_dot_product_flash_attention_v3(
+    AtenTensorHandle query,
+    AtenTensorHandle key,
+    AtenTensorHandle value,
+    AtenTensorHandle attn_bias,
+    double dropout_p,
+    bool is_causal,
+    bool return_debug_mask,
+    double scale,
+    AtenTensorHandle* ret0, // returns new reference
+    AtenTensorHandle* ret1, // returns new reference
+    AtenTensorHandle* ret2, // returns new reference
+    AtenTensorHandle* ret3, // returns new reference
+    int64_t* ret4,
+    int64_t* ret5,
+    AtenTensorHandle* ret6, // returns new reference
+    AtenTensorHandle* ret7, // returns new reference
+    AtenTensorHandle* ret8 // returns new reference
+);
+
+
+
+AOTI_TORCH_EXPORT AOTITorchError
 aoti_torch__scaled_dot_product_efficient_attention(
     AtenTensorHandle query,
     AtenTensorHandle key,
@@ -601,7 +624,7 @@ AOTI_TORCH_EXPORT void aoti_torch_save_tensor_handle(
     const char* launch_prefix,
     const char* kernel_name);
 
-#ifdef USE_CUDA
+#ifdef USE_ROCM
 
 struct CUDAGuardOpaque;
 using CUDAGuardHandle = CUDAGuardOpaque*;
@@ -632,7 +655,7 @@ aoti_torch_delete_cuda_stream_guard(CUDAStreamGuardHandle guard);
 AOTI_TORCH_EXPORT AOTITorchError
 aoti_torch_get_current_cuda_stream(int32_t device_index, void** ret_stream);
 
-#endif // USE_CUDA
+#endif // USE_ROCM
 
 // See `ProxyExecutor Design Note` in ir.py for more details
 AOTI_TORCH_EXPORT AOTITorchError aoti_torch_proxy_executor_call_function(
