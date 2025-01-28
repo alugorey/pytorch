@@ -169,7 +169,7 @@ file(GLOB flash_attention_cuda_kernels_cu "native/transformers/cuda/flash_attn/k
 file(GLOB flash_attention_cuda_cpp "native/transformers/cuda/flash_attn/*.cpp")
 
 # flash_attention hip sources
-file(GLOB flash_attention_hip_hip "native/transformers/hip/flash_attn/*.hip")
+file(GLOB flash_attention_hip_hip "native/transformers/hip/ck/*.hip")
 # if USE_FLASH_ATTENTION is set, ensure CK instances get generated
 if(USE_FLASH_ATTENTION)
   if(DEFINED ENV{USE_CK_FLASH_ATTENTION})
@@ -183,12 +183,11 @@ if(USE_FLASH_ATTENTION)
           endif()
         endif()
         message(STATUS "USE_CK_FLASH_ATTENTION is set; building PyTorch with CK Flash Attention enabled")
-        file(GLOB flash_attention_hip_ck_hip "native/transformers/hip/flash_attn/ck/*.hip")
+        file(GLOB flash_attention_hip_ck_hip "native/transformers/hip/ck/*.hip")
         list(APPEND native_transformers_hip_hip ${flash_attention_hip_ck_hip})
       endif()
   endif()
-  file(GLOB flash_attention_hip_aot_hip "native/transformers/hip/flash_attn/aot/*.hip")
-  file(GLOB flash_attention_src_hip_hip "native/transformers/hip/flash_attn/src/*.hip")
+  file(GLOB flash_attention_hip_aot_hip "native/transformers/hip/aot/*.hip")
 endif()
 
 #Mem_eff attention sources
@@ -338,7 +337,7 @@ if(USE_ROCM)
   list(APPEND ATen_HIP_INCLUDE $<TARGET_PROPERTY:fmt::fmt-header-only,INTERFACE_INCLUDE_DIRECTORIES>)
   list(APPEND ATen_HIP_DEPENDENCY_LIBS fmt::fmt-header-only)
 if(USE_FLASH_ATTENTION)
-  list(APPEND ATen_HIP_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/native/transformers/hip/flash_attn/ck)
+  list(APPEND ATen_HIP_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/native/transformers/hip/ck)
 endif()
   list(APPEND ATen_HIP_SRCS
     ${ATen_HIP_SRCS}
