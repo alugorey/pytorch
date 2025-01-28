@@ -30,7 +30,7 @@
 #include <ATen/hip/HIPGeneratorImpl.h>
 #endif
 
-#include <ATen/native/transformers/hip/flash_attn/flash_api.h>
+#include <ATen/native/transformers/hip/attention_api.h>
 
 #define CHECK_DEVICE(x) TORCH_CHECK(x.is_cuda(), #x " must be on CUDA")
 #define CHECK_SHAPE(x, ...)                        \

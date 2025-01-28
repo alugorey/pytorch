@@ -2,7 +2,7 @@
  * Copyright (c) 2024, Tri Dao.
  ******************************************************************************/
 
-#include <ATen/native/transformers/hip/flash_attn/flash_common_hip.hpp>
+#include <ATen/native/transformers/hip/attn_common_hip.hpp>
 #include <fmha_fwd.hpp>
 #include <mask.hpp>
 
