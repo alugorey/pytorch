@@ -625,4 +625,32 @@ inline std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> mha_varlen_bwd
 #endif
 }
 
+std::tuple<
+    at::Tensor, // output
+    at::Tensor, // q
+    at::Tensor, // k
+    at::Tensor, // v
+    at::Tensor, // lse
+    at::Tensor, // seed
+    at::Tensor, // offset
+    at::Tensor> // dropout randval
+mem_eff_forward_ck(
+    const at::Tensor& q,
+    const at::Tensor& k,
+    const at::Tensor& v,
+    const float p_dropout,
+    const float softmax_scale,
+    const bool return_dropout_randval,
+    const std::optional<bool> is_causal,
+    const std::optional<double> scale,
+    const std::optional<at::Tensor>& attn_bias,
+    const std::optional<at::Tensor>& out_,
+    const std::optional<at::Tensor>& seqstart_q,
+    const std::optional<at::Tensor>& seqstart_k,
+    std::optional<at::Generator> gen_
+);
+
+
+
+
 } // namespace pytorch_flash

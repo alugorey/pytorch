@@ -1131,6 +1131,7 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt> _efficient_
   if(at::globalContext().getROCmFAPreferredBackend() ==
     at::ROCmFABackend::Ck) {
     //forward_attention_ck(...);
+	std::cout << "In my branch" << std::endl;
   } else { // use aotriton
     auto ret = aotriton::v2::flash::check_gpu(stream);
     if (hipSuccess != ret) {
