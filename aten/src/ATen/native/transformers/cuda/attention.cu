@@ -848,6 +848,12 @@ std::tuple<Tensor, Tensor, Tensor, Tensor> _scaled_dot_product_efficient_attenti
     std::optional<double> scale) {
   // Used for tracking usage statistics
   C10_LOG_API_USAGE_ONCE("torch.sdpa.mem_efficient_attention");
+  std::cout << std::endl;
+  std::cout << "what we want vvvvvvvvvvvvvv" << std::endl;
+  std::cout << "MAX_SEQLEN_Q: " << b4_max_seqlen_batch_q << std::endl;
+  std::cout << "MAX_SEQLEN_K: " << b4_max_seqlen_batch_k << std::endl;
+  std::cout << "MAX_SEQLEN_V: " << b4_max_seqlen_batch_v << std::endl;
+  std::cout << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl;
   // Query -> Query(Batch x Q_seq_len x Num_heads x Dim_per_head)
   // Key   -> Key(Batch x KV_seq_len x Num_heads x Dim_per_head)
   // Value -> Value(Batch x KV_seq_len x  Num_heads x Dim_per_head)
@@ -1026,6 +1032,16 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt> _efficient_
 // TODO In theory it is possible to compile with _CUDA_ARCH < 5.0 and run on a
 // machine that is >= 5.0. In practice, this is not a problem but since
 // this would avoid runtime architecture checks, we should look into it
+  const int64_t new_max_seqlen_batch_q = query.size(1);
+  const int64_t new_max_seqlen_batch_k = key.size(1);
+  const int64_t new_max_seqlen_batch_v = value.size(1);
+  std::cout << std::endl;
+  std::cout << "MEMORY_EFFICIENT VVVVVVVVVV" << std::endl;
+  std::cout << "MAX_SEQLEN_Q: " << new_max_seqlen_batch_q << std::endl;
+  std::cout << "MAX_SEQLEN_K: " << new_max_seqlen_batch_k << std::endl;
+  std::cout << "MAX_SEQLEN_V: " << new_max_seqlen_batch_v << std::endl;
+  std::cout << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl;
+  TORCH_CHECK(query.dim() == 4);
 
   TORCH_CHECK(query.dim() == 4);
   TORCH_CHECK(key.dim() == 4);
