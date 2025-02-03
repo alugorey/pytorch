@@ -848,12 +848,12 @@ std::tuple<Tensor, Tensor, Tensor, Tensor> _scaled_dot_product_efficient_attenti
     std::optional<double> scale) {
   // Used for tracking usage statistics
   C10_LOG_API_USAGE_ONCE("torch.sdpa.mem_efficient_attention");
-  std::cout << std::endl;
-  std::cout << "what we want vvvvvvvvvvvvvv" << std::endl;
-  std::cout << "MAX_SEQLEN_Q: " << b4_max_seqlen_batch_q << std::endl;
-  std::cout << "MAX_SEQLEN_K: " << b4_max_seqlen_batch_k << std::endl;
-  std::cout << "MAX_SEQLEN_V: " << b4_max_seqlen_batch_v << std::endl;
-  std::cout << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl;
+  //std::cout << std::endl;
+  //std::cout << "what we want vvvvvvvvvvvvvv" << std::endl;
+  //std::cout << "MAX_SEQLEN_Q: " << b4_max_seqlen_batch_q << std::endl;
+  //std::cout << "MAX_SEQLEN_K: " << b4_max_seqlen_batch_k << std::endl;
+  //std::cout << "MAX_SEQLEN_V: " << b4_max_seqlen_batch_v << std::endl;
+  //std::cout << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl;
   // Query -> Query(Batch x Q_seq_len x Num_heads x Dim_per_head)
   // Key   -> Key(Batch x KV_seq_len x Num_heads x Dim_per_head)
   // Value -> Value(Batch x KV_seq_len x  Num_heads x Dim_per_head)
