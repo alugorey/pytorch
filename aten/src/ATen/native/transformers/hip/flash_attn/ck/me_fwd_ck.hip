@@ -18,7 +18,6 @@ mem_eff_forward_ck(
   const at::Tensor& k,
   const at::Tensor& v,
   const float p_dropout,
-  const float softmax_scale,
   const bool return_dropout_randval,
   const std::optional<bool> is_causal,
   const std::optional<float> scale,
@@ -28,9 +27,10 @@ mem_eff_forward_ck(
   const std::optional<at::Tensor>& cu_seqlens_k,
   const std::optional<at::Tensor>& seqstart_q,
   const std::optional<at::Tensor>& seqstart_k,
+  std::optional<at::Generator> gen_,
   std::optional<at::Tensor>& seqused_k_,
-  std::optional<at::Tensor> & alibi_slopes_,
-  std::optional<at::Generator> gen_) {
+  std::optional<at::Tensor> & alibi_slopes_) {
+
 
   // These normally get passed in as std::nullopt so just set to -1
   // Note: See attention.cu ~line 928 and line 729
