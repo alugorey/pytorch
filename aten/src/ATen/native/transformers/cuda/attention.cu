@@ -1148,6 +1148,7 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt> _efficient_
     at::ROCmFABackend::Ck) {
     //forward_attention_ck(...);
     std::cout << "In my branch" << std::endl;
+	std::optional<Tensor> out = std::nullopt;
     auto
         [out_,
          q,
@@ -1163,15 +1164,15 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt> _efficient_
                                     value,
                                     dropout_p,
                                     false, // return dropout_randval
-                                    scale,
                                     custom_mask_type == 0 ? false : true, // is_causal
+                                    scale,
                                     bias,
-                                    res,
+                                    out,
                                     std::nullopt, // cu_seqlens_q: sending in nothing since CKFA works this way
                                     std::nullopt, // cu_seqlens_k
                                     seqstart_q,
                                     seqstart_k,
-                                    gen_);
+                                    std::nullopt);// not passing in optional gen_
                                     // not passing in optional seqused_k_
                                     // not passing in optional alibi_slopes_
 
