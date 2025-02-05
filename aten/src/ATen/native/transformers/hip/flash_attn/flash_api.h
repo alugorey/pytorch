@@ -151,7 +151,8 @@ mha_fwd_ck(
     int window_size_left,
     int window_size_right,
     const bool return_softmax,
-    std::optional<at::Generator> gen_);
+    std::optional<at::Generator> gen_,
+    std::optional<at::Tensor>& attn_bias_);
 
 std::tuple<
     at::Tensor,
@@ -186,7 +187,8 @@ mha_varlen_fwd_ck(
     int window_size_left,
     int window_size_right,
     const bool return_softmax,
-    std::optional<at::Generator> gen_);
+    std::optional<at::Generator> gen_,
+    std::optional<at::Tensor>& attn_bias_);
 
 std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> mha_bwd_ck(
     const at::Tensor& dout, // batch_size x seqlen_q x num_heads, x head_size_og
@@ -642,7 +644,7 @@ mem_eff_forward_ck(
     const bool return_dropout_randval,
     const std::optional<bool> is_causal,
     const std::optional<double> scale,
-    const std::optional<at::Tensor>& attn_bias,
+    const std::optional<at::Tensor>& attn_bias_,
     std::optional<at::Tensor>& out_,
     const std::optional<at::Tensor>& cu_seqlens_q,
     const std::optional<at::Tensor>& cu_seqlens_k,
