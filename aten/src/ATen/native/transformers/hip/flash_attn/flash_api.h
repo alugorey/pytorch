@@ -152,7 +152,7 @@ mha_fwd_ck(
     int window_size_right,
     const bool return_softmax,
     std::optional<at::Generator> gen_,
-    std::optional<at::Tensor>& attn_bias_);
+    const std::optional<at::Tensor>& attn_bias_);
 
 std::tuple<
     at::Tensor,
@@ -188,7 +188,7 @@ mha_varlen_fwd_ck(
     int window_size_right,
     const bool return_softmax,
     std::optional<at::Generator> gen_,
-    std::optional<at::Tensor>& attn_bias_);
+    const std::optional<at::Tensor>& attn_bias_);
 
 std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> mha_bwd_ck(
     const at::Tensor& dout, // batch_size x seqlen_q x num_heads, x head_size_og
@@ -274,6 +274,7 @@ mha_fwd(
 #if defined(USE_CK_FLASH_ATTENTION)
   if (at::globalContext().getROCmFAPreferredBackend() ==
       at::ROCmFABackend::Ck) {
+    std::optional<at::Tensor> dummy_attn_bias = std::nullopt;
     return mha_fwd_ck(
         q,
         k,
@@ -286,7 +287,8 @@ mha_fwd(
         window_size_left,
         window_size_right,
         return_softmax,
-        gen_);
+        gen_,
+        dummy_attn_bias); // Not used in flash attention
   } else {
     return mha_fwd_aot(
         q,
@@ -358,6 +360,7 @@ mha_varlen_fwd(
 #if defined(USE_CK_FLASH_ATTENTION)
   if (at::globalContext().getROCmFAPreferredBackend() ==
       at::ROCmFABackend::Ck) {
+    std::optional<at::Tensor> dummy_attn_bias = std::nullopt;
     return mha_varlen_fwd_ck(
         q,
         k,
@@ -376,7 +379,8 @@ mha_varlen_fwd(
         window_size_left,
         window_size_right,
         return_softmax,
-        gen_);
+        gen_,
+        dummy_attn_bias); // Not used in flash attention
   } else {
     return mha_varlen_fwd_aot(
         q,

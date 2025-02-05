@@ -164,7 +164,7 @@ mha_varlen_fwd_ck(const at::Tensor &q,                   // total_q x num_heads 
                   int window_size_right,
                   const bool return_dropout_randval,
                   std::optional<at::Generator> gen_,
-                  std::optional<Tensor>& attn_bias_)
+                  const std::optional<at::Tensor>& attn_bias_)
 {
     auto q_dtype = q.dtype();
     TORCH_CHECK(q_dtype == at::kHalf || q_dtype == at::kBFloat16,
