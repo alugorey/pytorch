@@ -1144,11 +1144,17 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt> _efficient_
 
 #ifdef USE_ROCM
   // ROCM Implementation
+  if( bias.has_value() ) {
+    std::cout << std::endl;
+    std::cout << "Attn_bias sizes: " << bias.value().sizes() << std::endl;
+  }
   if(at::globalContext().getROCmFAPreferredBackend() ==
     at::ROCmFABackend::Ck) {
     //forward_attention_ck(...);
     std::cout << "In my branch" << std::endl;
     std::optional<Tensor> out = std::nullopt;
+    std::optional<Tensor> seqused_k = std::nullopt;
+    std::optional<Tensor> alibi_slopes = std::nullopt;
     auto
         [out_,
          q,
@@ -1172,9 +1178,9 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt> _efficient_
                                     std::nullopt, // cu_seqlens_k
                                     seqstart_q,
                                     seqstart_k,
-                                    std::nullopt);// not passing in optional gen_
-                                    // not passing in optional seqused_k_
-                                    // not passing in optional alibi_slopes_
+                                    std::nullopt,// not passing in optional gen_
+                                    seqused_k,// not passing in optional seqused_k_
+                                    alibi_slopes);// not passing in optional alibi_slopes_
 
 
   } else { // use aotriton

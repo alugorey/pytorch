@@ -2,8 +2,6 @@
 
 
 namespace pytorch_flash {
-
-
 std::tuple<
     at::Tensor, // output
     at::Tensor, // q
@@ -17,10 +15,10 @@ mem_eff_forward_ck(
   const at::Tensor& q,
   const at::Tensor& k,
   const at::Tensor& v,
-  const float p_dropout,
-  const bool return_dropout_randval,
-  const std::optional<bool> is_causal,
-  const std::optional<float> scale,
+  float p_dropout,
+  bool return_dropout_randval,
+  std::optional<bool> is_causal,
+  std::optional<float> scale,
   const std::optional<at::Tensor>& attn_bias_,
   std::optional<at::Tensor>& out_,
   const std::optional<at::Tensor>& cu_seqlens_q,
