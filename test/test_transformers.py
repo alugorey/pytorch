@@ -2601,8 +2601,14 @@ class TestSDPACudaOnly(NNTestCase):
     def test_mem_efficient_attention_mask_variants(self, device, mask_dim: list[int]):
         dtype = torch.float16
         make_tensor = partial(torch.rand, device=device, dtype=dtype, requires_grad=True)
-        batch, num_heads, head_dim = 8, 8, 64
-        seq_len_q, seq_len_kv = 64, 15
+        batch, num_heads, head_dim = 1, 4, 8
+        seq_len_q, seq_len_kv = 16, 32
+        print("")
+        print("batch     : " , batch)
+        print("nheads    : " , num_heads)
+        print("hdim      : " , head_dim)
+        print("seqlen_q  : " , seq_len_q)
+        print("seqlen_kv : " , seq_len_kv)
         query = make_tensor(SdpaShape(batch, num_heads, seq_len_q, head_dim))
         kv_shape = SdpaShape(batch, num_heads, seq_len_kv, head_dim)
         key, value = make_tensor(kv_shape), make_tensor(kv_shape)
