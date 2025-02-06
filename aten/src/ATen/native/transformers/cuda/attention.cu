@@ -861,10 +861,15 @@ std::tuple<Tensor, Tensor, Tensor, Tensor> _scaled_dot_product_efficient_attenti
   // Query -> Query(Batch x Q_seq_len x Num_heads x Dim_per_head)
   // Key   -> Key(Batch x KV_seq_len x Num_heads x Dim_per_head)
   // Value -> Value(Batch x KV_seq_len x  Num_heads x Dim_per_head)
+  std::cout << "sdpa_ef" << std::endl;
+  std::cout << "q.sizes  : " << query.sizes() << std::endl;
   Tensor q_t = query.transpose(1, 2);
   Tensor k_t = key.transpose(1, 2);
   Tensor v_t = value.transpose(1, 2);
 
+  std::cout << "q_t.sizes: " << q_t.sizes() << std::endl;
+
+  std::cout << "qagain.sizes: " << query.sizes() << std::endl;
   sdp::CustomMaskType custom_mask_type = is_causal
       ? sdp::CustomMaskType::CausalFromTopLeft
       : sdp::CustomMaskType::NoCustomMask;
@@ -1150,8 +1155,13 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt> _efficient_
   // ROCM Implementation
   if( bias.has_value() ) {
     std::cout << std::endl;
-    std::cout << "Attn_bias sizes: " << bias.value().sizes() << std::endl;
+    std::cout << "Attn_bias sizes : " << bias.value().sizes() << std::endl;
+    std::cout << "attn_bias device: " << bias.value().device() << std::endl;
   }
+
+  // Need this in both aot and CK case
+  const auto softmax_scale = sdp::calculate_scale(query, scale).expect_float();
+
   if(at::globalContext().getROCmFAPreferredBackend() ==
     at::ROCmFABackend::Ck) {
     //forward_attention_ck(...);
@@ -1159,6 +1169,8 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt> _efficient_
     std::optional<Tensor> out = std::nullopt;
     std::optional<Tensor> seqused_k = std::nullopt;
     std::optional<Tensor> alibi_slopes = std::nullopt;
+
+
     auto
         [out_,
          q,
@@ -1175,7 +1187,7 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt> _efficient_
                                     dropout_p,
                                     false, // return dropout_randval
                                     custom_mask_type == 0 ? false : true, // is_causal
-                                    scale,
+                                    softmax_scale,
                                     bias,
                                     out,
                                     std::nullopt, // cu_seqlens_q: sending in nothing since CKFA works this way
@@ -1217,7 +1229,6 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt> _efficient_
       TORCH_CHECK(false, "[_efficient_attention_forward] Unsupported mask type on ROCM, for now");
     }
 
-    const auto softmax_scale = sdp::calculate_scale(query, scale).expect_float();
 
     using aotriton::v2::flash::attn_fwd;
     using aotriton::v2::flash::attn_fwd_compact_varlen;
