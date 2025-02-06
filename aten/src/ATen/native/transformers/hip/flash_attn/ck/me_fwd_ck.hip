@@ -27,7 +27,7 @@ mem_eff_forward_ck(
   const std::optional<at::Tensor>& seqstart_k,
   std::optional<at::Generator> gen_,
   std::optional<at::Tensor>& seqused_k_,
-  std::optional<at::Tensor> & alibi_slopes_) {
+  std::optional<at::Tensor>& alibi_slopes_) {
 
 
   // These normally get passed in as std::nullopt so just set to -1
