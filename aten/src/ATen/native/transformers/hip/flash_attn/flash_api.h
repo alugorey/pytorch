@@ -630,7 +630,7 @@ inline std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> mha_varlen_bwd
       philox_offset);
 #endif
 }
-
+/*
 std::tuple<
     at::Tensor, // output
     at::Tensor, // q
@@ -658,7 +658,7 @@ mem_eff_forward_ck(
     std::optional<at::Tensor>& seqused_k_,
     std::optional<at::Tensor>& alibi_slopes_
 );
-
+*/
 
 
 
