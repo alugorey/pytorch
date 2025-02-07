@@ -1162,7 +1162,9 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt> _efficient_
 
   // Need this in both aot and CK case
   const auto softmax_scale = sdp::calculate_scale(query, scale).expect_float();
+  res = at::empty({B, M, num_heads, Kv}, query.options());
 
+  std::cout << "CK Enabled?: " << at::globalContext().getROCmFAPreferredBackend() << std::endl;
   if(at::globalContext().getROCmFAPreferredBackend() ==
     at::ROCmFABackend::Ck) {
     //forward_attention_ck(...);
@@ -1170,7 +1172,7 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt> _efficient_
     std::optional<Tensor> out(res);
     std::optional<Tensor> seqused_k = std::nullopt;
     std::optional<Tensor> alibi_slopes = std::nullopt;
-
+    std::cout << "out(res) dtype " << out.value().dtype();
 
     auto
         [out_,
@@ -1212,7 +1214,6 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt> _efficient_
     // performance, but for now it requires compact logsumexp tensor, even if
     // compute_logsumexp is false
     constexpr int kAlignLSE = 1;
-    res = at::empty({B, M, num_heads, Kv}, query.options());
     logsumexp = at::empty(
       { B, num_heads, max_seqlen_q },
       query.options().dtype(at::ScalarType::Float));
@@ -1464,6 +1465,7 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt> _efficient_
   AT_CUDA_CHECK(cudaGetLastError());
 
 #endif // USE_ROCM
+  std::cout << "res dtype: " << res.dtype() << std::endl;
   return std::make_tuple(
       std::move(res),
       std::move(logsumexp),

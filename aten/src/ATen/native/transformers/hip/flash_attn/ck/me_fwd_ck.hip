@@ -1,6 +1,8 @@
 #include <ATen/native/transformers/hip/flash_attn/flash_common_hip.hpp>
 #include <ATen/native/transformers/hip/flash_attn/ck/me_ck_api.h>
 
+#include <iostream>
+
 namespace pytorch_flash {
 std::tuple<
     at::Tensor, // output
@@ -29,7 +31,8 @@ mem_eff_forward_ck(
   std::optional<at::Tensor>& seqused_k_,
   std::optional<at::Tensor>& alibi_slopes_) {
 
-
+  std::cout << std::endl;
+  std::cout << "MADE IT INTO MY CODE " << std::endl;
   // These normally get passed in as std::nullopt so just set to -1
   // Note: See attention.cu ~line 928 and line 729
   const int non_null_window_left  = -1;
