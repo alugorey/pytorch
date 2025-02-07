@@ -1157,6 +1157,7 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt> _efficient_
     std::cout << std::endl;
     std::cout << "Attn_bias sizes : " << bias.value().sizes() << std::endl;
     std::cout << "attn_bias device: " << bias.value().device() << std::endl;
+	std::cout << "last dim stride: " << bias.value().stride(-1) << std::endl;
   }
 
   // Need this in both aot and CK case
@@ -1166,7 +1167,7 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt> _efficient_
     at::ROCmFABackend::Ck) {
     //forward_attention_ck(...);
     std::cout << "In my branch" << std::endl;
-    std::optional<Tensor> out = std::nullopt;
+    std::optional<Tensor> out(res);
     std::optional<Tensor> seqused_k = std::nullopt;
     std::optional<Tensor> alibi_slopes = std::nullopt;
 
@@ -1176,7 +1177,7 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt> _efficient_
          q,
          k,
          v,
-         softmax_lse,
+         logsumexp,
          seed_t,
          offset_t,
          p] =
