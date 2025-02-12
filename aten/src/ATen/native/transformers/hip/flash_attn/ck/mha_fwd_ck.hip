@@ -320,6 +320,7 @@ mha_fwd_ck(const at::Tensor &q,                      // batch_size x seqlen_q x 
     std::optional<at::Tensor> attn_bias;
     if( attn_bias_.has_value())
     {
+      std::cout << "CONFIRMED YOUR CODE IS GETTING HIT AND ATTENTION BIAS IS SET" << std::endl;
       attn_bias = attn_bias_;
     }
 
