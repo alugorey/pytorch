@@ -77,9 +77,6 @@
 #include <ATen/native/transformers/cuda/mem_eff_attention/kernel_forward.h>
 #include <ATen/native/transformers/cuda/mem_eff_attention/kernels/cutlassF.h>
 #include <ATen/native/transformers/cuda/mem_eff_attention/pytorch_utils.h>
-
-
-
 #else
 // MemoryEfficient Attention Specific Imports for ROCM
 #include <ATen/native/transformers/hip/aotriton_adapter.h>
