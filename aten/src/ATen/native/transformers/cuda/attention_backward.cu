@@ -47,6 +47,7 @@
 #include <ATen/native/transformers/hip/aotriton_adapter.h>
 #include <aotriton/flash.h>
 #include <aotriton/runtime.h>
+#include <ATen/native/transformers/hip/flash_attn/ck/me_ck_api.h>
 #endif
 #endif
 
@@ -409,6 +410,42 @@ _efficient_attention_backward(
 
 #ifdef USE_ROCM
   // ROCM Implementation
+  if(at::globalContext().getROCmFAPreferredBackend() == at::ROCmFABackend::Ck)
+  {
+    std::cout "BACKWARD CK ATTENTION" << std::endl;
+    const auto softmax_scale = sdp::calculate_scale(query, scale).expect_float();
+    auto
+        [grad_q,
+         grad_k,
+         grad_v,
+         grad_bias] =
+             pytorch_flash::mem_eff_backward_ck(
+                     grad_out,
+                     query,
+                     key,
+                     value,
+                     out,
+                     logsumexp,
+                     grad_q,
+                     grad_k,
+                     grad_v,
+                     bias,
+                     cu_seqlens_q,
+                     cu_seqlens_k,
+                     max_seqlen_q,
+                     max_seqlen_k,
+                     float(p_dropout),
+                     softmax_scale,
+                     custom_mask_type == 0 ? false : true, // is_causal
+                     false, // deterministic
+                     false, // zero_tensors
+                     philox_seed,
+                     philox_offset);
+
+  }
+
+
+  // TODO_ANDY: Put this in the `else` part of the above condish
   TORCH_CHECK(!num_splits_key.has_value(),
               "ROCM does not support num_split_keys in _efficient_attention_forward");
   TORCH_CHECK(!window_size.has_value(),
@@ -492,7 +529,7 @@ _efficient_attention_backward(
                    is_causal,
                    stream);
   }
-#else
+#else // USE_CUDA
   at::Tensor workspace;
   cudaDeviceProp* p = at::cuda::getDeviceProperties(query.device().index());
   const int computeCapability = p->major * 10 + p->minor;

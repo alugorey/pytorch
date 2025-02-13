@@ -50,7 +50,7 @@ mem_eff_backward_ck(
     std::optional<at::Tensor> &dq_,
     std::optional<at::Tensor> &dk_,
     std::optional<at::Tensor> &dv_,
-    std::optional<at::Tensor> &alibi_slopes_,
+    std::optional<at::Tensor> &attn_bias,
     const at::Tensor &cu_seqlens_q,
     const at::Tensor &cu_seqlens_k,
     const int max_seqlen_q,

@@ -4,13 +4,37 @@
 #include <iostream>
 
 namespace pytorch_flash {
-// TODO get return tensors correct
 std::tuple<
-    at::Tensor>
+    at::Tensor, // dQ
+    at::Tensor, // dK
+    at::Tensor, // dV
+    at::Tensor> // dBias
 mem_eff_backward_ck(
-// TODO get input args correct
-) {
+    const at::Tensor &dout,
+    const at::Tensor &q,
+    const at::Tensor &k,
+    const at::Tensor &v,
+    const at::Tensor &out,
+    const at::Tensor &softmax_lse,
+    std::optional<at::Tensor> &dq_,
+    std::optional<at::Tensor> &dk_,
+    std::optional<at::Tensor> &dv_,
+    std::optional<at::Tensor> &attn_bias,
+    const at::Tensor &cu_seqlens_q,
+    const at::Tensor &cu_seqlens_k,
+    const int max_seqlen_q,
+    const int max_seqlen_k,
+    const float p_dropout,
+    const float scale,
+    const bool is_causal,
+    const bool deterministic,
+    const bool zero_tensors,
+    const at::Tensor philox_seed,
+    const at::Tensor philox_offset)
+{
 // TODO implement wrapper
+  std::cout << "HIT MY MEM_EFF ENTRY POINT" << std::endl;
+  return std::make_tuple(Tensor{}, Tensor{}, Tensor{}, Tensor{});
 }
 
 
