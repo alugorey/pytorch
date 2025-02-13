@@ -47,24 +47,20 @@ mem_eff_backward_ck(
     const at::Tensor &v,
     const at::Tensor &out,
     const at::Tensor &softmax_lse,
-    std::optional<at::Tensor> &dq_,
-    std::optional<at::Tensor> &dk_,
-    std::optional<at::Tensor> &dv_,
+    const at::Tensor &dq_,
+    const at::Tensor &dk_,
+    const at::Tensor &dv_,
     std::optional<at::Tensor> &attn_bias,
-    const at::Tensor &cu_seqlens_q,
-    const at::Tensor &cu_seqlens_k,
-    const int max_seqlen_q,
-    const int max_seqlen_k,
-    const float p_dropout,
-    const float scale,
-    const bool is_causal,
-    const bool deterministic,
-    const bool zero_tensors,
+    std::optional<at::Tensor> &cu_seqlens_q,
+    std::optional<at::Tensor> &cu_seqlens_k,
+    int max_seqlen_q,
+    int max_seqlen_k,
+    float p_dropout,
+    float scale,
+    bool is_causal,
+    bool deterministic,
+    bool zero_tensors,
     const at::Tensor philox_seed,
-    const at::Tensor philox_offset)
-{
-// TODO implement wrapper
-}
-
+    const at::Tensor philox_offset);
 
 } // namespace pytorch_flash

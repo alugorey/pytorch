@@ -412,13 +412,14 @@ _efficient_attention_backward(
   // ROCM Implementation
   if(at::globalContext().getROCmFAPreferredBackend() == at::ROCmFABackend::Ck)
   {
-    std::cout "BACKWARD CK ATTENTION" << std::endl;
+    std::cout << "BACKWARD CK ATTENTION" << std::endl;
     const auto softmax_scale = sdp::calculate_scale(query, scale).expect_float();
+    // TODO_ANDY: make sure we are returning the same tensor that is in grad_X
     auto
-        [grad_q,
-         grad_k,
-         grad_v,
-         grad_bias] =
+        [dQ,
+         dK,
+         dV,
+         dBias] =
              pytorch_flash::mem_eff_backward_ck(
                      grad_out,
                      query,
@@ -434,7 +435,7 @@ _efficient_attention_backward(
                      cu_seqlens_k,
                      max_seqlen_q,
                      max_seqlen_k,
-                     float(p_dropout),
+                     float(dropout_p),
                      softmax_scale,
                      custom_mask_type == 0 ? false : true, // is_causal
                      false, // deterministic
