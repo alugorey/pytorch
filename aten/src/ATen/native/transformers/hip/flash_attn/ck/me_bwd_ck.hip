@@ -34,6 +34,14 @@ mem_eff_backward_ck(
 {
 // TODO implement wrapper
   std::cout << "HIT MY MEM_EFF ENTRY POINT" << std::endl;
+  if(!cu_seqlens_q.has_value()) {
+    //  both of these return dq, dk, dv, softmax_d
+    // need to also return attn_bias
+    // call mha_bwd_ck
+  } else {
+    // call mha_varlen_bwd
+  }
+
   return std::make_tuple(at::Tensor{}, at::Tensor{}, at::Tensor{}, at::Tensor{});
 }
 

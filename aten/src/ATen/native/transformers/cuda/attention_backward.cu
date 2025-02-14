@@ -410,10 +410,10 @@ _efficient_attention_backward(
 
 #ifdef USE_ROCM
   // ROCM Implementation
-  if(at::globalContext().getROCmFAPreferredBackend() == at::ROCmFABackend::Ck)
-  {
+//  if(at::globalContext().getROCmFAPreferredBackend() == at::ROCmFABackend::Ck)
+//  {
     std::cout << "BACKWARD CK ATTENTION" << std::endl;
-    const auto softmax_scale = sdp::calculate_scale(query, scale).expect_float();
+    const auto my_softmax_scale = sdp::calculate_scale(query, scale).expect_float();
     // TODO_ANDY: make sure we are returning the same tensor that is in grad_X
     auto
         [dQ,
@@ -436,14 +436,14 @@ _efficient_attention_backward(
                      max_seqlen_q,
                      max_seqlen_k,
                      float(dropout_p),
-                     softmax_scale,
+                     my_softmax_scale,
                      custom_mask_type == 0 ? false : true, // is_causal
                      false, // deterministic
                      false, // zero_tensors
                      philox_seed,
                      philox_offset);
 
-  }
+//  }
 
 
   // TODO_ANDY: Put this in the `else` part of the above condish
