@@ -34,12 +34,73 @@ mem_eff_backward_ck(
 {
 // TODO implement wrapper
   std::cout << "HIT MY MEM_EFF ENTRY POINT" << std::endl;
+
+  const int non_null_window_left  = -1;
+  const int non_null_window_right = -1;
+
   if(!cu_seqlens_q.has_value()) {
     //  both of these return dq, dk, dv, softmax_d
     // need to also return attn_bias
     // call mha_bwd_ck
+    auto
+      [dQ,
+       dK,
+       dV,
+       softmax_d] =
+        mha_bwd_ck(
+          dout,
+          q,
+          k,
+          v,
+          out,
+          softmax_lse,
+          dq_,
+          dk_,
+          dv_,
+          attn_bias,
+          p_dropout,
+          scale,
+          is_causal,
+          non_null_window_left,
+          non_null_window_right,
+          deterministic,
+          philox_seed,
+          philox_offset);
+    //TODO_ANDY: make this also return attention bias
+    return std::make_tuple(dQ, dK, dV, softmax_d);
+
   } else {
-    // call mha_varlen_bwd
+    // call mha_varlen_bwd_ck
+    auto
+      [dQ,
+       dK,
+       dV,
+       softmax_d] =
+        mha_varlen_bwd_ck(
+          dout,
+          q,
+          k,
+          v,
+          out,
+          softmax_lse,
+          dq_,
+          dk_,
+          dv_,
+          cu_seqlens_q,
+          cu_seqlens_k,
+          attn_bias,
+          max_seqlen_q,
+          max_seqlen_k,
+          p_dropout,
+          scale,
+          is_causal,
+          non_null_window_left,
+          non_null_window_right,
+          deterministic,
+          philox_seed,
+          philox_offset);
+    return std::make_tuple(dQ, dK, dV, softmax_d);
+
   }
 
   return std::make_tuple(at::Tensor{}, at::Tensor{}, at::Tensor{}, at::Tensor{});
