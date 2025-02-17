@@ -38,6 +38,12 @@ mem_eff_backward_ck(
   const int non_null_window_left  = -1;
   const int non_null_window_right = -1;
 
+  // Wrap gradients in std::optional
+  std::optional<at::Tensor> opt_dQ, opt_dK, opt_dV;
+  opt_dQ = dq_;
+  opt_dK = dk_;
+  opt_dV = dv_;
+
   if(!cu_seqlens_q.has_value()) {
     //  both of these return dq, dk, dv, softmax_d
     // need to also return attn_bias
@@ -54,9 +60,9 @@ mem_eff_backward_ck(
           v,
           out,
           softmax_lse,
-          dq_,
-          dk_,
-          dv_,
+          opt_dQ,
+          opt_dK,
+          opt_dV,
           attn_bias,
           p_dropout,
           scale,
@@ -83,16 +89,17 @@ mem_eff_backward_ck(
           v,
           out,
           softmax_lse,
-          dq_,
-          dk_,
-          dv_,
-          cu_seqlens_q,
-          cu_seqlens_k,
+          opt_dQ,
+          opt_dK,
+          opt_dV,
+          cu_seqlens_q.value(),
+          cu_seqlens_k.value(),
           attn_bias,
           max_seqlen_q,
           max_seqlen_k,
           p_dropout,
           scale,
+          zero_tensors,
           is_causal,
           non_null_window_left,
           non_null_window_right,
