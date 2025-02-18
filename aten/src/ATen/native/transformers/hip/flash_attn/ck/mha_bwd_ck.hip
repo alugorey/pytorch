@@ -12,7 +12,7 @@ fmha_bwd_traits get_ck_fmha_bwd_traits(const mask_info &mask,
                                        std::string dtype,
                                        int head_size,
                                        bool has_dropout,
-                                       bool enable_alibi,
+                                       bool enable_bias,
                                        bool deterministic)
 {
     return fmha_bwd_traits{head_size,
@@ -20,8 +20,8 @@ fmha_bwd_traits get_ck_fmha_bwd_traits(const mask_info &mask,
                            dtype,
                            false, // is_group_mode
                            mask.type,
-                           enable_alibi ? bias_enum::alibi : bias_enum::no_bias,
-                           false,    // has_dbias
+                           enable_bias ? bias_enum::elementwise_bias : bias_enum::no_bias,
+                           false,    // has_dbias // TODO_ANDY revisit
                            has_dropout,
                            false, // s_randval
                            deterministic};
@@ -39,7 +39,7 @@ fmha_bwd_args get_ck_fmha_bwd_args(const mask_info &mask,
                                    const at::Tensor q,
                                    const at::Tensor k,
                                    const at::Tensor v,
-                                   std::optional<at::Tensor> &alibi_slopes_,
+                                   std::optional<at::Tensor> &attn_bias_,
                                    const at::Tensor out,
                                    const at::Tensor softmax_lse,
                                    const at::Tensor dout,
@@ -105,25 +105,27 @@ fmha_bwd_args get_ck_fmha_bwd_args(const mask_info &mask,
     ck_tile::index_t stride_dq_acc = dq_acc.stride(2);
     ck_tile::index_t nhead_stride_dq_acc = dq_acc.stride(3);
 
+    //TODO_ANDY: need to add some stuff above for bias
+
+
     float p_undrop = 1.0 - p_dropout;
 
-    void *alibi_slopes_ptr = nullptr;
-    ck_tile::index_t stride_alibi_slopes = 0;
+    void *attn_bias_ptr = nullptr;
+    ck_tile::index_t stride_attn_bias = 0;
 
-    if (alibi_slopes_.has_value()) {
-        auto alibi_slopes = alibi_slopes_.value();
-        CHECK_DEVICE(alibi_slopes);
-        TORCH_CHECK(alibi_slopes.stride(-1) == 1, "ALiBi slopes tensor must have contiguous last dimension");
-        TORCH_CHECK(alibi_slopes.sizes() == at::IntArrayRef({h}) || alibi_slopes.sizes() == at::IntArrayRef({b, h}));
-        alibi_slopes_ptr = alibi_slopes.data_ptr();
-        // alibi_slopes:(batch_size, nheads) or (nhead)
-        stride_alibi_slopes = alibi_slopes.dim() == 2 ? alibi_slopes.stride(0) : 0;
+    if (attn_bias_.has_value()) {
+        auto a_b = attn_bias_.value();
+        CHECK_DEVICE(a_b);
+        TORCH_CHECK(a_b.stride(-1) == 1, "Attention bias tensor must have contiguous last dimension");
+        attn_bias_ptr = a_b.data_ptr();
+        // attn_bias:(batch_size, nheads, seqlen_q, seqlen_k)
+        stride_attn_bias = a_b.stride(0);
     }
 
     return fmha_bwd_args{q.data_ptr(),
                          k.data_ptr(),
                          v.data_ptr(),
-                         alibi_slopes_ptr, // bias
+                         attn_bias_ptr, // bias
                          out.data_ptr(),
                          softmax_lse.data_ptr(),
                          dout.data_ptr(),
@@ -150,7 +152,7 @@ fmha_bwd_args get_ck_fmha_bwd_args(const mask_info &mask,
                          stride_q,
                          stride_k,
                          stride_v,
-                         stride_alibi_slopes,
+                         stride_attn_bias,
                          stride_o,
                          0, // stride_randval
                          stride_do,
@@ -158,7 +160,7 @@ fmha_bwd_args get_ck_fmha_bwd_args(const mask_info &mask,
                          stride_dq,
                          stride_dk,
                          stride_dv,
-                         0, // stride_dbias, FA without bias
+                         0, // stride_dbias, FA without bias TODO_ANDY: will probably need these
                          nhead_stride_q,
                          nhead_stride_k,
                          nhead_stride_v,
@@ -204,7 +206,9 @@ mha_bwd_ck(const at::Tensor &dout,                   // batch_size x seqlen_q x 
            std::optional<at::Tensor> &dq_,           // batch_size x seqlen_q x num_heads x head_size
            std::optional<at::Tensor> &dk_,           // batch_size x seqlen_k x num_heads_k x head_size
            std::optional<at::Tensor> &dv_,           // batch_size x seqlen_k x num_heads_k x head_size
-           std::optional<at::Tensor> &alibi_slopes_, // num_heads or batch_size x num_heads
+           std::optional<at::Tensor> &attn_bias_, // num_heads or batch_size x num_heads
+           bool bias_requires_grad,
+           std::optional<at::Tensor> &grad_bias,
            const float p_dropout,                    // probability to drop
            const float softmax_scale,
            const bool is_causal,
@@ -354,7 +358,7 @@ mha_bwd_ck(const at::Tensor &dout,                   // batch_size x seqlen_q x 
         ck_tile::stream_config stream_config{stream};
         dq.zero_(); // ck use atomic operation on dq
         auto traits =
-            get_ck_fmha_bwd_traits(mask, q_dtype_str, head_size_8x, is_dropout, alibi_slopes_.has_value(), deterministic);
+            get_ck_fmha_bwd_traits(mask, q_dtype_str, head_size_8x, is_dropout, attn_bias_.has_value(), deterministic);
 
         auto args =
             get_ck_fmha_bwd_args(
@@ -368,7 +372,7 @@ mha_bwd_ck(const at::Tensor &dout,                   // batch_size x seqlen_q x 
                 q,
                 k,
                 v,
-                alibi_slopes_,
+                attn_bias_,
                 out,
                 softmax_lse,
                 dout_padded,
@@ -400,6 +404,7 @@ mha_bwd_ck(const at::Tensor &dout,                   // batch_size x seqlen_q x 
         dv = dv.index({"...", at::indexing::Slice(at::indexing::None, head_size_og)});
     }
 
+    //TODO_ANDY need to return dGrad also
     return { dq, dk, dv, softmax_d };
 }
 } // namespace pytorch_flash

@@ -201,7 +201,9 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> mha_bwd_ck(
     std::optional<at::Tensor>&
         dv_, // batch_size x seqlen_k x num_heads_k x head_size
     std::optional<at::Tensor>&
-        alibi_slopes_, // num_heads or batch_size x num_heads
+        attn_bias_, // batch_size x num_heads x seqlen_q x seqlen_k
+    bool bias_requires_grad,
+    std::optional<at::Tensor>& grad_bias,
     const float p_dropout, // probability to drop
     const float softmax_scale,
     const bool is_causal,
@@ -229,7 +231,9 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> mha_varlen_bwd_ck(
         dv_, // total_k x num_heads_k x head_size, total_k := \sum_{i=0}^{b} s_i
     const at::Tensor& cu_seqlens_q, // b+1
     const at::Tensor& cu_seqlens_k, // b+1
-    std::optional<at::Tensor>& alibi_slopes_, // num_heads or b x num_heads
+    std::optional<at::Tensor>& attn_bias_, // num_heads or b x num_heads
+    bool bias_requires_grad,
+    std::optional<at::Tensor>& grad_bias,
     const int max_seqlen_q,
     const int max_seqlen_k, // max sequence length to choose the kernel
     const float p_dropout, // probability to drop
@@ -448,6 +452,7 @@ inline std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> mha_bwd(
 #if defined(USE_CK_FLASH_ATTENTION)
   if (at::globalContext().getROCmFAPreferredBackend() ==
       at::ROCmFABackend::Ck) {
+    std::optional<at::Tensor> non_null_dbias = std::nullopt;
     return mha_bwd_ck(
         dout,
         q,
@@ -459,6 +464,8 @@ inline std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> mha_bwd(
         dk_,
         dv_,
         alibi_slopes_,
+        false,              // bias_requires_grad
+        non_null_dbias,
         p_dropout,
         softmax_scale,
         is_causal,
@@ -548,6 +555,7 @@ inline std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> mha_varlen_bwd
 #if defined(USE_CK_FLASH_ATTENTION)
   if (at::globalContext().getROCmFAPreferredBackend() ==
       at::ROCmFABackend::Ck) {
+    std::optional<at::Tensor> non_null_dbias = std::nullopt;
     return mha_varlen_bwd_ck(
         dout,
         q,
@@ -561,6 +569,8 @@ inline std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> mha_varlen_bwd
         cu_seqlens_q,
         cu_seqlens_k,
         alibi_slopes_,
+        false,          // bias_requires_grad
+        non_null_dbias,
         max_seqlen_q,
         max_seqlen_k,
         p_dropout,
