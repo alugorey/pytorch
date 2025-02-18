@@ -414,6 +414,8 @@ _efficient_attention_backward(
 //  {
     std::cout << "BACKWARD CK ATTENTION" << std::endl;
     const auto my_softmax_scale = sdp::calculate_scale(query, scale).expect_float();
+    // Store grad_bias in optional
+    std::optional<at::Tensor> opt_grad_bias = grad_bias;
     // TODO_ANDY: make sure we are returning the same tensor that is in grad_X
     auto
         [dQ,
@@ -431,6 +433,8 @@ _efficient_attention_backward(
                      grad_k,
                      grad_v,
                      bias,
+                     bias_requires_grad,
+                     opt_grad_bias,
                      cu_seqlens_q,
                      cu_seqlens_k,
                      max_seqlen_q,
