@@ -28,8 +28,7 @@ mem_eff_forward_ck(
   const std::optional<at::Tensor>& seqstart_q,
   const std::optional<at::Tensor>& seqstart_k,
   std::optional<at::Generator> gen_,
-  std::optional<at::Tensor>& seqused_k_,
-  std::optional<at::Tensor>& alibi_slopes_) {
+  std::optional<at::Tensor>& seqused_k_) {
 
   std::cout << std::endl;
   std::cout << "MADE IT INTO MY CODE " << std::endl;
@@ -50,7 +49,6 @@ mem_eff_forward_ck(
       k,                     // k
       v,                     // v
       out_,                  // opt(out_)
-      alibi_slopes_,         // opt(alibi_slopes)
       p_dropout,             // p_dropout
       scale.value(),         // opt(softmax_scale)
       is_causal.value(),     // opt(is_causal)
@@ -73,7 +71,6 @@ mem_eff_forward_ck(
       cu_seqlens_q.value(),  // cu_seqlens_q
       cu_seqlens_k.value(),  // cu_seqlens_k
       seqused_k_,            // opt(seqused_k)
-      alibi_slopes_,         // opt(alibi_slopes)
       max_seqlen_q,          // max_seqlen_q
       max_seqlen_k,          // max_seqlen_k
       p_dropout,             // p_dropout

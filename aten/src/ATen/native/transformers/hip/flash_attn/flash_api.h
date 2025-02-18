@@ -143,8 +143,6 @@ mha_fwd_ck(
     const at::Tensor& v, // batch_size x seqlen_k x num_heads_k x head_size
     std::optional<at::Tensor>&
         out_, // batch_size x seqlen_q x num_heads x head_size
-    std::optional<at::Tensor>&
-        alibi_slopes_, // num_heads or batch_size x num_heads
     const float p_dropout,
     const float softmax_scale,
     bool is_causal,
@@ -152,7 +150,7 @@ mha_fwd_ck(
     int window_size_right,
     const bool return_softmax,
     std::optional<at::Generator> gen_,
-    const std::optional<at::Tensor>& attn_bias_);
+    const std::optional<at::Tensor>& attn_bias_); // batch_size x nheads x seqlen_q x seqlen_k
 
 std::tuple<
     at::Tensor,
@@ -177,7 +175,6 @@ mha_varlen_fwd_ck(
     std::optional<at::Tensor>&
         seqused_k, // b. If given, only this many elements of each batch
                    // element's keys are used.
-    std::optional<at::Tensor>& alibi_slopes_, // num_heads or b x num_heads
     int max_seqlen_q,
     const int max_seqlen_k,
     const float p_dropout,
@@ -280,7 +277,6 @@ mha_fwd(
         k,
         v,
         out_,
-        alibi_slopes_,
         p_dropout,
         softmax_scale,
         is_causal,
@@ -369,7 +365,6 @@ mha_varlen_fwd(
         cu_seqlens_q,
         cu_seqlens_k,
         seqused_k,
-        alibi_slopes_,
         max_seqlen_q,
         max_seqlen_k,
         p_dropout,

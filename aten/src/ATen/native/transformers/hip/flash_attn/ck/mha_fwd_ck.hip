@@ -57,7 +57,6 @@ fmha_fwd_args get_ck_fmha_fwd_args(bool has_lse,
     // v: (batch_size, seqlen_k, nheads_k, d)
     // o: (batch_size, seqlen_q, nheads, d)
 
-    // alibi_slopes:(batch_size, nheads) or (nhead)
     // attn_bias: (batch_size, nheads, seqlen_q, seqlen_k)
     // lse: (batch_size, nheads, seqlen_q)
     // randval: (batch_size, nheads, seqlen_q, seqlen_k)
@@ -133,7 +132,7 @@ fmha_fwd_args get_ck_fmha_fwd_args(bool has_lse,
                          nhead_stride_q,
                          nhead_stride_k,
                          nhead_stride_v,
-                         0, // nhead_stride_bias, FA without bias
+                         0, // nhead_stride_bias, FA without bias : TODO_ANDY CHECK IF WE NEED TO DO SOMETHING WITH THIS
                          nhead_stride_randval,
                          nhead_stride_lse,
                          nhead_stride_o,
@@ -157,7 +156,6 @@ mha_fwd_ck(const at::Tensor &q,                      // batch_size x seqlen_q x 
            const at::Tensor &k,                      // batch_size x seqlen_k x num_heads_k x head_size
            const at::Tensor &v,                      // batch_size x seqlen_k x num_heads_k x head_size
            std::optional<at::Tensor> &out_,          // batch_size x seqlen_q x num_heads xhead_size
-           std::optional<at::Tensor> &alibi_slopes_, // num_heads or batch_size x num_heads: Not used
            const float p_dropout,
            const float softmax_scale,
            bool is_causal,

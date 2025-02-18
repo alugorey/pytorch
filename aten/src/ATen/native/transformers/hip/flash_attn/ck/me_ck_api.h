@@ -30,8 +30,7 @@ mem_eff_forward_ck(
     const std::optional<at::Tensor>& seqstart_q,
     const std::optional<at::Tensor>& seqstart_k,
     std::optional<at::Generator> gen_,
-    std::optional<at::Tensor>& seqused_k_,
-    std::optional<at::Tensor>& alibi_slopes_
+    std::optional<at::Tensor>& seqused_k_
 );
 
 // TODO get return tensors correct

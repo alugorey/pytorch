@@ -1195,8 +1195,7 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt> _efficient_
                                     seqstart_q,
                                     seqstart_k,
                                     std::nullopt,// not passing in optional gen_
-                                    seqused_k,// not passing in optional seqused_k_
-                                    alibi_slopes);// not passing in optional alibi_slopes_
+                                    seqused_k);// not passing in optional seqused_k_
 
 
   } else { // use aotriton
