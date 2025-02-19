@@ -15,7 +15,8 @@ fmha_bwd_traits get_ck_fmha_varlen_bwd_traits(const mask_info &mask,
                                               int head_size,
                                               bool has_dropout,
                                               bool enable_bias,
-                                              bool deterministic)
+                                              bool deterministic,
+                                              bool bias_requires_grad)
 {
     return fmha_bwd_traits{head_size,
                            head_size,
@@ -23,7 +24,7 @@ fmha_bwd_traits get_ck_fmha_varlen_bwd_traits(const mask_info &mask,
                            true, // is_group_mode
                            mask.type,
                            enable_bias ? bias_enum::elementwise_bias : bias_enum::no_bias,
-                           false,    // has_dbias
+                           bias_requires_grad,    // has_dbias
                            has_dropout,
                            false, // s_randval
                            deterministic};
