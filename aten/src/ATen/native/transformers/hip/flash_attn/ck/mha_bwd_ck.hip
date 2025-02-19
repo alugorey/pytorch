@@ -117,7 +117,7 @@ fmha_bwd_args get_ck_fmha_bwd_args(const mask_info &mask,
 
     void *attn_bias_ptr = nullptr;
     ck_tile::index_t nhead_stride_bias = 0;
-    ck_tile::index_t batch_stride_bias = 0
+    ck_tile::index_t batch_stride_bias = 0;
     ck_tile::index_t stride_attn_bias = 0;
 
     // bias: (batch_size, nheads, seqlen_q, seqlen_k)
@@ -139,7 +139,7 @@ fmha_bwd_args get_ck_fmha_bwd_args(const mask_info &mask,
     if(bias_requires_grad) {
         // If bias_requires_grad is true, grad_bias is guaranteed to have a value via line 270
         //grad_bias
-        dbias = grad_bias.value();
+        auto dbias = grad_bias.value();
         dbias_ptr = dbias.data_ptr();
         stride_dbias = dbias.stride(2);
         nhead_stride_dbias = dbias.stride(1);
@@ -385,7 +385,13 @@ mha_bwd_ck(const at::Tensor &dout,                   // batch_size x seqlen_q x 
         ck_tile::stream_config stream_config{stream};
         dq.zero_(); // ck use atomic operation on dq
         auto traits =
-            get_ck_fmha_bwd_traits(mask, q_dtype_str, head_size_8x, is_dropout, attn_bias_.has_value(), deterministic);
+            get_ck_fmha_bwd_traits(mask,
+                                   q_dtype_str,
+                                   head_size_8x,
+                                   is_dropout,
+                                   attn_bias_.has_value(),
+                                   deterministic,
+                                   bias_requires_grad);
 
         auto args =
             get_ck_fmha_bwd_args(

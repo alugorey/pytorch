@@ -45,6 +45,8 @@ fmha_bwd_args get_ck_fmha_varlen_bwd_args(const mask_info &mask,
                                           const at::Tensor seqlens_q,
                                           const at::Tensor seqlens_k,
                                           std::optional<at::Tensor> &attn_bias_,
+                                          bool bias_requires_grad,
+                                          std::optional<at::Tensor> &grad_bias,
                                           const at::Tensor out,
                                           const at::Tensor softmax_lse,
                                           const at::Tensor dout,
@@ -114,21 +116,37 @@ fmha_bwd_args get_ck_fmha_varlen_bwd_args(const mask_info &mask,
     ck_tile::index_t stride_dq_acc = dq_acc.stride(1);
     ck_tile::index_t nhead_stride_dq_acc = dq_acc.stride(2);
 
-    //TODO_ANDY: Probably need to handle some bias stuff similar to the above
-
-
     float p_undrop = 1.0 - p_dropout;
 
+    //TODO_ANDY: Probably need to handle some bias stuff similar to the above
+    // bias: (batch_size, nheads, seqlen_q, seqlen_k)
     void *attn_bias_ptr = nullptr;
+    ck_tile::index_t nhead_stride_bias = 0;
+    ck_tile::index_t batch_stride_bias = 0;
     ck_tile::index_t stride_attn_bias = 0;
-
     if (attn_bias_.has_value()) {
         auto a_b = attn_bias_.value();
         CHECK_DEVICE(a_b);
         TORCH_CHECK(a_b.stride(-1) == 1, "Attention bias tensor must have contiguous last dimension");
         attn_bias_ptr = a_b.data_ptr();
-        // attn_bias :(batch_size, nheads, seqlen_q, seqlen_k)
-        stride_attn_bias = a_b.stride(0);
+        stride_attn_bias = a_b.stride(2);
+        nhead_stride_bias = a_b.stride(1);
+        batch_stride_bias = a_b.stride(0);
+    }
+
+    void *dbias_ptr = nullptr;
+    ck_tile::index_t stride_dbias = 0;
+    ck_tile::index_t nhead_stride_dbias = 0;
+    ck_tile::index_t batch_stride_dbias = 0;
+    // dbias: (batch_size, nheads, seqlen_q, seqlen_k)
+    if(bias_requires_grad) {
+        // If bias_requires_grad is true, grad_bias is guaranteed to have a value via line 270
+        //grad_bias
+        auto dbias = grad_bias.value();
+        dbias_ptr = dbias.data_ptr();
+        stride_dbias = dbias.stride(2);
+        nhead_stride_dbias = dbias.stride(1);
+        batch_stride_dbias = dbias.stride(0);
     }
 
     return fmha_bwd_args{q.data_ptr(),
@@ -143,7 +161,7 @@ fmha_bwd_args get_ck_fmha_varlen_bwd_args(const mask_info &mask,
                          dq.data_ptr(),
                          dk.data_ptr(),
                          dv.data_ptr(),
-                         nullptr, // dbias
+                         dbias_ptr, // dbias
                          dq_acc.data_ptr(), // dq_acc
                          seqlens_q.data_ptr(), // seqstart_q
                          seqlens_k.data_ptr(), // seqstart_k
@@ -169,11 +187,11 @@ fmha_bwd_args get_ck_fmha_varlen_bwd_args(const mask_info &mask,
                          stride_dq,
                          stride_dk,
                          stride_dv,
-                         0, // stride_dbias, FA without bias
+                         stride_dbias, // stride_dbias, FA without bias
                          nhead_stride_q,
                          nhead_stride_k,
                          nhead_stride_v,
-                         0, // nhead_stride_bias, FA without bias
+                         nhead_stride_bias, // nhead_stride_bias, FA without bias
                          nhead_stride_o,
                          0, // nhead_stride_randval
                          nhead_stride_do,
@@ -182,11 +200,11 @@ fmha_bwd_args get_ck_fmha_varlen_bwd_args(const mask_info &mask,
                          nhead_stride_dq,
                          nhead_stride_dk,
                          nhead_stride_dv,
-                         0, // nhead_stride_dbias, FA without dbias
+                         nhead_stride_dbias, // nhead_stride_dbias, FA without dbias
                          batch_stride_q,
                          batch_stride_k,
                          batch_stride_v,
-                         0  , // batch_stride_bias, FA without bias
+                         batch_stride_bias, // batch_stride_bias, FA without bias
                          batch_stride_o,
                          0, // batch_stride_randval
                          batch_stride_do,
@@ -195,7 +213,7 @@ fmha_bwd_args get_ck_fmha_varlen_bwd_args(const mask_info &mask,
                          batch_stride_dq,
                          batch_stride_dk,
                          batch_stride_dv,
-                         0  , // batch_stride_dbias, FA without dbias
+                         batch_stride_dbias, // batch_stride_dbias, FA without dbias
                          split_stride_dq_acc,
                          mask.left,
                          mask.right,
@@ -264,6 +282,9 @@ mha_varlen_bwd_ck(const at::Tensor &dout,                   // total_q x num_hea
     TORCH_CHECK(dout.stride(-1) == 1, "dout tensor must have contiguous last dimension");
     CHECK_CONTIGUOUS(cu_seqlens_q);
     CHECK_CONTIGUOUS(cu_seqlens_k);
+
+    TORCH_CHECK((bias_requires_grad && grad_bias.has_value()) || (!bias_requires_grad),
+            "If bias_requires_grad is set, grad_bias must have a value");
 
     const auto sizes = q.sizes();
 
@@ -386,7 +407,13 @@ mha_varlen_bwd_ck(const at::Tensor &dout,                   // total_q x num_hea
         ck_tile::stream_config stream_config{stream};
         dq.zero_(); // ck use atomic operation on dq
         auto traits =
-            get_ck_fmha_varlen_bwd_traits(mask, q_dtype_str, head_size_8x, is_dropout, attn_bias_.has_value(), deterministic);
+            get_ck_fmha_varlen_bwd_traits(mask,
+                                          q_dtype_str,
+                                          head_size_8x,
+                                          is_dropout,
+                                          attn_bias_.has_value(),
+                                          deterministic,
+                                          bias_requires_grad);
 
         auto args =
             get_ck_fmha_varlen_bwd_args(
@@ -403,6 +430,8 @@ mha_varlen_bwd_ck(const at::Tensor &dout,                   // total_q x num_hea
                 cu_seqlens_q,
                 cu_seqlens_k,
                 attn_bias_,
+                bias_requires_grad,
+                grad_bias,
                 out,
                 softmax_lse,
                 dout_padded,
