@@ -54,7 +54,8 @@ mem_eff_backward_ck(
       [dQ,
        dK,
        dV,
-       softmax_d] =
+       softmax_d,
+       dBias] =
         mha_bwd_ck(
           dout,
           q,
@@ -77,7 +78,7 @@ mem_eff_backward_ck(
           philox_seed,
           philox_offset);
     //TODO_ANDY: make this also return attention bias
-    return std::make_tuple(dQ, dK, dV, softmax_d);
+    return std::make_tuple(std::move(dQ), std::move(dK), std::move(dV), std::move(dBias));
 
   } else {
     // call mha_varlen_bwd_ck
@@ -85,7 +86,8 @@ mem_eff_backward_ck(
       [dQ,
        dK,
        dV,
-       softmax_d] =
+       softmax_d,
+       dBias] =
         mha_varlen_bwd_ck(
           dout,
           q,
@@ -112,7 +114,7 @@ mem_eff_backward_ck(
           deterministic,
           philox_seed,
           philox_offset);
-    return std::make_tuple(dQ, dK, dV, softmax_d);
+    return std::make_tuple(std::move(dQ), std::move(dK), std::move(dV), std::move(dBias));
 
   }
 

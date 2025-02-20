@@ -187,7 +187,7 @@ mha_varlen_fwd_ck(
     std::optional<at::Generator> gen_,
     const std::optional<at::Tensor>& attn_bias_);
 
-std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> mha_bwd_ck(
+std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor> mha_bwd_ck(
     const at::Tensor& dout, // batch_size x seqlen_q x num_heads, x head_size_og
     const at::Tensor& q, // batch_size x seqlen_q x num_heads x head_size
     const at::Tensor& k, // batch_size x seqlen_k x num_heads_k x head_size
@@ -213,7 +213,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> mha_bwd_ck(
     const at::Tensor philox_seed,
     const at::Tensor philox_offset);
 
-std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> mha_varlen_bwd_ck(
+std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor> mha_varlen_bwd_ck(
     const at::Tensor& dout, // total_q x num_heads, x head_size
     const at::Tensor&
         q, // total_q x num_heads x head_size, total_q := \sum_{i=0}^{b} s_i
@@ -453,27 +453,33 @@ inline std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> mha_bwd(
   if (at::globalContext().getROCmFAPreferredBackend() ==
       at::ROCmFABackend::Ck) {
     std::optional<at::Tensor> non_null_dbias = std::nullopt;
-    return mha_bwd_ck(
-        dout,
-        q,
-        k,
-        v,
-        out,
-        softmax_lse,
-        dq_,
-        dk_,
-        dv_,
-        alibi_slopes_,
-        false,              // bias_requires_grad
-        non_null_dbias,
-        p_dropout,
-        softmax_scale,
-        is_causal,
-        window_size_left,
-        window_size_right,
-        deterministic,
-        philox_seed,
-        philox_offset);
+    auto[dQuery,
+         dKey,
+         dValue,
+         dSoftmax,
+         dBias] = mha_bwd_ck(
+                             dout,
+                             q,
+                             k,
+                             v,
+                             out,
+                             softmax_lse,
+                             dq_,
+                             dk_,
+                             dv_,
+                             alibi_slopes_,
+                             false,              // bias_requires_grad
+                             non_null_dbias,
+                             p_dropout,
+                             softmax_scale,
+                             is_causal,
+                             window_size_left,
+                             window_size_right,
+                             deterministic,
+                             philox_seed,
+                             philox_offset);
+    // for FA return [dQ, dV, dK, dSoftmax]
+    return std::make_tuple(std::move(dQuery), std::move(dKey), std::move(dValue), std::move(dSoftmax));
   } else {
     return mha_bwd_aot(
         dout,
@@ -556,32 +562,38 @@ inline std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> mha_varlen_bwd
   if (at::globalContext().getROCmFAPreferredBackend() ==
       at::ROCmFABackend::Ck) {
     std::optional<at::Tensor> non_null_dbias = std::nullopt;
-    return mha_varlen_bwd_ck(
-        dout,
-        q,
-        k,
-        v,
-        out,
-        softmax_lse,
-        dq_,
-        dk_,
-        dv_,
-        cu_seqlens_q,
-        cu_seqlens_k,
-        alibi_slopes_,
-        false,          // bias_requires_grad
-        non_null_dbias,
-        max_seqlen_q,
-        max_seqlen_k,
-        p_dropout,
-        softmax_scale,
-        zero_tensors,
-        is_causal,
-        window_size_left,
-        window_size_right,
-        deterministic,
-        philox_seed,
-        philox_offset);
+    auto[dQuery,
+         dKey,
+         dValue,
+         dSoftmax,
+         dBias] = mha_varlen_bwd_ck(
+                                    dout,
+                                    q,
+                                    k,
+                                    v,
+                                    out,
+                                    softmax_lse,
+                                    dq_,
+                                    dk_,
+                                    dv_,
+                                    cu_seqlens_q,
+                                    cu_seqlens_k,
+                                    alibi_slopes_,
+                                    false,          // bias_requires_grad
+                                    non_null_dbias,
+                                    max_seqlen_q,
+                                    max_seqlen_k,
+                                    p_dropout,
+                                    softmax_scale,
+                                    zero_tensors,
+                                    is_causal,
+                                    window_size_left,
+                                    window_size_right,
+                                    deterministic,
+                                    philox_seed,
+                                    philox_offset);
+    // for FA return [dQ, dV, dK, dSoftmax]
+    return std::make_tuple(std::move(dQuery), std::move(dKey), std::move(dValue), std::move(dSoftmax));
   } else {
     return mha_varlen_bwd_aot(
         dout,

@@ -219,8 +219,8 @@ fmha_bwd_args get_ck_fmha_bwd_args(const mask_info &mask,
                          p_undrop,
                          drop_seed_offset};
 }
-
-std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor>
+//START HERE ANDY - JUST ADDED THE FIFTH RETURN TYPE, MAKE SURE WE ARE RETURNING DBIAS
+std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor>
 mha_bwd_ck(const at::Tensor &dout,                   // batch_size x seqlen_q x num_heads, x head_size_og
            const at::Tensor &q,                      // batch_size x seqlen_q x num_heads x head_size
            const at::Tensor &k,                      // batch_size x seqlen_k x num_heads_k x head_size
@@ -440,6 +440,14 @@ mha_bwd_ck(const at::Tensor &dout,                   // batch_size x seqlen_q x 
     }
 
     //TODO_ANDY need to return dGrad also
-    return { dq, dk, dv, softmax_d };
+    at::Tensor dbias;
+    if(bias_requires_grad) {
+        dbias = grad_bias.value();
+    } else {
+        dbias = at::empty({batch_size, num_heads, seqlen_q, seqlen_k}, q.options());
+    }
+
+
+    return { dq, dk, dv, softmax_d, dbias };
 }
 } // namespace pytorch_flash

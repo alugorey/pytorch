@@ -223,7 +223,7 @@ fmha_bwd_args get_ck_fmha_varlen_bwd_args(const mask_info &mask,
                          drop_seed_offset};
 }
 
-std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor>
+std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor>
 mha_varlen_bwd_ck(const at::Tensor &dout,                   // total_q x num_heads x head_size
                   const at::Tensor &q,                      // total_q x num_heads x head_size, total_q := \sum_{i=0}^{b} s_i
                   const at::Tensor &k,                      // total_k x num_heads_k x head_size, total_k := \sum_{i=0}^{b} s_i
@@ -462,7 +462,14 @@ mha_varlen_bwd_ck(const at::Tensor &dout,                   // total_q x num_hea
         dk = dk.index({"...", at::indexing::Slice(at::indexing::None, head_size_og)});
         dv = dv.index({"...", at::indexing::Slice(at::indexing::None, head_size_og)});
     }
+    at::Tensor dbias;
+    if(bias_requires_grad) {
+        dbias = grad_bias.value();
+    } else {
+        dbias = empty({batch_size, num_heads, seqlen_q, seqlen_k}, q.options());
+    }
 
-    return { dq, dk, dv, softmax_d };
+
+    return { dq, dk, dv, softmax_d, dbias };
 }
 } // namespace pytorch_flash
