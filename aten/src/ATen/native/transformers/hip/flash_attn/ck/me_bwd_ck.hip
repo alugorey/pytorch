@@ -50,6 +50,7 @@ mem_eff_backward_ck(
     //  both of these return dq, dk, dv, softmax_d
     // need to also return attn_bias
     // call mha_bwd_ck
+    std::cout << "MEM_EFF_BWD_CK::SOFTMAX_DEVICE: " << softmax_lse.device() << std::endl;
     auto
       [dQ,
        dK,

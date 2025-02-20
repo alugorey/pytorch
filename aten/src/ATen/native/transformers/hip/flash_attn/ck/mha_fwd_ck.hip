@@ -357,6 +357,7 @@ mha_fwd_ck(const at::Tensor &q,                      // batch_size x seqlen_q x 
                 softmax_scale,
                 p_dropout,
                 drop_seed_offset);
+        std::cout << "FWD SOFTMAX_DEVICE: " << softmax_lse.device() << std::endl;
         float t = fmha_fwd(traits, args, stream_config);
         TORCH_CHECK(t >= 0, "invalid argument for fmha_fwd");
     }
@@ -371,6 +372,7 @@ mha_fwd_ck(const at::Tensor &q,                      // batch_size x seqlen_q x 
         q_padded = q_padded.transpose(1, 2).reshape({batch_size, 1, num_heads_k * seqlen_q, head_size});
         softmax_lse = softmax_lse.reshape({batch_size, num_heads_k * seqlen_q, 1});
     }
+    std::cout << "END OF MHA_FWD_CK SOFTMAX_DEVICE: " << softmax_lse.device() << std::endl;
     return {out, q_padded, k_padded, v_padded, softmax_lse, seed_t, offset_t, p};
 }
 } //namespace pytorch_flash

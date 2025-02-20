@@ -5,6 +5,7 @@
 #include <ATen/native/transformers/hip/flash_attn/flash_common_hip.hpp>
 #include <fmha_bwd.hpp>
 #include <mask.hpp>
+#include <iostream>
 
 namespace pytorch_flash {
 
@@ -262,6 +263,9 @@ mha_bwd_ck(const at::Tensor &dout,                   // batch_size x seqlen_q x 
     std::string q_dtype_str = q_dtype == at::kHalf ? "fp16" : "bf16";
 
     CHECK_DEVICE(q); CHECK_DEVICE(k); CHECK_DEVICE(v);
+    std::cout << "ABOUT TO CHECK DEVICE OF SOFTMAX_LSE WEEEE" << std::endl;
+    std::cout << "BWD SOFTMAX_DEVICE: " << softmax_lse.device() << std::endl;
+    std::cout << softmax_lse << std::endl;
     CHECK_DEVICE(out); CHECK_DEVICE(dout); CHECK_DEVICE(softmax_lse);
 
     TORCH_CHECK(q.stride(-1) == 1, "Input tensor must have contiguous last dimension");
