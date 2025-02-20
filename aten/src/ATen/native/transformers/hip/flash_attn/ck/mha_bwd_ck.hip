@@ -448,7 +448,7 @@ mha_bwd_ck(const at::Tensor &dout,                   // batch_size x seqlen_q x 
         dbias = at::empty({batch_size, num_heads, seqlen_q, seqlen_k}, q.options());
     }
 
-
+    std::cout << "MHA_BWD_CK RAN AND COMPLETED" << std::endl;
     return { dq, dk, dv, softmax_d, dbias };
 }
 } // namespace pytorch_flash

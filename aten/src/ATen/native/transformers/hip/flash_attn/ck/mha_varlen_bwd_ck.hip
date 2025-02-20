@@ -471,5 +471,6 @@ mha_varlen_bwd_ck(const at::Tensor &dout,                   // total_q x num_hea
 
 
     return { dq, dk, dv, softmax_d, dbias };
+    std::cout << "TOUCHING VARLEN BWD" << std::endl;
 }
 } // namespace pytorch_flash

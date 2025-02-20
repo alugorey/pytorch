@@ -35,7 +35,7 @@ mem_eff_backward_ck(
     at::Tensor philox_offset)
 {
 // TODO implement wrapper
-  std::cout << "HIT MY MEM_EFF ENTRY POINT" << std::endl;
+  std::cout << "HIT MY MEM_EFF BWD ENTRY POINT" << std::endl;
 
   const int non_null_window_left  = -1;
   const int non_null_window_right = -1;
@@ -77,7 +77,6 @@ mem_eff_backward_ck(
           deterministic,
           philox_seed,
           philox_offset);
-    //TODO_ANDY: make this also return attention bias
     return std::make_tuple(std::move(dQ), std::move(dK), std::move(dV), std::move(dBias));
 
   } else {

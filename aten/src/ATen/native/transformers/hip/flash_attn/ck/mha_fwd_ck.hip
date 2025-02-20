@@ -225,7 +225,8 @@ mha_fwd_ck(const at::Tensor &q,                      // batch_size x seqlen_q x 
         seqlen_q = ngroups;
         num_heads = num_heads_k;
     }
-
+    std::cout << "MHA_FWD_CK: CHECKING temp_Q SHAPE: " << temp_q.sizes() << std::endl;
+    std::cout << "MHA_FWD_CK: CHECKING Q SHAPE     : " << q.sizes() << std::endl;
     CHECK_SHAPE(temp_q, batch_size, seqlen_q, num_heads, head_size);
     CHECK_SHAPE(k, batch_size, seqlen_k, num_heads_k, head_size);
     CHECK_SHAPE(v, batch_size, seqlen_k, num_heads_k, head_size);

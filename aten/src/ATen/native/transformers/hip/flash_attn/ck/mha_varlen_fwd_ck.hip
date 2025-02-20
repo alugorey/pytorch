@@ -165,6 +165,7 @@ mha_varlen_fwd_ck(const at::Tensor &q,                   // total_q x num_heads 
                   std::optional<at::Generator> gen_,
                   const std::optional<at::Tensor>& attn_bias_)
 {
+    std::cout << "MHA_VARLEN_BWD_CK ENTER" << std::endl;
     auto q_dtype = q.dtype();
     TORCH_CHECK(q_dtype == at::kHalf || q_dtype == at::kBFloat16,
                 "FlashAttention only support fp16 and bf16 data type");
@@ -233,7 +234,24 @@ mha_varlen_fwd_ck(const at::Tensor &q,                   // total_q x num_heads 
         mask = mask_info::decode(mask_identify, max_seqlen_q, max_seqlen_k); // local
     }
 
-    CHECK_SHAPE(q, total_q, num_heads, head_size_og);
+
+    std::cout << "ABOUT TO CHECK Q's shape: " << q.sizes() << std::endl;
+    std::cout << "total_q     : " << total_q << std::endl;
+    std::cout << "num_heads   : " << num_heads << std::endl;
+    std::cout << "head_size_og: " << head_size_og << std::endl;
+
+    std::cout << "ABOUT TO CHECK K's shape: " << k.sizes() << std::endl;
+    std::cout << "total_k     : " << total_k << std::endl;
+    std::cout << "num_heads_k : " << num_heads_k << std::endl;
+    std::cout << "head_size_og: " << head_size_og << std::endl;
+
+    std::cout << "ABOUT TO CHECK V's shape: " << v.sizes() << std::endl;
+    std::cout << "total_v     : " << total_k << std::endl;
+    std::cout << "num_heads_v : " << num_heads_k << std::endl;
+    std::cout << "head_size_og: " << head_size_og << std::endl;
+
+
+    //CHECK_SHAPE(q, total_q, num_heads, head_size_og);
     CHECK_SHAPE(k, total_k, num_heads_k, head_size_og);
     CHECK_SHAPE(v, total_k, num_heads_k, head_size_og);
     CHECK_SHAPE(cu_seqlens_q, batch_size + 1);

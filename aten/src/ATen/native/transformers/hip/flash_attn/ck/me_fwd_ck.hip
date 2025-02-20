@@ -43,7 +43,7 @@ mem_eff_forward_ck(
 
 
   // need to pass attn_bias to both of these
-  if(!cu_seqlens_q.has_value()){
+  if(!seqstart_q.has_value()){
     return mha_fwd_ck(
       q,                     // q
       k,                     // k
@@ -68,8 +68,8 @@ mem_eff_forward_ck(
       k,                     // k
       v,                     // v
       out_,                  // opt(out)
-      cu_seqlens_q.value(),  // cu_seqlens_q
-      cu_seqlens_k.value(),  // cu_seqlens_k
+      seqstart_q.value(),  // cu_seqlens_q
+      seqstart_k.value(),  // cu_seqlens_k
       seqused_k_,            // opt(seqused_k)
       max_seqlen_q,          // max_seqlen_q
       max_seqlen_k,          // max_seqlen_k

@@ -448,6 +448,7 @@ _efficient_attention_backward(
                      false, // zero_tensors
                      philox_seed,
                      philox_offset);
+    grad_bias = dBias;
 
   } else {
     // Use aotriton
@@ -794,6 +795,10 @@ _efficient_attention_backward(
   TORCH_CHECK(kernel_launched, "cutlassB: no kernel found to launch!");
   AT_CUDA_CHECK(cudaGetLastError());
 #endif // USE_ROCM
+  std::cout << "DEVICE_grad_Q: " << grad_q.device() << std::endl;
+  std::cout << "DEVICE_grad_K: " << grad_k.device() << std::endl;
+  std::cout << "DEVICE_grad_V: " << grad_v.device() << std::endl;
+  std::cout << "DEVICE_grad_B: " << grad_bias.device() << std::endl;
   return std::make_tuple(std::move(grad_q), std::move(grad_k), std::move(grad_v), std::move(grad_bias));
   #endif // defined(USE_MEM_EFF_ATTENTION)
   TORCH_CHECK(false, "USE_MEM_EFF_ATTENTION was not enabled for build.")
