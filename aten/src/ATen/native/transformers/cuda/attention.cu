@@ -82,6 +82,7 @@
 #include <ATen/native/transformers/hip/aotriton_adapter.h>
 #include <aotriton/flash.h>
 #include <aotriton/runtime.h>
+#include <ATen/native/transformers/hip/flash_attn/ck/me_ck_api.h>
 #endif
 #endif
 
@@ -848,13 +849,25 @@ std::tuple<Tensor, Tensor, Tensor, Tensor> _scaled_dot_product_efficient_attenti
     std::optional<double> scale) {
   // Used for tracking usage statistics
   C10_LOG_API_USAGE_ONCE("torch.sdpa.mem_efficient_attention");
+  //std::cout << std::endl;
+  //std::cout << "what we want vvvvvvvvvvvvvv" << std::endl;
+  //std::cout << "MAX_SEQLEN_Q: " << b4_max_seqlen_batch_q << std::endl;
+  //std::cout << "MAX_SEQLEN_K: " << b4_max_seqlen_batch_k << std::endl;
+  //std::cout << "MAX_SEQLEN_V: " << b4_max_seqlen_batch_v << std::endl;
+  //std::cout << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl;
   // Query -> Query(Batch x Q_seq_len x Num_heads x Dim_per_head)
   // Key   -> Key(Batch x KV_seq_len x Num_heads x Dim_per_head)
   // Value -> Value(Batch x KV_seq_len x  Num_heads x Dim_per_head)
+  std::cout << std::endl;
+  std::cout << "sdpa_ef" << std::endl;
+  std::cout << "q.sizes  : " << query.sizes() << std::endl;
   Tensor q_t = query.transpose(1, 2);
   Tensor k_t = key.transpose(1, 2);
   Tensor v_t = value.transpose(1, 2);
 
+  std::cout << "q_t.sizes: " << q_t.sizes() << std::endl;
+
+  std::cout << "qagain.sizes: " << query.sizes() << std::endl;
   sdp::CustomMaskType custom_mask_type = is_causal
       ? sdp::CustomMaskType::CausalFromTopLeft
       : sdp::CustomMaskType::NoCustomMask;
@@ -1026,6 +1039,16 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt> _efficient_
 // TODO In theory it is possible to compile with _CUDA_ARCH < 5.0 and run on a
 // machine that is >= 5.0. In practice, this is not a problem but since
 // this would avoid runtime architecture checks, we should look into it
+  const int64_t new_max_seqlen_batch_q = query.size(1);
+  const int64_t new_max_seqlen_batch_k = key.size(1);
+  const int64_t new_max_seqlen_batch_v = value.size(1);
+  std::cout << std::endl;
+  std::cout << "MEMORY_EFFICIENT VVVVVVVVVV" << std::endl;
+  std::cout << "MAX_SEQLEN_Q: " << new_max_seqlen_batch_q << std::endl;
+  std::cout << "MAX_SEQLEN_K: " << new_max_seqlen_batch_k << std::endl;
+  std::cout << "MAX_SEQLEN_V: " << new_max_seqlen_batch_v << std::endl;
+  std::cout << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl;
+  TORCH_CHECK(query.dim() == 4);
 
   TORCH_CHECK(query.dim() == 4);
   TORCH_CHECK(key.dim() == 4);
@@ -1128,97 +1151,145 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt> _efficient_
 
 #ifdef USE_ROCM
   // ROCM Implementation
-  auto ret = aotriton::v2::flash::check_gpu(stream);
-  if (hipSuccess != ret) {
-      TORCH_CHECK(false,
+  if( bias.has_value() ) {
+    std::cout << std::endl;
+    std::cout << "Attn_bias sizes : " << bias.value().sizes() << std::endl;
+    std::cout << "attn_bias device: " << bias.value().device() << std::endl;
+	std::cout << "last dim stride: " << bias.value().stride(-1) << std::endl;
+  }
+
+  // Need this in both aot and CK case
+  const auto softmax_scale = sdp::calculate_scale(query, scale).expect_float();
+  res = at::empty({B, M, num_heads, Kv}, query.options());
+
+  std::cout << "CK Enabled?: " << at::globalContext().getROCmFAPreferredBackend() << std::endl;
+  if(at::globalContext().getROCmFAPreferredBackend() ==
+    at::ROCmFABackend::Ck) {
+    //forward_attention_ck(...);
+    std::cout << "In my branch" << std::endl;
+    std::optional<Tensor> out(res);
+    std::optional<Tensor> seqused_k = std::nullopt;
+    std::optional<Tensor> alibi_slopes = std::nullopt;
+    std::cout << "out(res) dtype " << out.value().dtype();
+
+    auto
+        [out_,
+         q,
+         k,
+         v,
+         lse,
+         seed_t,
+         offset_t,
+         p] =
+            pytorch_flash::mem_eff_forward_ck(
+                                    query,
+                                    key,
+                                    value,
+                                    dropout_p,
+                                    false, // return dropout_randval
+                                    custom_mask_type == 0 ? false : true, // is_causal
+                                    softmax_scale,
+                                    bias,
+                                    out,
+                                    std::nullopt, // cu_seqlens_q: sending in nothing since CKFA works this way
+                                    std::nullopt, // cu_seqlens_k
+                                    seqstart_q,
+                                    seqstart_k,
+                                    std::nullopt,// not passing in optional gen_
+                                    seqused_k);// not passing in optional seqused_k_
+
+    logsumexp = lse;
+  } else { // use aotriton
+    auto ret = aotriton::v2::flash::check_gpu(stream);
+    if (hipSuccess != ret) {
+        TORCH_CHECK(false,
                   "[AOTriton] Accelerated SDPA only supports MI200/MI300X/Navi31 GPUs"
                   " (gfx90a:sramecc+:xnack-/gfx942:sramecc+:xnack-/gfx1100)")
-  }
+    }
 
-  // AOTriton may accept aligned on logsumexp tensor in the future for better
-  // performance, but for now it requires compact logsumexp tensor, even if
-  // compute_logsumexp is false
-  constexpr int kAlignLSE = 1;
-  res = at::empty({B, M, num_heads, Kv}, query.options());
-  logsumexp = at::empty(
+    // AOTriton may accept aligned on logsumexp tensor in the future for better
+    // performance, but for now it requires compact logsumexp tensor, even if
+    // compute_logsumexp is false
+    constexpr int kAlignLSE = 1;
+    logsumexp = at::empty(
       { B, num_heads, max_seqlen_q },
       query.options().dtype(at::ScalarType::Float));
-  at::Tensor softmax_lse = logsumexp.view({B * num_heads, max_seqlen_q});
-  at::Tensor q_t = query.transpose(1, 2);
-  at::Tensor k_t = key.transpose(1, 2);
-  at::Tensor v_t = value.transpose(1, 2);
-  at::Tensor output_t = res.transpose(1, 2);
-  bool is_causal;
-  if (static_cast<int64_t>(sdp::CustomMaskType::CausalFromTopLeft) == custom_mask_type) {
-    is_causal = true;
-  } else if (static_cast<int64_t>(sdp::CustomMaskType::NoCustomMask) == custom_mask_type) {
-    is_causal = false;
-  } else {
-    TORCH_CHECK(false, "[_efficient_attention_forward] Unsupported mask type on ROCM, for now");
-  }
+    at::Tensor softmax_lse = logsumexp.view({B * num_heads, max_seqlen_q});
+    at::Tensor q_t = query.transpose(1, 2);
+    at::Tensor k_t = key.transpose(1, 2);
+    at::Tensor v_t = value.transpose(1, 2);
+    at::Tensor output_t = res.transpose(1, 2);
+    bool is_causal;
+    if (static_cast<int64_t>(sdp::CustomMaskType::CausalFromTopLeft) == custom_mask_type) {
+      is_causal = true;
+    } else if (static_cast<int64_t>(sdp::CustomMaskType::NoCustomMask) == custom_mask_type) {
+      is_causal = false;
+    } else {
+      TORCH_CHECK(false, "[_efficient_attention_forward] Unsupported mask type on ROCM, for now");
+    }
 
-  const auto softmax_scale = sdp::calculate_scale(query, scale).expect_float();
 
-  using aotriton::v2::flash::attn_fwd;
-  using aotriton::v2::flash::attn_fwd_compact_varlen;
-  using sdp::aotriton_adapter::mk_aotensor;
-  using sdp::aotriton_adapter::mk_aoscalartensor;
-  using sdp::aotriton_adapter::mk_philoxtensor;
-  aotriton::TensorView<4> empty_t4(0, {0, 0, 0, 0}, {0, 0, 0, 0}, aotriton::DType::kFloat16);
-  at::Tensor softmax_fa_t = at::empty({ 0, 0, 0, 0 }, query.options());
-  const bool use_philox_state = in_capture_stream;
-  auto seed = use_philox_state ? mk_philoxtensor(philox_state.seed_.ptr) : mk_aoscalartensor(seed_t);
-  auto offset1 = use_philox_state ? mk_philoxtensor(philox_state.offset_.ptr) : mk_aoscalartensor(offset_t);
-  auto offset2 = use_philox_state ? philox_state.offset_intragraph_ : 0;
-  auto seed_output = use_philox_state ? mk_philoxtensor(seed_t.data_ptr<int64_t>()) : mk_philoxtensor(nullptr);
-  auto offset_output = use_philox_state ? mk_philoxtensor(offset_t.data_ptr<int64_t>()) : mk_philoxtensor(nullptr);
-  hipError_t err; // TODO: Error handling
-  if (seqstart_q.has_value()) {
-    // varlen aka nested tensor
-    err = attn_fwd_compact_varlen(mk_aotensor(q_t, "q"),
-                                  mk_aotensor(k_t, "k"),
-                                  mk_aotensor(v_t, "v"),
-                                  mk_aotensor<1>(seqstart_q.value(), "cu_seqlens_q"),
-                                  mk_aotensor<1>(seqstart_k.value(), "cu_seqlens_k"),
-                                  max_seqlen_q,
-                                  max_seqlen_k,
-                                  bias.has_value() ? mk_aotensor(bias.value(), "bias"): empty_t4,
-                                  softmax_scale,
-                                  mk_aotensor<2>(softmax_lse, "M"),
-                                  mk_aotensor(output_t, "Out"),
-                                  dropout_p,
-                                  seed,
-                                  offset1,
-                                  offset2,
-                                  seed_output,
-                                  offset_output,
-                                  mk_aotensor(softmax_fa_t, "encoded_softmax"),
-                                  is_causal,
-                                  stream);
-  } else {
-    err = attn_fwd(mk_aotensor(q_t, "q"),
-                   mk_aotensor(k_t, "k"),
-                   mk_aotensor(v_t, "v"),
-                   bias.has_value() ? mk_aotensor(bias.value(), "bias"): empty_t4,
-                   softmax_scale,
-                   mk_aotensor<2>(softmax_lse, "M"),
-                   mk_aotensor(output_t, "Out"),
-                   dropout_p,
-                   seed,
-                   offset1,
-                   offset2,
-                   seed_output,
-                   offset_output,
-                   mk_aotensor(softmax_fa_t, "encoded_softmax"),
-                   is_causal,
-                   stream);
-  }
-  if (!compute_logsumexp) {
-    // Set the tensor to empty when compute_logsumexp is false
-    logsumexp = at::empty(
+    using aotriton::v2::flash::attn_fwd;
+    using aotriton::v2::flash::attn_fwd_compact_varlen;
+    using sdp::aotriton_adapter::mk_aotensor;
+    using sdp::aotriton_adapter::mk_aoscalartensor;
+    using sdp::aotriton_adapter::mk_philoxtensor;
+    aotriton::TensorView<4> empty_t4(0, {0, 0, 0, 0}, {0, 0, 0, 0}, aotriton::DType::kFloat16);
+    at::Tensor softmax_fa_t = at::empty({ 0, 0, 0, 0 }, query.options());
+    const bool use_philox_state = in_capture_stream;
+    auto seed = use_philox_state ? mk_philoxtensor(philox_state.seed_.ptr) : mk_aoscalartensor(seed_t);
+    auto offset1 = use_philox_state ? mk_philoxtensor(philox_state.offset_.ptr) : mk_aoscalartensor(offset_t);
+    auto offset2 = use_philox_state ? philox_state.offset_intragraph_ : 0;
+    auto seed_output = use_philox_state ? mk_philoxtensor(seed_t.data_ptr<int64_t>()) : mk_philoxtensor(nullptr);
+    auto offset_output = use_philox_state ? mk_philoxtensor(offset_t.data_ptr<int64_t>()) : mk_philoxtensor(nullptr);
+    hipError_t err; // TODO: Error handling
+    if (seqstart_q.has_value()) {
+      // varlen aka nested tensor
+      err = attn_fwd_compact_varlen(mk_aotensor(q_t, "q"),
+                                    mk_aotensor(k_t, "k"),
+                                    mk_aotensor(v_t, "v"),
+                                    mk_aotensor<1>(seqstart_q.value(), "cu_seqlens_q"),
+                                    mk_aotensor<1>(seqstart_k.value(), "cu_seqlens_k"),
+                                    max_seqlen_q,
+                                    max_seqlen_k,
+                                    bias.has_value() ? mk_aotensor(bias.value(), "bias"): empty_t4,
+                                    softmax_scale,
+                                    mk_aotensor<2>(softmax_lse, "M"),
+                                    mk_aotensor(output_t, "Out"),
+                                    dropout_p,
+                                    seed,
+                                    offset1,
+                                    offset2,
+                                    seed_output,
+                                    offset_output,
+                                    mk_aotensor(softmax_fa_t, "encoded_softmax"),
+                                    is_causal,
+                                    stream);
+    } else {
+      err = attn_fwd(mk_aotensor(q_t, "q"),
+                     mk_aotensor(k_t, "k"),
+                     mk_aotensor(v_t, "v"),
+                     bias.has_value() ? mk_aotensor(bias.value(), "bias"): empty_t4,
+                     softmax_scale,
+                     mk_aotensor<2>(softmax_lse, "M"),
+                     mk_aotensor(output_t, "Out"),
+                     dropout_p,
+                     seed,
+                     offset1,
+                     offset2,
+                     seed_output,
+                     offset_output,
+                     mk_aotensor(softmax_fa_t, "encoded_softmax"),
+                     is_causal,
+                     stream);
+    }
+    if (!compute_logsumexp) {
+      // Set the tensor to empty when compute_logsumexp is false
+      logsumexp = at::empty(
         { B * num_heads, max_seqlen_q, 0 },
         query.options().dtype(at::ScalarType::Float));
-  }
+    }
+  } // CK BACKEND
 #else
   // CUDA Implementation
   cudaDeviceProp* p = at::cuda::getDeviceProperties(query.device().index());
@@ -1391,6 +1462,7 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt> _efficient_
   AT_CUDA_CHECK(cudaGetLastError());
 
 #endif // USE_ROCM
+  std::cout << "res dtype: " << res.dtype() << std::endl;
   return std::make_tuple(
       std::move(res),
       std::move(logsumexp),

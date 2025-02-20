@@ -74,7 +74,7 @@
 #include <ATen/ops/_safe_softmax_native.h>
 #include <ATen/ops/all.h>
 #endif
-
+#include <iostream>
 #include <ATen/native/nested/NestedTensorTransformerFunctions.h>
 namespace at::native {
 
@@ -741,6 +741,7 @@ Tensor scaled_dot_product_attention(
       if (attn_mask.has_value()) {
         attn_mask.value() = preprocess_mask(attn_mask.value(), query_, key, value);;
       }
+      //std::cout << "OUTERMOST Q SHAPE: " << query_.sizes() << std::endl;
       auto out_and_lse = at::_scaled_dot_product_efficient_attention(
           query_, key, value, attn_mask, compute_logsumexp, dropout_p, is_causal, scale);
       return std::get<0>(out_and_lse);
