@@ -466,7 +466,7 @@ mha_varlen_bwd_ck(const at::Tensor &dout,                   // total_q x num_hea
     if(bias_requires_grad) {
         dbias = grad_bias.value();
     } else {
-        dbias = empty({batch_size, num_heads, seqlen_q, seqlen_k}, q.options());
+        dbias = at::empty({batch_size, num_heads, max_seqlen_q, max_seqlen_k}, q.options());
     }
 
 
