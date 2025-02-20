@@ -415,7 +415,6 @@ _efficient_attention_backward(
   if(at::globalContext().getROCmFAPreferredBackend() == at::ROCmFABackend::Ck)
   {
     std::cout << "BACKWARD CK ATTENTION" << std::endl;
-    std::cout << "EFFICIENT_ATTENTION SOFTMAX_DEVICE: " << logsumexp.device() << std::endl;
     const auto my_softmax_scale = sdp::calculate_scale(query, scale).expect_float();
     // Store grad_bias in optional
     std::optional<at::Tensor> opt_grad_bias = grad_bias;
@@ -892,7 +891,6 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> _scaled_dot_product_e
   sdp::CustomMaskType custom_mask_type = causal
     ? sdp::CustomMaskType::CausalFromTopLeft
     : sdp::CustomMaskType::NoCustomMask;
-  std::cout << "sdpea SOFTMAX_DEVICE" << logsumexp.device() << std::endl;
   auto [grad_q, grad_k, grad_v, grad_bias] =
       at::_efficient_attention_backward(
           grad_out,

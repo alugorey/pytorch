@@ -1177,7 +1177,7 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt> _efficient_
          q,
          k,
          v,
-         logsumex,
+         lse,
          seed_t,
          offset_t,
          p] =
@@ -1198,10 +1198,7 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt> _efficient_
                                     std::nullopt,// not passing in optional gen_
                                     seqused_k);// not passing in optional seqused_k_
 
-    logsumexp = logsumex;
-    std::cout << "returned IN MEM_EFF_FORWARD SOFTMAX_DEVICE: " << logsumex.device() << std::endl;
-    std::cout << "other one IN MEM_EFF_FORWARD SOFTMAX_DEVICE: " << logsumexp.device() << std::endl;
-    std::cout << "logsum shape: " << logsumexp.sizes() << std::endl;
+    logsumexp = lse;
   } else { // use aotriton
     auto ret = aotriton::v2::flash::check_gpu(stream);
     if (hipSuccess != ret) {
@@ -1293,7 +1290,6 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt> _efficient_
         query.options().dtype(at::ScalarType::Float));
     }
   } // CK BACKEND
-  std::cout << "AFTER MY FWD CODE RAN SOFTMAX_DEVICE" << logsumexp.device() << std::endl;
 #else
   // CUDA Implementation
   cudaDeviceProp* p = at::cuda::getDeviceProperties(query.device().index());
@@ -1466,8 +1462,6 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt> _efficient_
   AT_CUDA_CHECK(cudaGetLastError());
 
 #endif // USE_ROCM
-  std::cout << "COMPUTE_LOG_SUM?????: " << compute_logsumexp << std::endl;
-  std::cout << "RETURNING FROM MEM_EFF_FWD SOFTMAX_DEVICE: " << logsumexp.device() << std::endl;
   std::cout << "res dtype: " << res.dtype() << std::endl;
   return std::make_tuple(
       std::move(res),
