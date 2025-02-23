@@ -294,13 +294,17 @@ _scaled_dot_product_efficient_attention_nestedtensor_cuda(
       max_seqlen_batch_q,
       max_seqlen_batch_k,
       output_shape] = preprocessing::sdpa_nested_preprocessing(query, key, value);
-
+  
+    std::cout << "sdpa_nestedtensor q.sizes(): " << query_buffer_reshaped.unsqueeze(0).sizes() << std::endl;
+    // vvvvvvv that doesn't work because query is nested and sizes can't be seen
+    //std::cout << "actual_q                   : " << query.sizes() << std::endl;
   sdp::CustomMaskType custom_mask_type = is_causal
       ? sdp::CustomMaskType::CausalFromTopLeft
       : sdp::CustomMaskType::NoCustomMask;
 
   // See Note [Seed and Offset] for description of seed and offset
   // Although max_seqlen_q, and max_seqlen_batch_kv is returned we drop these values.
+  std::cout << "HERE IS THE CALL SIGHT WEEEEEEE" << std::endl;
   auto [attention, log_sumexp, seed, offset, max_seqlen_q, max_seqlen_batch_kv] = at::_efficient_attention_forward(
       query_buffer_reshaped.unsqueeze(0),
       key_buffer_reshaped.unsqueeze(0),

@@ -251,7 +251,7 @@ mha_varlen_fwd_ck(const at::Tensor &q,                   // total_q x num_heads 
     std::cout << "head_size_og: " << head_size_og << std::endl;
 
 
-    //CHECK_SHAPE(q, total_q, num_heads, head_size_og);
+    CHECK_SHAPE(q, total_q, num_heads, head_size_og);
     CHECK_SHAPE(k, total_k, num_heads_k, head_size_og);
     CHECK_SHAPE(v, total_k, num_heads_k, head_size_og);
     CHECK_SHAPE(cu_seqlens_q, batch_size + 1);
