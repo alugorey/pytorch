@@ -412,6 +412,7 @@ _efficient_attention_backward(
   // ROCM Implementation
   if(at::globalContext().getROCmFAPreferredBackend() == at::ROCmFABackend::Ck)
   {
+#if defined(USE_CK_FLASH_ATTENTION)
     const auto my_softmax_scale = sdp::calculate_scale(query, scale).expect_float();
     // Store grad_bias in optional
     std::optional<at::Tensor> opt_grad_bias = grad_bias;
@@ -445,7 +446,9 @@ _efficient_attention_backward(
                      philox_seed,
                      philox_offset);
     grad_bias = dBias;
-
+#else
+    TORCH_CHECK(false, "Attempting to use CK mem_eff_backward backend in a build that has not built CK");
+#endif
   } else {
     // Use aotriton
     TORCH_CHECK(!num_splits_key.has_value(),
