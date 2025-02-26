@@ -5,7 +5,7 @@
 #include <ATen/native/transformers/hip/flash_attn/flash_common_hip.hpp>
 #include <fmha_fwd.hpp>
 #include <mask.hpp>
-
+#include <iostream>
 namespace pytorch_flash {
 
 fmha_fwd_traits get_ck_fmha_varlen_fwd_traits(const mask_info &mask,
@@ -345,6 +345,7 @@ mha_varlen_fwd_ck(const at::Tensor &q,                   // total_q x num_heads 
                 softmax_scale,
                 p_dropout,
                 drop_seed_offset);
+        std::cout << "MHA_VARLEN_FWD_CK is about to run" << std::endl;
         float t = fmha_fwd(traits, args, stream_config);
         TORCH_CHECK(t >= 0, "invalid argument for fmha_fwd");
     }

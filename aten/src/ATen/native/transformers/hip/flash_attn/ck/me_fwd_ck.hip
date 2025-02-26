@@ -1,6 +1,6 @@
 #include <ATen/native/transformers/hip/flash_attn/flash_common_hip.hpp>
 #include <ATen/native/transformers/hip/flash_attn/ck/me_ck_api.h>
-
+#include <iostream>
 #if defined(USE_CK_FLASH_ATTENTION)
 namespace pytorch_flash {
 std::tuple<
@@ -38,6 +38,7 @@ mem_eff_forward_ck(
 
 
   if(!seqstart_q.has_value()){
+    std::cout << "MEM_EFF_FWD_CK is about to run" << std::endl;
     return mha_fwd_ck(
       q,                     // q
       k,                     // k

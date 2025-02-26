@@ -1,6 +1,6 @@
 #include <ATen/native/transformers/hip/flash_attn/flash_common_hip.hpp>
 #include <ATen/native/transformers/hip/flash_attn/ck/me_ck_api.h>
-
+#include <iostream>
 #if defined(USE_CK_FLASH_ATTENTION)
 namespace pytorch_flash {
 std::tuple<
@@ -43,6 +43,7 @@ mem_eff_backward_ck(
   opt_dV = dv_;
 
   if(!cu_seqlens_q.has_value()) {
+    std::cout << "MEM_EFF_BWD_CK" << std::endl;
     auto
       [dQ,
        dK,

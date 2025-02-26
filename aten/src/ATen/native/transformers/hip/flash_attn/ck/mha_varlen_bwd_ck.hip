@@ -5,7 +5,7 @@
 #include <ATen/native/transformers/hip/flash_attn/flash_common_hip.hpp>
 #include <fmha_bwd.hpp>
 #include <mask.hpp>
-
+#include <iostream>
 
 namespace pytorch_flash {
 
@@ -442,6 +442,7 @@ mha_varlen_bwd_ck(const at::Tensor &dout,                   // total_q x num_hea
                 softmax_scale,
                 p_dropout,
                 drop_seed_offset);
+        std::cout << "MHA_VARLEN_BWD_CK is about to run" << std::endl;
         float t = fmha_bwd(traits, args, stream_config);
         TORCH_CHECK(t >= 0, "invalid argument for fmha_bwd");
     } else {
