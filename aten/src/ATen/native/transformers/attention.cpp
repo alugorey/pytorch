@@ -75,6 +75,8 @@
 #include <ATen/ops/all.h>
 #endif
 
+
+#include <iostream>
 #include <ATen/native/nested/NestedTensorTransformerFunctions.h>
 namespace at::native {
 
@@ -726,6 +728,9 @@ Tensor scaled_dot_product_attention(
         Tensor query_padded = pad_last_dim<8, false>(query_);
         Tensor key_padded = pad_last_dim<8, false>(key);
         Tensor value_padded = pad_last_dim<8, false>(value);
+        if(scale.has_value()){
+           std::cout << "ORIGINAL SCALE" << scale.value() << std::endl;
+        }
         // We need to calculate the scale based off the OG head dim size
         auto og_scale = sdp::calculate_scale(query_, scale);
         auto out_lse_softmax = at::_scaled_dot_product_flash_attention(
@@ -737,13 +742,47 @@ Tensor scaled_dot_product_attention(
           query_, key, value, dropout_p, is_causal, attn_mask, scale));
     }
     case SDPBackend::efficient_attention: {
+
       bool compute_logsumexp = should_compute_logsumexp(query_, key, value);
       if (attn_mask.has_value()) {
         attn_mask.value() = preprocess_mask(attn_mask.value(), query_, key, value);;
+        std::cout << "ATTN_MASK SIZES: " << attn_mask.value().sizes() << std::endl;
       }
-      auto out_and_lse = at::_scaled_dot_product_efficient_attention(
+
+      // If using CK backend, need to pad tensors to multiple of 8
+      if(at::globalContext().getROCmFAPreferredBackend() == at::ROCmFABackend::Ck) {
+        c10::SymInt og_size = query_.sym_size(-1);
+        Tensor query_padded = pad_last_dim<8, false>(query_);
+        Tensor key_padded = pad_last_dim<8, false>(key);
+        Tensor value_padded = pad_last_dim<8, false>(value);
+        std::cout << "scale has value?: " << scale.has_value() << std::endl;
+        if(scale.has_value()){
+           std::cout << "ORIGINAL SCALE" << scale.value() << std::endl;
+        }
+        // TODO_ANDY: DO WE NEED TO PAD ATTN MASK ALSO?
+        // We need to calculate the scale based off the OG head dim size
+        auto og_scale = sdp::calculate_scale(query_, scale);
+        std::cout << "OG_SCALE_NEW: " << og_scale << std::endl;
+        auto out_and_lse = at::_scaled_dot_product_efficient_attention(
+          query_padded, key_padded, value_padded, attn_mask, compute_logsumexp, dropout_p, is_causal,
+          og_scale.guard_float("attention.cpp", 765));
+
+          //scale);
+        // Remove padding
+        //
+        auto result = post_process_flash_output(std::get<0>(out_and_lse), og_size);
+        std::cout << "CK AFTER THE FACT SIZES: " << result.sizes() << std::endl;
+        std::cout << "CK AFTER THE FACT LOGSUMEXP SIZES: " << std::get<1>(out_and_lse).sizes() << std::endl;
+        std::cout << "CK AFTER THE FACT LOGSUMEXP: " << std::get<1>(out_and_lse) << std::endl;
+        return result;
+
+      } else {
+        auto out_and_lse = at::_scaled_dot_product_efficient_attention(
           query_, key, value, attn_mask, compute_logsumexp, dropout_p, is_causal, scale);
-      return std::get<0>(out_and_lse);
+        std::cout << "AOT AFTER THE FACT LOGSUMEXP SIZES: " << std::get<1>(out_and_lse).sizes() << std::endl;
+        std::cout << "AOT AFTER THE FACT LOGSUMEXP: " << std::get<1>(out_and_lse) << std::endl;
+        return std::get<0>(out_and_lse);
+      }
     }
     case SDPBackend::overrideable: {
       auto out_lse_softmax = at::_scaled_dot_product_fused_attention_overrideable(

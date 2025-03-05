@@ -239,7 +239,7 @@ mha_bwd_ck(const at::Tensor &dout,                   // batch_size x seqlen_q x 
     TORCH_CHECK(false, "This flash attention build does not support backward.");
 #endif
     if (is_causal) { window_size_right = 0; }
-
+    std::cout << "BWD SOFTMAX SCALE!: " << softmax_scale << std::endl;
     bool is_dropout = p_dropout > 0.0;
     auto stream = at::cuda::getCurrentHIPStream().stream();
 
@@ -267,7 +267,7 @@ mha_bwd_ck(const at::Tensor &dout,                   // batch_size x seqlen_q x 
             "If bias_requires_grad is set, grad_bias must have a value");
 
     const auto sizes = q.sizes();
-
+    std::cout << "BWD_Q_SIZES(): " << sizes << std::endl;
     const int batch_size = sizes[0];
     const int seqlen_q = sizes[1];
     const int num_heads = sizes[2];
@@ -276,7 +276,8 @@ mha_bwd_ck(const at::Tensor &dout,                   // batch_size x seqlen_q x 
     const int seqlen_k = k.size(1);
     const int num_heads_k = k.size(2);
     TORCH_CHECK(batch_size > 0, "batch size must be positive");
-    TORCH_CHECK(head_size_8x % 8 == 0, "head_size_8x should be a multiple of 8");
+    std::cout << "HEAD_SIZE_8X BWD: " << head_size_8x << std::endl;
+    TORCH_CHECK(head_size_8x % 8 == 0, "andy: head_size_8x should be a multiple of 8");
     TORCH_CHECK(head_size_8x <= 128, "CK FlashAttention backward only supports head dimension at most 128");
     TORCH_CHECK(num_heads % num_heads_k == 0, "Number of heads in key/value must divide number of heads in query");
 

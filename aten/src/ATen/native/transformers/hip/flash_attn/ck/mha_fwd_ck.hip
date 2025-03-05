@@ -94,7 +94,8 @@ fmha_fwd_args get_ck_fmha_fwd_args(bool has_lse,
         nhead_stride_bias = a_b.stride(1);
         batch_stride_bias = a_b.stride(0);
     }
-
+    std::cout << "INSIDE THE DEEP DEEP: " << q.sizes() << std::endl;
+    std::cout << "LSE sizes: " << softmax_lse << std::endl;
     return fmha_fwd_args{q.data_ptr(),
                          k.data_ptr(),
                          v.data_ptr(),
@@ -174,6 +175,13 @@ mha_fwd_ck(const at::Tensor &q,                      // batch_size x seqlen_q x 
     TORCH_CHECK(v.stride(-1) == 1, "Input tensor must have contiguous last dimension");
 
     const auto sizes = q.sizes();
+    const auto k_sizes = k.sizes();
+    const auto v_sizes = v.sizes();
+//    const auto out_sizes = out_.value().sizes();
+    std::cout << "Q.SIZES()  : " << sizes << std::endl;
+    std::cout << "K.SIZES()  : " << k_sizes << std::endl;
+    std::cout << "V.SIZES()  : " << v_sizes << std::endl;
+//   std::cout << "OUT.SIZES(): " << out_sizes << std::endl;
 
     const int batch_size = sizes[0];
     int seqlen_q = sizes[1];
@@ -181,6 +189,15 @@ mha_fwd_ck(const at::Tensor &q,                      // batch_size x seqlen_q x 
     const int head_size = sizes[3];
     const int seqlen_k = k.size(1);
     const int num_heads_k = k.size(2);
+
+    std::cout << "q_batch_size: " << batch_size << std::endl;
+    std::cout << "k_batch_size: " << k_sizes[0] << std::endl;
+    std::cout << "seqlen_q    : " << seqlen_q << std::endl;
+    std::cout << "seqlen_k    : " << seqlen_k << std::endl;
+    std::cout << "q_head_size : " << head_size << std::endl;
+    std::cout << "k_head_size : " << k_sizes[3] << std::endl;
+    std::cout << "q_num_heads : " << num_heads << std::endl;
+    std::cout << "k_num_heads : " << num_heads_k << std::endl;
     TORCH_CHECK(batch_size > 0, "batch size must be positive");
     TORCH_CHECK(head_size <= 256, "CK only supports head dimension at most 256");
     TORCH_CHECK(head_size % 8 == 0, "query, key, value, and out_ must have a head_size that is a multiple of 8");
@@ -195,14 +212,17 @@ mha_fwd_ck(const at::Tensor &q,                      // batch_size x seqlen_q x 
     mask_info mask;
     if (is_causal) {
         // Causal is the special case where window_size_right == 0 and window_size_left < 0.
+        std::cout << "CASE 0: " << std::endl;
         window_size_right = 0;
         std::string mask_identify = "b:" + std::to_string(window_size_left) + "," + "0";
         mask = mask_info::decode(mask_identify, seqlen_q, seqlen_k); // casual
     }
     else if (window_size_left == -1 && window_size_right == -1) {
+        std::cout << "CASE 1: " << std::endl;
         mask = mask_info::decode("0", seqlen_q, seqlen_k); // no mask
     }
     else {
+        std::cout << "CASE 2: " << std::endl;
         // Local is the more general case where window_size_right >= 0 or window_size_left >= 0.
         std::string mask_identify = "b:" + std::to_string(window_size_left) + "," + std::to_string(window_size_right);
         mask = mask_info::decode(mask_identify, seqlen_q, seqlen_k); // local
@@ -223,19 +243,19 @@ mha_fwd_ck(const at::Tensor &q,                      // batch_size x seqlen_q x 
     CHECK_SHAPE(k, batch_size, seqlen_k, num_heads_k, head_size);
     CHECK_SHAPE(v, batch_size, seqlen_k, num_heads_k, head_size);
 
-
     at::Tensor q_padded, k_padded, v_padded;
     if (head_size % 8 != 0) {
+        std::cout << "SHOULD NOT SEE THIS" << std::endl;
         q_padded = at::pad(temp_q, {0, 8 - head_size % 8});
         k_padded = at::pad(k, {0, 8 - head_size % 8});
         v_padded = at::pad(v, {0, 8 - head_size % 8});
     }
     else {
+        std::cout << "SHOULD DEFINITELY SEE THIS" << std::endl;
         q_padded = temp_q;
         k_padded = k;
         v_padded = v;
     }
-
 
     at::Tensor out;
     if (out_.has_value()) {
@@ -267,7 +287,10 @@ mha_fwd_ck(const at::Tensor &q,                      // batch_size x seqlen_q x 
     at::Tensor softmax_lse;
     // TODO - check gradient, only training require lse
     softmax_lse = at::empty({batch_size, num_heads, seqlen_q}, opts.dtype(at::kFloat));
-
+    std::cout << "EMPTY LSE?: " << softmax_lse << std::endl;
+    std::cout << "HEAD_SIZE   : " << head_size << std::endl;
+    std::cout << "HEAD_SIZE_8X: " << head_size_8x << std::endl;
+    std::cout << "$#$#$%#$#$#$#$#$$#$#$#$#$#^^^^^^^^^^" << std::endl;
     at::Tensor p;
     if (return_dropout_randval) {
         TORCH_CHECK(has_dropout, "return_dropout_randval require p_dropout > 0");
@@ -325,7 +348,7 @@ mha_fwd_ck(const at::Tensor &q,                      // batch_size x seqlen_q x 
                 has_dropout,
                 has_lse,
                 attn_bias_.has_value());
-
+        std::cout << "RIGHT BEFORE THE CALL Q_PADDED_SIZES: " << q_padded.sizes() << std::endl;
         auto args =
             get_ck_fmha_fwd_args(
                 has_lse,
@@ -358,10 +381,13 @@ mha_fwd_ck(const at::Tensor &q,                      // batch_size x seqlen_q x 
     }
 
     if (seqlenq_ngroups_swapped) {
+        std::cout << "FOUND ME WEEEEE" << std::endl; // doesn't run
         out = out.transpose(1, 2).reshape({batch_size, 1, num_heads_k * seqlen_q, head_size});
         q_padded = q_padded.transpose(1, 2).reshape({batch_size, 1, num_heads_k * seqlen_q, head_size});
         softmax_lse = softmax_lse.reshape({batch_size, num_heads_k * seqlen_q, 1});
     }
+    std::cout << "RIGHT BEFORE MHA_FWD RETURNS" << q_padded.sizes() << std::endl;
+    std::cout << "RETURNING LSE:" << softmax_lse << std::endl;
     return {out, q_padded, k_padded, v_padded, softmax_lse, seed_t, offset_t, p};
 }
 } //namespace pytorch_flash

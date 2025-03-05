@@ -855,11 +855,27 @@ std::tuple<Tensor, Tensor, Tensor, Tensor> _scaled_dot_product_efficient_attenti
   Tensor q_t = query.transpose(1, 2);
   Tensor k_t = key.transpose(1, 2);
   Tensor v_t = value.transpose(1, 2);
+  std::cout << "attention.cu: q_t shape: " << q_t.sizes() << std::endl;
+  std::cout << "attention.cu: k_t shape: " << k_t.sizes() << std::endl;
+  std::cout << "attention.cu: v_t shape: " << v_t.sizes() << std::endl;
+  std::cout << "COMPUTING LOGSUM?: " << compute_log_sumexp << std::endl;
+  if(scale.has_value()){
+      std::cout << "SCALE VALUE: " << scale.value() << std::endl;
+  } else {
+      std::cout << "SCALE STILL HAS NO VALUE" << std::endl;
+  }
+
 
   sdp::CustomMaskType custom_mask_type = is_causal
       ? sdp::CustomMaskType::CausalFromTopLeft
       : sdp::CustomMaskType::NoCustomMask;
-
+  auto customMask = is_causal ? "CausalFromTopLeft" : "NoCustomMask";
+  std::cout << "MASK_TYPE: " << customMask << std::endl;
+  if(attn_bias.has_value()) {
+    std::cout << "attn_bias sizes before eaf: " << attn_bias.value().sizes() << std::endl;
+  } else {
+    std::cout << "attn_bias WAS EMPTY" << std::endl;
+  }
   auto [attention, log_sumexp, seed, offset, max_seqlen_batch_q, max_seqlen_batch_kv] = at::_efficient_attention_forward(
       q_t,
       k_t,
@@ -1049,6 +1065,7 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt> _efficient_
   int64_t max_seqlen_q = 0, max_seqlen_k = 0;
   TORCH_CHECK(seqstart_q.has_value() == seqstart_k.has_value());
   if (seqstart_q.has_value()) {
+    std::cout << "NOT SEE THIS PROBABLY" << std::endl;
     TORCH_CHECK(seqstart_q->scalar_type() == at::ScalarType::Int);
     TORCH_CHECK(seqstart_k->scalar_type() == at::ScalarType::Int);
     TORCH_CHECK(seqstart_q->dim() == 1 && seqstart_k->dim() == 1);
@@ -1061,6 +1078,7 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt> _efficient_
     max_seqlen_k = 0; // TODO: is this actually being set inside the kernel anywhere?
                       // see https://github.com/pytorch/pytorch/issues/115590s
   } else {
+    std::cout << "SEE THIS PROBABLY" << std::endl;
     max_seqlen_q = query.size(1);
     max_seqlen_k = key.size(1);
   }
@@ -1078,12 +1096,21 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt> _efficient_
   int64_t num_heads = query.size(-2);
   int64_t K = query.size(-1);
   int64_t Kv = value.size(-1);
+/*
+  std::cout << "====EFFICIENT_ATTENTION_FORWARD========" << std::endl;
+  std::cout << "Q.sizes()  : " << query.sizes() << std::endl;
+  std::cout << "K.sizes()  : " << key.sizes() << std::endl;
+  std::cout << "V.sizes()  : " << value.sizes() << std::endl;
+  std::cout << "OUT.sizes(): " << 
+  std::cout << "==================^^^^=================" << std::endl;
+*/
 
   at::Tensor res;
   at::Tensor logsumexp;
   at::Tensor seed_t, offset_t;
 
   const bool use_dropout = std::fpclassify(dropout_p) != FP_ZERO;
+  std::cout << "USE_DROPOUT?: " << use_dropout << std::endl;
 
   // Note [Seed and Offset Device]
   // If we are currently in graph capture mode, we need to create the seed and offset tensors on the device.
@@ -1133,6 +1160,24 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt> _efficient_
   // Need this in both aot and CK case
   const auto softmax_scale = sdp::calculate_scale(query, scale).expect_float();
   res = at::empty({B, M, num_heads, Kv}, query.options());
+  std::cout << "====EFFICIENT_ATTENTION_FORWARD========" << std::endl;
+  std::cout << "Q.sizes()  : " << query.sizes() << std::endl;
+  std::cout << "K.sizes()  : " << key.sizes() << std::endl;
+  std::cout << "V.sizes()  : " << value.sizes() << std::endl;
+  std::cout << "OUT.sizes(): " << res.sizes() << std::endl;
+  std::cout << "SM SCALE   : " << softmax_scale << std::endl;
+  /*
+  if(bias.has_value()) {
+      std::cout << "BIAS       : " << bias.value() << std::endl;
+  }else {
+      std::cout << "BIAS HAD NO VALUE" << std::endl;
+  }
+  */ // same for both aot and CK ^^
+
+  auto is_it_causal = custom_mask_type == 0 ? false : true;
+  std::cout << "IS CAUSAL  : " << is_it_causal << std::endl;
+  std::cout << "BEFORE LOGSUMEXP: " << logsumexp << std::endl; // UNDEFINED HERE
+  std::cout << "==================^^^^=================" << std::endl;
 
   if(at::globalContext().getROCmFAPreferredBackend() ==
     at::ROCmFABackend::Ck) {
@@ -1141,6 +1186,9 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt> _efficient_
     std::optional<Tensor> out(res);
     std::optional<Tensor> seqused_k = std::nullopt;
     std::optional<Tensor> alibi_slopes = std::nullopt;
+    logsumexp = at::empty(
+      { B, num_heads, max_seqlen_q },
+      query.options().dtype(at::ScalarType::Float));
     auto
         [out_,
          q,
@@ -1168,6 +1216,14 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt> _efficient_
                                     seqused_k);                           // seqused_k_
 
     logsumexp = lse;
+    if (!compute_logsumexp) {
+      // Set the tensor to empty when compute_logsumexp is false
+      std::cout << "GOT IN HERE" << std::endl;
+      logsumexp = at::empty(
+        { B * num_heads, max_seqlen_q, 0 },
+        query.options().dtype(at::ScalarType::Float));
+    }
+    std::cout << "ANDY LSE SIZES: " << logsumexp << std::endl;
 #else
     TORCH_CHECK(false, "Attempting to use CK mem_eff_forward backend in a build that has not built CK");
 #endif
@@ -1187,6 +1243,8 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt> _efficient_
       { B, num_heads, max_seqlen_q },
       query.options().dtype(at::ScalarType::Float));
     at::Tensor softmax_lse = logsumexp.view({B * num_heads, max_seqlen_q});
+    std::cout << "AOTRITON LSE: " << softmax_lse.sizes() << std::endl;
+    std::cout << softmax_lse << std::endl;
     at::Tensor q_t = query.transpose(1, 2);
     at::Tensor k_t = key.transpose(1, 2);
     at::Tensor v_t = value.transpose(1, 2);
@@ -1199,7 +1257,7 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt> _efficient_
     } else {
       TORCH_CHECK(false, "[_efficient_attention_forward] Unsupported mask type on ROCM, for now");
     }
-
+    std::cout << "AOTRITON IS CAUSAL: " << is_causal << std::endl;
 
     using aotriton::v2::flash::attn_fwd;
     using aotriton::v2::flash::attn_fwd_compact_varlen;
@@ -1434,6 +1492,17 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt> _efficient_
   AT_CUDA_CHECK(cudaGetLastError());
 
 #endif // USE_ROCM
+  //torch::set_print_options(torch::print_options().set_threshold(10000));
+  std::cout << "RETURNING LSE: " << logsumexp.sizes() << std::endl;
+  std::cout << logsumexp << std::endl;
+/*
+  if(bias.has_value()) {
+    std::cout << "RETURNING BIAS" << std::endl;
+    std::cout << bias.value() << std::endl;
+  } else {
+    std::cout << "BIAS HAD NO VALUE" << std::endl;
+  }
+  */
   return std::make_tuple(
       std::move(res),
       std::move(logsumexp),

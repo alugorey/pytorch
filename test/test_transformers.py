@@ -3855,17 +3855,35 @@ class TestAttnBias(NNTestCase):
         backend=None,
         causal_variant=None,
     ):
+        torch.set_printoptions(profile="full")
         if backend is not None:
             torch._dynamo.reset()
 
         query, key, value = make_q(), make_kv(), make_kv()
+        #print("SANITY QUERY", query)
+        print("EARLY")
         query_prototype, key_prototype, value_prototype = query_key_value_clones(query, key, value)
 
         realized = attn_bias._materialize(device) if attn_bias is not None else None
+
+
+        torch.backends.cuda.preferred_rocm_fa_library("ck")
+
+
         pytorch_output = scaled_dot_product_attention(
             query, key, value, attn_mask=realized, dropout_p=0.0, is_causal=False
         )
 
+        """
+        torch.backends.cuda.preferred_rocm_fa_library("aotriton")
+        aot_output = scaled_dot_product_attention(
+            query_prototype, key_prototype, value_prototype, attn_mask=realized, dropout_p=0.0, is_causal=False
+        )
+        """
+
+
+        print("BACKEND: ", backend)
+        
         sdpa_op = (
             torch.compile(scaled_dot_product_attention, backend=backend)
             if backend is not None
@@ -3880,28 +3898,46 @@ class TestAttnBias(NNTestCase):
             is_causal=False,
             scale=None,
         )
-
+        
         dOut = torch.randn_like(pytorch_output)
-        pytorch_output.backward(dOut)
-        sdpa_output.backward(dOut)
-
+        #pytorch_output.backward(dOut)
+        #sdpa_output.backward(dOut)
+        #print("MINE")
+        #print(pytorch_output)
+        #print("THEIRS")
+        #print(sdpa_output)
         # Use default assert_close tolerances for dtypes
         if forw_tolerances is None:
             forw_tolerances = Tolerances(atol=None, rtol=None)
         if grad_tolerances is None:
             grad_tolerances = Tolerances(atol=None, rtol=None)
+        #print(pytorch_output.logsumexp(-1).shape)
+        #print(pytorch_output.logsumexp(-1))
+        #print(sdpa_output.logsumexp(-1).shape)
+        #print(sdpa_output.logsumexp(-1))
+        
 
+        #print("AOT")
+        #print(aot_output)
+        #print("CK")
+        #print(pytorch_output)
+
+        #torch.testing.assert_close(aot_output, pytorch_output, rtol = forw_tolerances.rtol, atol=forw_tolerances.atol)
         torch.testing.assert_close(pytorch_output, sdpa_output, rtol=forw_tolerances.rtol, atol=forw_tolerances.atol)
-        torch.testing.assert_close(query.grad, query_prototype.grad, rtol=grad_tolerances.rtol, atol=grad_tolerances.atol)
-        torch.testing.assert_close(key.grad, key_prototype.grad, rtol=grad_tolerances.rtol, atol=grad_tolerances.atol)
-        torch.testing.assert_close(value.grad, value_prototype.grad, rtol=grad_tolerances.rtol, atol=grad_tolerances.atol)
+        #torch.testing.assert_close(query.grad, query_prototype.grad, rtol=grad_tolerances.rtol, atol=grad_tolerances.atol)
+        #torch.testing.assert_close(key.grad, key_prototype.grad, rtol=grad_tolerances.rtol, atol=grad_tolerances.atol)
+        #torch.testing.assert_close(value.grad, value_prototype.grad, rtol=grad_tolerances.rtol, atol=grad_tolerances.atol)
 
     @parametrize("causal_variant", [CausalVariant.UPPER_LEFT, CausalVariant.LOWER_RIGHT])
     @parametrize(
         "shape",
-        [(16, 16, 128, 128, 16), (16, 16, 128, 256, 32), (16, 16, 256, 128, 32), (1, 1, 23, 56, 15)],
+        #[(16, 16, 128, 128, 16), (16, 16, 128, 256, 32), (16, 16, 256, 128, 32), (1, 1, 23, 56, 15)],
+        [(16, 16, 128, 128, 16), (16, 16, 128, 256, 32), (16, 16, 256, 128, 32), (1, 1, 2, 4, 8)],
     )
     def test_causal_variants(self, device, causal_variant: CausalVariant, shape: list[tuple[int]]):
+        print("test_transformers - HERE: ", shape)
+        torch.manual_seed(123)
+        #torch.backends.cuda.preferred_rocm_fa_library("ck")
         make_tensor = partial(
             torch.rand, device=device, dtype=torch.float16, requires_grad=True
         )

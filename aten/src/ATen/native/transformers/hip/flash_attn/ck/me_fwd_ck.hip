@@ -35,10 +35,12 @@ mem_eff_forward_ck(
   TORCH_CHECK(
     cu_seqlens_q.has_value() == cu_seqlens_k.has_value(),
     "cu_seqlens_q and cu_seqlens_k must be both set or both not set");
-
-
+  if(is_causal.has_value()){
+    std::cout << "ME_EFF_FORWARD_CK IS CAUSAL: " << is_causal.value() << std::endl;
+  }
   if(!seqstart_q.has_value()){
     std::cout << "MEM_EFF_FWD_CK is about to run" << std::endl;
+    std::cout << "DTYPE: " << q.dtype() << std::endl;
     return mha_fwd_ck(
       q,                     // q
       k,                     // k

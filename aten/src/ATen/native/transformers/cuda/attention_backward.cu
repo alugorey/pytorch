@@ -416,6 +416,7 @@ _efficient_attention_backward(
     const auto my_softmax_scale = sdp::calculate_scale(query, scale).expect_float();
     // Store grad_bias in optional
     std::optional<at::Tensor> opt_grad_bias = grad_bias;
+    std::cout << "ATTENTION_BACKWARD: Q_SIZES = " << query.sizes();
     auto
         [dQ,
          dK,
@@ -866,7 +867,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> _scaled_dot_product_e
     std::array<bool, 4> grad_input_mask,
     bool causal,
     std::optional<double> scale) {
-
+  std::cout << "SDPA_MEM_EFF_BWD non t Q SIZES: " << query.sizes() << std::endl;
   if (!grad_out_.defined()) {
     return std::make_tuple(Tensor{}, Tensor{}, Tensor{}, Tensor{});
   }
@@ -891,6 +892,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> _scaled_dot_product_e
   sdp::CustomMaskType custom_mask_type = causal
     ? sdp::CustomMaskType::CausalFromTopLeft
     : sdp::CustomMaskType::NoCustomMask;
+  std::cout << "SDPA_MEM_EFF_BWD Q SIZES: " << q_t.sizes() << std::endl;
   auto [grad_q, grad_k, grad_v, grad_bias] =
       at::_efficient_attention_backward(
           grad_out,
