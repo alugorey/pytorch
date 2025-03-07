@@ -1203,11 +1203,17 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt> _efficient_
       TORCH_CHECK(false, "[_efficient_attention_forward] Unsupported mask type on ROCM, for now");
     }
 
+    at::Tensor atomic_counter;
+    if (is_causal) {
+      atomic_counter = at::zeros({1}, query.options().dtype(at::kInt));
+    }
+
     using aotriton::v2::flash::attn_fwd;
     using aotriton::v2::flash::attn_fwd_compact_varlen;
     using sdp::aotriton_adapter::mk_aotensor;
     using sdp::aotriton_adapter::mk_aoscalartensor;
     using sdp::aotriton_adapter::mk_philoxtensor;
+    using sdp::aotriton_adapter::mk_atomictensor;
     aotriton::TensorView<4> empty_t4(0, {0, 0, 0, 0}, {0, 0, 0, 0}, aotriton::DType::kFloat16);
     aotriton::TensorView<2> empty_t2(0, {0, 0}, {0, 0}, aotriton::DType::kFloat32);
     at::Tensor softmax_fa_t = at::empty({ 0, 0, 0, 0 }, query.options());
@@ -1217,6 +1223,7 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt> _efficient_
     auto offset2 = use_philox_state ? philox_state.offset_intragraph_ : 0;
     auto seed_output = mk_philoxtensor(use_philox_state ? seed_t.data_ptr<int64_t>() : nullptr);
     auto offset_output = mk_philoxtensor(use_philox_state ? offset_t.data_ptr<int64_t>() : nullptr);
+    auto persistent_counter = mk_atomictensor(is_causal ? atomic_counter.data_ptr<int32_t>() : nullptr);
     hipError_t err; // TODO: Error handling
     if (seqstart_q.has_value()) {
       // varlen aka nested tensor
@@ -1239,6 +1246,7 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt> _efficient_
                                     offset_output,
                                     mk_aotensor(softmax_fa_t, "encoded_softmax"),
                                     is_causal,
+                                    persistent_counter,
                                     stream);
     } else {
       err = attn_fwd(mk_aotensor(q_t, "q"),
@@ -1256,6 +1264,7 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt> _efficient_
                      offset_output,
                      mk_aotensor(softmax_fa_t, "encoded_softmax"),
                      is_causal,
+                     persistent_counter,
                      stream);
     }
   } // CK BACKEND
@@ -1520,15 +1529,24 @@ at::Tensor& _fill_mem_eff_dropout_mask_(
 #if defined(USE_MEM_EFF_ATTENTION)
 
 #ifdef USE_ROCM
-  using aotriton::v2::flash::debug_fill_dropout_rng;
+  using aotriton::v2::flash::debug_simulate_encoded_softmax;
   using sdp::aotriton_adapter::mk_aotensor;
+  using sdp::aotriton_adapter::mk_aoscalartensor;
+  at::cuda::CUDAGuard device_guard(self.device());
   cudaStream_t stream = at::cuda::getCurrentCUDAStream();
+
+  at::Tensor seed_t, offset_t;
+  const auto options = at::dtype(at::kLong).device(at::kCUDA);
+  seed_t = at::scalar_tensor(at::Scalar(seed), options);
+  offset_t = at::scalar_tensor(at::Scalar(offset), options);
   hipError_t err; // TODO: Error handling
 
-  err = debug_fill_dropout_rng(mk_aotensor(self, "r"),
-                               static_cast<uint64_t>(seed),
-                               static_cast<uint64_t>(offset),
-                               stream);
+  err = debug_simulate_encoded_softmax(mk_aotensor(self, "r"),
+                                       dropout_p,
+                                       mk_aoscalartensor(seed_t),
+                                       mk_aoscalartensor(offset_t),
+                                       0,
+                                       stream);
 #else
   at::PhiloxCudaState rng_engine_inputs;
   rng_engine_inputs = at::PhiloxCudaState(seed, offset);

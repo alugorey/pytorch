@@ -458,7 +458,7 @@ _efficient_attention_backward(
     if (hipSuccess != ret) {
       TORCH_CHECK(false,
                 "[AOTriton] Accelerated SDPA only supports MI200/MI300X/Navi31 GPUs"
-                " (gfx90a/gfx942/gfx1100)")
+                " (gfx90a/gfx942/gfx1100/gfx1201)")
     }
     const auto softmax_scale = sdp::calculate_scale(query, scale).expect_float();
     bool is_causal;
@@ -512,26 +512,49 @@ _efficient_attention_backward(
                                     is_causal,
                                     stream);
     } else { // cu_seqlens.has_value
-      at::Tensor delta = at::empty_like(softmax_lse).contiguous();
-      err = attn_bwd(mk_aotensor(q_t, "q"),
-                     mk_aotensor(k_t, "k"),
-                     mk_aotensor(v_t, "v"),
-                     bias.has_value() ? mk_aotensor(bias.value(), "bias") : empty_t4,
-                     softmax_scale,
-                     mk_aotensor(out_t, "out"),
-                     mk_aotensor(dout_t, "dout"),
-                     mk_aotensor(dq_t, "dq"),
-                     mk_aotensor(dk_t, "dk"),
-                     mk_aotensor(dv_t, "dv"),
-                     bias_requires_grad ? mk_aotensor(grad_bias, "db") : empty_t4,
-                     mk_aotensor<2>(softmax_lse, "L"),
-                     mk_aotensor<2>(delta, "delta"),
-                     float(dropout_p),
-                     mk_aoscalartensor(philox_seed),
-                     mk_aoscalartensor(philox_offset),
-                     0,
-                     is_causal,
-                     stream);
+      auto d_head = Kv;
+      bool use_fused_bwd = d_head <= 192 && d_head * max_seqlen_q < 64 * 512;
+      if (use_fused_bwd) {
+        err = attn_bwd_fused(mk_aotensor(q_t, "q"),
+                             mk_aotensor(k_t, "k"),
+                             mk_aotensor(v_t, "v"),
+                             bias.has_value() ? mk_aotensor(bias.value(), "bias") : empty_t4,
+                             softmax_scale,
+                             mk_aotensor(out_t, "out"),
+                             mk_aotensor(dout_t, "dout"),
+                             mk_aotensor(dq_t, "dq"),
+                             mk_aotensor(dk_t, "dk"),
+                             mk_aotensor(dv_t, "dv"),
+                             bias_requires_grad ? mk_aotensor(grad_bias, "db") : empty_t4,
+                             mk_aotensor<2>(softmax_lse, "L"),
+                             float(dropout_p),
+                             mk_aoscalartensor(philox_seed),
+                             mk_aoscalartensor(philox_offset),
+                             0,
+                             is_causal,
+                             stream);
+      } else { // used_fused_bwd
+        at::Tensor delta = at::empty_like(softmax_lse).contiguous();
+        err = attn_bwd(mk_aotensor(q_t, "q"),
+                       mk_aotensor(k_t, "k"),
+                       mk_aotensor(v_t, "v"),
+                       bias.has_value() ? mk_aotensor(bias.value(), "bias") : empty_t4,
+                       softmax_scale,
+                       mk_aotensor(out_t, "out"),
+                       mk_aotensor(dout_t, "dout"),
+                       mk_aotensor(dq_t, "dq"),
+                       mk_aotensor(dk_t, "dk"),
+                       mk_aotensor(dv_t, "dv"),
+                       bias_requires_grad ? mk_aotensor(grad_bias, "db") : empty_t4,
+                       mk_aotensor<2>(softmax_lse, "L"),
+                       mk_aotensor<2>(delta, "delta"),
+                       float(dropout_p),
+                       mk_aoscalartensor(philox_seed),
+                       mk_aoscalartensor(philox_offset),
+                       0,
+                       is_causal,
+                       stream);
+      } // used_fused_bwd
     } // cuseqlen.has_value
   } // Use CK
 #else // USE_CUDA
