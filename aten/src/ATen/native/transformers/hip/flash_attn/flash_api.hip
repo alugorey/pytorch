@@ -751,4 +751,4 @@ mha_varlen_bwd(const at::Tensor &dout,  // total_q x num_heads, x head_size
 
 } // namespace pytorch_fmha
 
-#endif
+#endif  // USE_FLASH_ATTENTION
