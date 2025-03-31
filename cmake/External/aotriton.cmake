@@ -1,6 +1,7 @@
 macro(get_target_gpus_from_pytorch target_gpus)
    set(gfx90a_key MI200)
    set(gfx942_key MI300X)
+   set(gfx1100_key Navi31)
 
    foreach(X IN LISTS PYTORCH_ROCM_ARCH)
        set(key ${X})
@@ -49,8 +50,6 @@ if(NOT __AOTRITON_INCLUDED)
     set(__AOTRITON_INSTALL_DIR "$ENV{AOTRITON_INSTALLED_PREFIX}")
     message(STATUS "Using Preinstalled AOTriton at ${__AOTRITON_INSTALL_DIR}")
   elseif(DEFINED ENV{AOTRITON_INSTALL_FROM_SOURCE})
-    file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/.ci/docker/aotriton_version.txt" __AOTRITON_CI_INFO)
-    list(GET __AOTRITON_CI_INFO 3 __AOTRITON_CI_COMMIT)
     set(target_gpus "")
     get_target_gpus_from_pytorch(target_gpus)
     ExternalProject_Add(aotriton_external
@@ -60,7 +59,7 @@ if(NOT __AOTRITON_INCLUDED)
       INSTALL_DIR ${__AOTRITON_INSTALL_DIR}
       LIST_SEPARATOR |
       CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${__AOTRITON_INSTALL_DIR}
-      -DTARGET_GPUS:STRING="Unidentified"
+      -DTARGET_GPUS:STRING=${target_gpus}
       -DAOTRITON_COMPRESS_KERNEL=ON
       -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
       -DAOTRITON_NO_PYTHON=ON
@@ -77,19 +76,30 @@ if(NOT __AOTRITON_INCLUDED)
     add_dependencies(__caffe2_aotriton aotriton_external)
     message(STATUS "Using AOTriton compiled from source directory ${__AOTRITON_EXTERN_PREFIX}")
   else()
-    file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/.ci/docker/aotriton_version.txt" __AOTRITON_CI_INFO)
-    list(GET __AOTRITON_CI_INFO 0 __AOTRITON_VER)
-    list(GET __AOTRITON_CI_INFO 1 __AOTRITON_MANYLINUX)
-    list(GET __AOTRITON_CI_INFO 2 __AOTRITON_ROCM)
-    list(GET __AOTRITON_CI_INFO 3 __AOTRITON_COMMIT)
-    list(GET __AOTRITON_CI_INFO 4 __AOTRITON_SHA256)
+    set(__AOTRITON_SYSTEM_ROCM "${ROCM_VERSION_DEV_MAJOR}.${ROCM_VERSION_DEV_MINOR}")
+    list(GET __AOTRITON_ROCM_LIST 0 __AOTRITON_ROCM_DEFAULT_STR)
+    # Initialize __AOTRITON_ROCM to lowest version, in case all builds > system's ROCM
+    string(SUBSTRING ${__AOTRITON_ROCM_DEFAULT_STR} 4 -1 __AOTRITON_ROCM)
+    foreach(AOTRITON_ROCM_BUILD_STR IN LISTS __AOTRITON_ROCM_LIST)
+      # len("rocm") == 4
+      string(SUBSTRING ${AOTRITON_ROCM_BUILD_STR} 4 -1 AOTRITON_ROCM_BUILD)
+      # Find the last build that <= system's ROCM
+      # Assume the list is from lower to higher
+      if(AOTRITON_ROCM_BUILD VERSION_GREATER __AOTRITON_SYSTEM_ROCM)
+        break()
+      endif()
+      set(__AOTRITON_ROCM ${AOTRITON_ROCM_BUILD})
+    endforeach()
+    list(FIND __AOTRITON_ROCM_LIST "rocm${__AOTRITON_ROCM}" __AOTRITON_ROCM_INDEX)
+    list(GET __AOTRITON_SHA256_LIST ${__AOTRITON_ROCM_INDEX} __AOTRITON_SHA256)
+    list(GET __AOTRITON_MANYLINUX_LIST ${__AOTRITON_ROCM_INDEX} __AOTRITON_MANYLINUX)
     set(__AOTRITON_ARCH ${CMAKE_HOST_SYSTEM_PROCESSOR})
     string(CONCAT __AOTRITON_FILE "aotriton-"
                                   "${__AOTRITON_VER}-${__AOTRITON_MANYLINUX}"
-                                  "_${__AOTRITON_ARCH}-${__AOTRITON_ROCM}"
-                                  "-shared.tar.gz")
-    string(CONCAT __AOTRITON_URL "https://compute-artifactory.amd.com/artifactory/rocm-generic-local/aotriton/"
-                                 "${__AOTRITON_FILE}")
+                                  "_${__AOTRITON_ARCH}-rocm${__AOTRITON_ROCM}"
+                                  "-shared.tar.${__AOTRITON_Z}")
+    string(CONCAT __AOTRITON_URL "https://github.com/ROCm/aotriton/releases/download/"
+                                 "${__AOTRITON_VER}/${__AOTRITON_FILE}")
     ExternalProject_Add(aotriton_external
       URL "${__AOTRITON_URL}"
       URL_HASH SHA256=${__AOTRITON_SHA256}
