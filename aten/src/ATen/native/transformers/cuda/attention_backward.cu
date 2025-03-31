@@ -480,6 +480,7 @@ _efficient_attention_backward(
     at::Tensor softmax_lse = logsumexp.view({B * nH, max_seqlen_q});
     hipError_t err;
     using aotriton::v2::flash::attn_bwd;
+    using aotriton::v2::flash::attn_bwd_fused;
     using aotriton::v2::flash::attn_bwd_compact_varlen;
     using sdp::aotriton_adapter::mk_aotensor;
     using sdp::aotriton_adapter::mk_aoscalartensor;
