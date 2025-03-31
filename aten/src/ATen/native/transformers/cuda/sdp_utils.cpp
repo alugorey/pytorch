@@ -243,16 +243,6 @@ bool check_flash_attention_hardware_support(sdp_params const& params, bool debug
         }
         return false;
     }
-#if AOTRITON_VERSION_MINOR >= 9
-    if (aotriton::isArchExperimentallySupported(stream)) {
-      static const bool enable_experimental = c10::utils::check_env("TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL") == true;
-      if (!enable_experimental) {
-        TORCH_WARN_ONCE("Flash Efficient attention on Current AMD GPU is still experimental."
-            " Enable it with TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL=1.");
-        return false;
-      }
-    }
-#endif
   }
 #else
   return false;
@@ -289,16 +279,6 @@ bool check_mem_efficient_hardware_support(sdp_params const& params, bool debug) 
       }
       return false;
   }
-#if AOTRITON_VERSION_MINOR >= 9
-  if (aotriton::isArchExperimentallySupported(stream)) {
-    static const bool enable_experimental = c10::utils::check_env("TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL") == true;
-    if (!enable_experimental) {
-      TORCH_WARN_ONCE("Mem Efficient attention on Current AMD GPU is still experimental."
-          " Enable it with TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL=1.");
-      return false;
-    }
-  }
-#endif
 #else
   return false;
 #endif
