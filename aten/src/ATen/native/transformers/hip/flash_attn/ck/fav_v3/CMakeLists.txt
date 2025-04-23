@@ -9,3 +9,7 @@ execute_process(
 if(ret AND NOT ret EQUAL 0)
     message( FATAL_ERROR "Faled to generate FAv3 CK Kernels")
 endif()
+
+
+# Change file extensions to .hip
+execute_process(COMMAND bash -c "for file in ${CMAKE_CURRENT_LIST_DIR}/*.cpp; do mv -- \"$file\" \"\${file%.cpp}.hip\"; done")

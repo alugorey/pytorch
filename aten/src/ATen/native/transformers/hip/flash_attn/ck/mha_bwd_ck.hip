@@ -433,8 +433,8 @@ mha_bwd_ck(const at::Tensor &dout,                   // batch_size x seqlen_q x 
                 softmax_scale,
                 p_dropout,
                 drop_seed_offset);
-//        auto new_traits = get_mha_bwd_traits(traits, mask);
-//        float test = aiter::fmha_bwd_v3(new_traits, args, stream_config);
+        auto new_traits = get_mha_bwd_traits(traits, mask);
+        float test = aiter::fmha_bwd_v3(new_traits, args, stream_config);
 
         float t = fmha_bwd(traits, args, stream_config);
         TORCH_CHECK(t >= 0, "invalid argument for fmha_bwd");
