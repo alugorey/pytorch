@@ -7,6 +7,8 @@
 #include <fmha_bwd.hpp>
 #include <mask.hpp>
 
+#include <iostream>
+
 namespace pytorch_flash {
 
 fmha_bwd_traits get_ck_fmha_bwd_traits(const mask_info &mask,
@@ -433,8 +435,10 @@ mha_bwd_ck(const at::Tensor &dout,                   // batch_size x seqlen_q x 
                 softmax_scale,
                 p_dropout,
                 drop_seed_offset);
+        std::cout << "ABOUT TO CALL V3" << std::endl;
         auto new_traits = get_mha_bwd_traits(traits, mask);
         float test = aiter::fmha_bwd_v3(new_traits, args, stream_config);
+        std::cout << "BACK FROM V3" << std::endl;
 
         float t = fmha_bwd(traits, args, stream_config);
         TORCH_CHECK(t >= 0, "invalid argument for fmha_bwd");
