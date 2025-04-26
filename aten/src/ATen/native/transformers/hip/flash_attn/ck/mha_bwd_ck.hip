@@ -46,7 +46,7 @@ aiter::mha_bwd_traits get_mha_bwd_traits(fmha_bwd_traits t, mask_info mask)
                           t.is_store_randval,
                           t.is_deterministic,
                           true,                 // use_ext_asm
-                          false,                // is_v3_atomic_fp32,
+                          true,                // is_v3_atomic_fp32,
                           1);                    // how_v3_bf16_cvt
     
 }
@@ -260,6 +260,9 @@ mha_bwd_ck(const at::Tensor &dout,                   // batch_size x seqlen_q x 
 #ifdef FLASHATTENTION_DISABLE_BACKWARD
     TORCH_CHECK(false, "This flash attention build does not support backward.");
 #endif
+    std::cout << "mha_bwd_ck::window_size_right: " << window_size_right << std::endl;
+    std::cout << "mha_bwd_ck::window_size_left : " << window_size_left << std::endl;
+    std::cout << "mha_bwd_ck::is_causal        : " << is_causal << std::endl;
     if (is_causal) { window_size_right = 0; }
 
     bool is_dropout = p_dropout > 0.0;
@@ -310,14 +313,19 @@ mha_bwd_ck(const at::Tensor &dout,                   // batch_size x seqlen_q x 
 
     mask_info mask;
     if (is_causal) {
+        std::cout << "MHA_BWD_CK::mask path is_causal" << std::endl;
         std::string mask_identify = "b:" + std::to_string(window_size_left) + "," + "0";
         mask = mask_info::decode(mask_identify, seqlen_q, seqlen_k); // casual
     }
     else if (window_size_left == -1 && window_size_right == -1) {
+        std::cout << "MHA_BWD_CK::mask path window_sizes are both -1" << std::endl;
         mask = mask_info::decode("0", seqlen_q, seqlen_k); // no mask
+        std::cout << "MHA_BWD_CK::mask.left : " << mask.left << std::endl;
+        std::cout << "MHA_BWD_CK::mask.right: " << mask.right << std::endl;
     }
     else {
         // Local is the more general case where window_size_right >= 0 or window_size_left >= 0.
+        std::cout << "MHA_BWD_CK::mask path else case" << std::endl;
         std::string mask_identify = "b:" + std::to_string(window_size_left) + "," + std::to_string(window_size_right);
         mask = mask_info::decode(mask_identify, seqlen_q, seqlen_k); // local
     }
@@ -399,6 +407,7 @@ mha_bwd_ck(const at::Tensor &dout,                   // batch_size x seqlen_q x 
     if (seqlen_q > 0) {
         ck_tile::stream_config stream_config{stream};
         dq.zero_(); // ck use atomic operation on dq
+        /*
         auto traits =
             get_ck_fmha_bwd_traits(mask,
                                    q_dtype_str,
@@ -407,7 +416,7 @@ mha_bwd_ck(const at::Tensor &dout,                   // batch_size x seqlen_q x 
                                    attn_bias_.has_value(),
                                    deterministic,
                                    bias_requires_grad);
-
+*/
 
         auto args =
             get_ck_fmha_bwd_args(
@@ -435,12 +444,29 @@ mha_bwd_ck(const at::Tensor &dout,                   // batch_size x seqlen_q x 
                 softmax_scale,
                 p_dropout,
                 drop_seed_offset);
-        std::cout << "ABOUT TO CALL V3" << std::endl;
-        auto new_traits = get_mha_bwd_traits(traits, mask);
-        float test = aiter::fmha_bwd_v3(new_traits, args, stream_config);
-        std::cout << "BACK FROM V3" << std::endl;
+//        std::cout << "ABOUT TO CALL V3" << std::endl;
+//        auto new_traits = get_mha_bwd_traits(traits, mask);
+//        float test = aiter::fmha_bwd_v3(new_traits, args, stream_config);
+//        std::cout << "BACK FROM V3" << std::endl;
 
-        float t = fmha_bwd(traits, args, stream_config);
+//        float t = fmha_bwd(traits, args, stream_config);
+        std::cout << "HAS BIAS?: " << attn_bias_.has_value() << std::endl;
+        float t = aiter::mha_bwd(args,
+                                 stream_config,
+                                 q_dtype_str,
+                                 false,             // is_group_mode
+                                 mask,
+                                 attn_bias_.has_value() ? bias_enum::elementwise_bias : bias_enum::no_bias,
+                                 bias_requires_grad,
+                                 false,             // is_store_randval
+                                 deterministic,
+                                 true,              // use_ext_asm
+                                 true,             // is_v3_atomic_fp32
+                                 1);                // how_v3_bf16_cvt
+
+
+
+
         TORCH_CHECK(t >= 0, "invalid argument for fmha_bwd");
     } else {
         // If seqlen_q == 0, then we have an empty tensor. We need to set the output to 0.

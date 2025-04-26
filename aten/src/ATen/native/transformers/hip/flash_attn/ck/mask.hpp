@@ -8,7 +8,7 @@
 
 #include <ck_tile/core.hpp>
 #include <ck_tile/ops/fmha.hpp>
-
+#include <iostream>
 // keep this in sync with ck_tile::GenericAttentionMaskEnum
 enum class mask_enum
 {
@@ -42,9 +42,11 @@ struct mask_info
         ck_tile::index_t x_total = seqlen_k;
         ck_tile::index_t y_total = seqlen_q;
         mask_info tmp;
+        std::cout << "Mask string: " << str << std::endl;
         auto found_0 = str.find(':');
         if(found_0 != std::string::npos)
         {
+            std::cout << "mask.hpp: route 1" << std::endl;
             std::string t = str.substr(0, found_0);
             std::string v = str.substr(found_0 + 1);
             if(t == "xt" || t == "xb")
@@ -115,6 +117,9 @@ struct mask_info
         }
         else
         {
+            // this is the route causing errors
+            // TODO_ANDY: `str` is "0" in this case. the conditionals below are invalid.
+            std::cout << "mask.hpp: route 2" << std::endl;
             auto set_causal_top_left = [&]() {
                 tmp.type  = mask_enum::mask_top_left;
                 tmp.y     = seqlen_q;
