@@ -134,19 +134,25 @@ struct mask_info
                 tmp.left  = -1;
                 tmp.right = 0;
             };
-            if(str == "t")
+            if(str == "t") {
+                std::cout << "mask.hpp str = t" << std::endl;
                 set_causal_top_left();
-            else if(str == "b")
+
+            } else if(str == "b") {
+                std::cout << "mask.hpp str = b" << std::endl;
                 set_causal_bottom_right();
-            else
-            {
+            } else {
+                std::cout << "mash.hpp else case" << std::endl;
                 tmp.type = static_cast<mask_enum>(atoi(str.c_str()));
+                std::cout << "tmp.type: " << int(tmp.type) << std::endl;
                 if(tmp.type == mask_enum::mask_top_left)
                 {
+                    std::cout << "mask.hpp tmp.type = mask_top_left" << std::endl;
                     set_causal_top_left();
                 }
                 else if(tmp.type == mask_enum::mask_bottom_right)
                 {
+                    std::cout << "mask.hpp tmp.type = mask_bottom_right" << std::endl;
                     set_causal_bottom_right();
                 }
             }

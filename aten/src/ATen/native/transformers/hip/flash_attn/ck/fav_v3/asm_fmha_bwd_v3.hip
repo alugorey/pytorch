@@ -874,6 +874,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
     std::cout << "stride_q           : " << a.stride_q << std::endl;
     std::cout << "stride_k           : " << a.stride_k << std::endl;
     std::cout << "stride_v           : " << a.stride_v << std::endl;
+    std::cout << "stride_dq_acc      : " << a.stride_dq_acc << std::endl;
     std::cout << "nhead_stride_q     : " << a.nhead_stride_q << std::endl;
     std::cout << "nhead_stride_k     : " << a.nhead_stride_k << std::endl;
     std::cout << "nhead_stride_v     : " << a.nhead_stride_v << std::endl;
