@@ -88,8 +88,6 @@ std::tuple<Tensor, Tensor, Tensor> _flash_attention_backward(
 
   const int non_null_window_left = window_size_left.has_value() ? window_size_left.value() : -1;
   const int non_null_window_right = window_size_right.has_value() ? window_size_right.value() : -1;
-  std::cout << "attention_backward::window_size_right: " << non_null_window_right << std::endl;
-  std::cout << "attention_backward::window_size_left : " << non_null_window_left << std::endl;
 
   std::optional<at::Tensor> dq{std::nullopt};
   std::optional<at::Tensor> dk{std::nullopt};

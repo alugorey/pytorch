@@ -67,6 +67,8 @@ fmha_fwd_args get_ck_fmha_fwd_args(bool has_lse,
     ck_tile::index_t stride_randval = has_dropout_randval ? dropout_randval.stride(2) : 0;
 
     ck_tile::index_t nhead_stride_q = q.stride(2);
+    std::cout << "FWD NHEAD_STRIDE_Q: " << nhead_stride_q << std::endl;
+    //std::cout << q << std::endl;
     ck_tile::index_t nhead_stride_k = k.stride(2);
     ck_tile::index_t nhead_stride_v = v.stride(2);
     ck_tile::index_t nhead_stride_o = out.stride(2);
@@ -181,6 +183,7 @@ mha_fwd_ck(const at::Tensor &q,                      // batch_size x seqlen_q x 
     const int head_size = sizes[3];
     const int seqlen_k = k.size(1);
     const int num_heads_k = k.size(2);
+    std::cout << "MHA_FWD_CK: HEAD DIMENSION: " << head_size << std::endl;
     TORCH_CHECK(batch_size > 0, "batch size must be positive");
     TORCH_CHECK(head_size <= 256, "CK only supports head dimension at most 256");
     TORCH_CHECK(head_size % 8 == 0, "query, key, value, and out_ must have a head_size that is a multiple of 8");

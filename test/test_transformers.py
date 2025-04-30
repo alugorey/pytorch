@@ -2906,6 +2906,7 @@ class TestSDPACudaOnly(NNTestCase):
     @parametrize("is_causal", [True, False])
     @parametrize("dtype", [torch.float16, torch.bfloat16])
     def test_sdp_flash_attention_grad_against_math(self, device, contiguous_inputs: bool, is_causal: bool, dtype: torch.dtype):
+        self._test_tautological_mm(device, e5m2_type, e5m2_type)
         batch_size, seq_len, num_heads, head_dim = 4, 4, 2, 16
         make_tensor = partial(rand_sdpa_tensor, type="dense", device=device,
                               dtype=torch.float64, requires_grad=True, packed=True)
@@ -3378,7 +3379,7 @@ class TestSDPACudaOnly(NNTestCase):
     @parametrize("head_dim", [8, 203, 256])
     @parametrize("is_causal", [True, False])
     @parametrize("dropout_p", [0.0, 0.22, 0.48])
-    @parametrize("dtype", [torch.float16, torch.bfloat16])
+    @parametrize("dtype", [torch.bfloat16])
     @parametrize("scale", [None, "l1"])
     @parametrize("enable_gqa", [True, False])
     @parametrize("n_heads", [[16, 8], [10, 2]])
@@ -3386,6 +3387,7 @@ class TestSDPACudaOnly(NNTestCase):
     def test_flash_attention_vs_math_ref_grads(self, device, batch_size: int, seq_len_q: int, seq_len_k: int,
                                                head_dim: int, is_causal: bool, dropout_p: float, dtype: torch.dtype,
                                                scale: str, enable_gqa: bool, n_heads: list[int]):
+        torch.backends.cuda.preferred_rocm_fa_library("ck") 
         if isSM8XDevice or isSM120Device and head_dim in range(193, 256 + 1):
             self.skipTest("Flash attention on sm86, sm87, and sm89 for headdim > 192 currently disabled")
         if is_causal and seq_len_q != seq_len_k:

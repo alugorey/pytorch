@@ -243,15 +243,22 @@ def write_results_to_csv(
 
 
 def generate_experiment_configs() -> list[ExperimentConfig]:
+    """
     batch_sizes = [1, 8, 16]
     num_heads = [16]
     q_kv_seq_lens = [(128, 128), (256, 256), (512, 512), (1024, 1024), (8192, 8192)]
+    embed_dims = [2048]
+    """
+    batch_sizes = [1]
+    num_heads = [16]
+    q_kv_seq_lens = [(512, 512)]
     embed_dims = [2048]
     backends = [None]  # If set to None, all backends are enabled
     dtypes = [
         torch.bfloat16,
     ]
-    is_causal = [True, False]
+#    is_causal = [True, False]
+    is_causal = [False]
     all_configs = []
     for (
         bsz,
@@ -282,6 +289,7 @@ def generate_experiment_configs() -> list[ExperimentConfig]:
 
 def main():
     seed = 123
+    torch.backends.cuda.preferred_rocm_fa_library("ck")
     torch.manual_seed(seed)
     results = []
     for config in tqdm(generate_experiment_configs()):

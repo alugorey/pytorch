@@ -82,6 +82,8 @@ fmha_bwd_args get_ck_fmha_bwd_args(const mask_info &mask,
     ck_tile::index_t batch_stride_q = q.stride(0);
     ck_tile::index_t stride_q = q.stride(1);
     ck_tile::index_t nhead_stride_q = q.stride(2);
+    std::cout << q.sizes() << std::endl;
+    std::cout << "NHEAD_STRIDE_Q: " << nhead_stride_q << std::endl;
 
     // k: (batch_size, seqlen_k, nheads_k, hdim)
     ck_tile::index_t batch_stride_k = k.stride(0);
@@ -106,6 +108,7 @@ fmha_bwd_args get_ck_fmha_bwd_args(const mask_info &mask,
     ck_tile::index_t batch_stride_do = dout.stride(0);
     ck_tile::index_t stride_do = dout.stride(1);
     ck_tile::index_t nhead_stride_do = dout.stride(2);
+    std::cout << "NHEAD_STRIDE_DO: " << nhead_stride_do << std::endl;
 
     // d: (batch_size, nheads, seqlen_q)
 
@@ -406,6 +409,7 @@ mha_bwd_ck(const at::Tensor &dout,                   // batch_size x seqlen_q x 
 
     if (seqlen_q > 0) {
         ck_tile::stream_config stream_config{stream};
+        stream_config.log_level_ = 1;
         dq.zero_(); // ck use atomic operation on dq
         /*
         auto traits =

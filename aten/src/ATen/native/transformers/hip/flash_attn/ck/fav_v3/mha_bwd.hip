@@ -64,7 +64,6 @@ float mha_bwd(mha_bwd_args args,
                                      how_v3_bf16_cvt);
     float t = -1;
     std::cout << "Inside mha_bwd.hip. about to call fmha_bwd or fmha_bwd_v3" << std::endl;
-    std::cout << "test bias type?: " << int(bias_type) << std::endl;
     t = fmha_bwd_v3(traits, args, stream_config);
     std::cout << "came back from v3, about to check what happened current t: " << t << std::endl;
     if (t == -1) {

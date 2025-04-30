@@ -572,7 +572,7 @@ template <typename dot_do_o_trait_, typename dq_dk_dv_v3_traits_>
 float fmha_bwd_v3_(const ck_tile::stream_config& s, fmha_bwd_args a)
 {
     if(s.log_level_ > 0)
-        std::cout << ", " << fmha_bwd_dot_do_o_get_name_<dot_do_o_trait_>() << ", " << FmhaBwdV3Name<dq_dk_dv_v3_traits_>::bwd_v3_name << std::flush;
+        std::cout << "BONUS: A, " << fmha_bwd_dot_do_o_get_name_<dot_do_o_trait_>() << ", " << FmhaBwdV3Name<dq_dk_dv_v3_traits_>::bwd_v3_name << std::flush;
     fmha_bwd_v3_args args;
     args.ptr_dq  = a.dq_ptr;
     args.ptr_dk  = a.dk_ptr;
@@ -615,7 +615,7 @@ template <typename dot_do_o_trait_, typename dq_dk_dv_v3_traits_>
 float fmha_bwd_v3_gen_(const ck_tile::stream_config& s, fmha_bwd_args a)
 {
     if(s.log_level_ > 0)
-        std::cout << ", " << fmha_bwd_dot_do_o_get_name_<dot_do_o_trait_>() << ", " << FmhaBwdV3Name<dq_dk_dv_v3_traits_>::bwd_v3_name << std::flush;
+        std::cout << "BONUS: B, " << fmha_bwd_dot_do_o_get_name_<dot_do_o_trait_>() << ", " << FmhaBwdV3Name<dq_dk_dv_v3_traits_>::bwd_v3_name << std::flush;
     fmha_bwd_v3_gen_args args;
     args.ptr_dq  = a.dq_ptr;
     args.ptr_dk  = a.dk_ptr;
@@ -659,7 +659,7 @@ template <typename dot_do_o_trait_, typename dq_dk_dv_v3_traits_, typename conve
 float fmha_bwd_v3_(const ck_tile::stream_config& s, fmha_bwd_args a)
 {
     if(s.log_level_ > 0)
-        std::cout << ", " << fmha_bwd_dot_do_o_get_name_<dot_do_o_trait_>() << ", " << FmhaBwdV3Name<dq_dk_dv_v3_traits_>::bwd_v3_name << ", " << fmha_bwd_convert_dq_get_name_<convert_dq_trait_>() << std::flush;
+        std::cout << "BONUS: C, " << fmha_bwd_dot_do_o_get_name_<dot_do_o_trait_>() << ", " << FmhaBwdV3Name<dq_dk_dv_v3_traits_>::bwd_v3_name << ", " << fmha_bwd_convert_dq_get_name_<convert_dq_trait_>() << std::flush;
     fmha_bwd_v3_args args;
     args.ptr_dq  = a.dq_acc_ptr;
     args.ptr_dk  = a.dk_ptr;
@@ -703,7 +703,7 @@ template <typename dot_do_o_trait_, typename dq_dk_dv_v3_traits_, typename conve
 float fmha_bwd_v3_gen_(const ck_tile::stream_config& s, fmha_bwd_args a)
 {
     if(s.log_level_ > 0)
-        std::cout << ", " << fmha_bwd_dot_do_o_get_name_<dot_do_o_trait_>() << ", " << FmhaBwdV3Name<dq_dk_dv_v3_traits_>::bwd_v3_name << ", " << fmha_bwd_convert_dq_get_name_<convert_dq_trait_>() << std::flush;
+        std::cout << "BONUS: D, " << fmha_bwd_dot_do_o_get_name_<dot_do_o_trait_>() << ", " << FmhaBwdV3Name<dq_dk_dv_v3_traits_>::bwd_v3_name << ", " << fmha_bwd_convert_dq_get_name_<convert_dq_trait_>() << std::flush;
     fmha_bwd_v3_gen_args args;
     args.ptr_dq  = a.dq_acc_ptr;
     args.ptr_dk  = a.dk_ptr;
@@ -748,7 +748,7 @@ template <typename dot_do_o_trait_, typename dq_dk_dv_v3_traits_, typename conve
 float fmha_bwd_v3_genl_(const ck_tile::stream_config& s, fmha_bwd_args a)
 {
     if(s.log_level_ > 0)
-        std::cout << ", " << fmha_bwd_dot_do_o_get_name_<dot_do_o_trait_>() << ", " << FmhaBwdV3Name<dq_dk_dv_v3_traits_>::bwd_v3_name << ", " << fmha_bwd_convert_dq_get_name_<convert_dq_trait_>() << std::flush;
+        std::cout << "BONUS: E, " << fmha_bwd_dot_do_o_get_name_<dot_do_o_trait_>() << ", " << FmhaBwdV3Name<dq_dk_dv_v3_traits_>::bwd_v3_name << ", " << fmha_bwd_convert_dq_get_name_<convert_dq_trait_>() << std::flush;
     fmha_bwd_v3_genl_args args;
     args.ptr_dq   = a.dq_acc_ptr;
     args.ptr_dk   = a.dk_ptr;
@@ -803,7 +803,7 @@ template <typename dot_do_o_trait_, typename dq_dk_dv_v3_traits_, typename conve
 float fmha_bwd_v3_group_(const ck_tile::stream_config& s, fmha_bwd_args a)
 {
     if(s.log_level_ > 0)
-        std::cout << ", " << fmha_bwd_dot_do_o_get_name_<dot_do_o_trait_>() << ", " << FmhaBwdV3Name<dq_dk_dv_v3_traits_>::bwd_v3_name << ", " << fmha_bwd_convert_dq_get_name_<convert_dq_trait_>() << std::flush;
+        std::cout << "BONUS: F, " << fmha_bwd_dot_do_o_get_name_<dot_do_o_trait_>() << ", " << FmhaBwdV3Name<dq_dk_dv_v3_traits_>::bwd_v3_name << ", " << fmha_bwd_convert_dq_get_name_<convert_dq_trait_>() << std::flush;
 
     fmha_bwd_v3_group_args args;
     auto seqstart_q = reinterpret_cast<const int32_t*>(a.seqstart_q_ptr);
@@ -874,10 +874,12 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
     std::cout << "stride_q           : " << a.stride_q << std::endl;
     std::cout << "stride_k           : " << a.stride_k << std::endl;
     std::cout << "stride_v           : " << a.stride_v << std::endl;
+    std::cout << "stride_do          : " << a.stride_do << std::endl;
     std::cout << "stride_dq_acc      : " << a.stride_dq_acc << std::endl;
     std::cout << "nhead_stride_q     : " << a.nhead_stride_q << std::endl;
     std::cout << "nhead_stride_k     : " << a.nhead_stride_k << std::endl;
     std::cout << "nhead_stride_v     : " << a.nhead_stride_v << std::endl;
+    std::cout << "nhead_stride_do    : " << a.nhead_stride_do << std::endl;
     std::cout << "nhead_stride_dq_acc: " << a.nhead_stride_dq_acc << std::endl;
     std::cout << "nhead_stride_k     : " << a.nhead_stride_k << std::endl;
     std::cout << "nhead_stride_v     : " << a.nhead_stride_v << std::endl;
@@ -986,7 +988,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                     using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<128, FmhaBwdFp16, false, false, false, false>;
                                     // const std::string bwd_v3_name = "bwd_v3_fp16_causal_a32_psskddv";
                                     r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
-                                    return r;
+                                return r;
                                 }
                                 else if((a.seqlen_q % 64 != 0) && (a.hdim_q == 128)){
                                     using dot_do_o_trait_ = fmha_bwd_dot_do_o_traits_<128, FmhaBwdFp16, false, true, false>;
@@ -994,7 +996,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                     using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<128, FmhaBwdFp16, false, true, false, false>;
                                     // const std::string bwd_v3_name = "bwd_v3_fp16_causal_a32_psskddv";
                                     r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
-                                    return r;
+                                return r;
                                 }
                                 else if((a.seqlen_q % 64 == 0) && (a.hdim_q != 128)){
                                     using dot_do_o_trait_ = fmha_bwd_dot_do_o_traits_<128, FmhaBwdFp16, false, false, true>;
@@ -1002,7 +1004,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                     using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<128, FmhaBwdFp16, false, false, true, false>;
                                     // const std::string bwd_v3_name = "bwd_v3_fp16_causal_a32_psskddv";
                                     r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
-                                    return r;
+                                return r;
                                 }
                                 else if((a.seqlen_q % 64 != 0) && (a.hdim_q != 128)){
                                     using dot_do_o_trait_ = fmha_bwd_dot_do_o_traits_<128, FmhaBwdFp16, false, true, true>;
@@ -1010,7 +1012,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                     using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<128, FmhaBwdFp16, false, true, true, false>;
                                     // const std::string bwd_v3_name = "bwd_v3_fp16_causal_a32_psskddv";
                                     r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
-                                    return r;
+                                return r;
                                 }
                             }
                         }
@@ -1046,6 +1048,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                     using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<128, FmhaBwdBf16, false, false, false, false>;
                                     // const std::string bwd_v3_name = "bwd_v3_bf16_a32_rtne";
                                     r = fmha_bwd_v3_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
+                                    std::cout << "CHECKPOINT: 0 " << std::endl;
                                     return r;
                                 }
                                 else if((a.seqlen_q % 64 == 0) && (a.hdim_q == 128)){
@@ -1054,6 +1057,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                     using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<128, FmhaBwdBf16, false, false, false, false>;
                                     // const std::string bwd_v3_name = "bwd_v3_bf16_a32_rtne_psskddv";
                                     r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
+                                    std::cout << "CHECKPOINT: 1 " << std::endl;
                                     return r;
                                 }
                                 else if((a.seqlen_q % 64 != 0) && (a.hdim_q == 128)){
@@ -1062,6 +1066,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                     using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<128, FmhaBwdBf16, false, true, false, false>;
                                     // const std::string bwd_v3_name = "bwd_v3_bf16_a32_rtne_psskddv";
                                     r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
+                                    std::cout << "CHECKPOINT: 2 " << std::endl;
                                     return r;
                                 }
                                 else if((a.seqlen_q % 64 == 0) && (a.hdim_q != 128)){
@@ -1070,6 +1075,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                     using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<128, FmhaBwdBf16, false, false, true, false>;
                                     // const std::string bwd_v3_name = "bwd_v3_bf16_a32_rtne_psskddv";
                                     r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
+                                    std::cout << "CHECKPOINT: 3" << std::endl;
                                     return r;
                                 }
                                 else if((a.seqlen_q % 64 != 0) && (a.hdim_q != 128)){
@@ -1078,6 +1084,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                     using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<128, FmhaBwdBf16, false, true, true, false>;
                                     // const std::string bwd_v3_name = "bwd_v3_bf16_a32_rtne_psskddv";
                                     r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
+                                    std::cout << "CHECKPOINT: 4" << std::endl;
                                     return r;
                                 }
                             }
@@ -1090,6 +1097,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                     using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<128, FmhaBwdBf16, false, false, false, false>;
                                     // const std::string bwd_v3_name = "bwd_v3_bf16_a32_rtna";
                                     r = fmha_bwd_v3_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
+                                    std::cout << "CHECKPOINT: 5" << std::endl;
                                     return r;
                                 }
                                 else if((a.seqlen_q % 64 == 0) && (a.hdim_q == 128)){
@@ -1098,6 +1106,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                     using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<128, FmhaBwdBf16, false, false, false, false>;
                                     // const std::string bwd_v3_name = "bwd_v3_bf16_a32_rtna_psskddv";
                                     r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
+                                    std::cout << "CHECKPOINT: 6" << std::endl;
                                     return r;
                                 }
                                 else if((a.seqlen_q % 64 != 0) && (a.hdim_q == 128)){
@@ -1106,6 +1115,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                     using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<128, FmhaBwdBf16, false, true, false, false>;
                                     // const std::string bwd_v3_name = "bwd_v3_bf16_a32_rtna_psskddv";
                                     r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
+                                    std::cout << "CHECKPOINT: 7" << std::endl;
                                     return r;
                                 }
                                 else if((a.seqlen_q % 64 == 0) && (a.hdim_q != 128)){
@@ -1114,6 +1124,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                     using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<128, FmhaBwdBf16, false, false, true, false>;
                                     // const std::string bwd_v3_name = "bwd_v3_bf16_a32_rtna_psskddv";
                                     r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
+                                    std::cout << "CHECKPOINT: 8" << std::endl;
                                     return r;
                                 }
                                 else if((a.seqlen_q % 64 != 0) && (a.hdim_q != 128)){
@@ -1122,6 +1133,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                     using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<128, FmhaBwdBf16, false, true, true, false>;
                                     // const std::string bwd_v3_name = "bwd_v3_bf16_a32_rtna_psskddv";
                                     r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
+                                    std::cout << "CHECKPOINT: 9" << std::endl;
                                     return r;
                                 }
                             }
@@ -1134,6 +1146,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                     using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<128, FmhaBwdBf16, false, false, false, false>;
                                     // const std::string bwd_v3_name = "bwd_v3_bf16_a32_rtz";
                                     r = fmha_bwd_v3_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
+                                    std::cout << "CHECKPOINT: 10" << std::endl;
                                     return r;
                                 }
                                 else if((a.seqlen_q % 64 == 0) && (a.hdim_q == 128)){
@@ -1142,6 +1155,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                     using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<128, FmhaBwdBf16, false, false, false, false>;
                                     // const std::string bwd_v3_name = "bwd_v3_bf16_a32_rtz_psskddv";
                                     r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
+                                    std::cout << "CHECKPOINT: 11" << std::endl;
                                     return r;
                                 }
                                 else if((a.seqlen_q % 64 != 0) && (a.hdim_q == 128)){
@@ -1150,6 +1164,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                     using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<128, FmhaBwdBf16, false, true, false, false>;
                                     // const std::string bwd_v3_name = "bwd_v3_bf16_a32_rtz_psskddv";
                                     r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
+                                    std::cout << "CHECKPOINT: 12" << std::endl;
                                     return r;
                                 }
                                 else if((a.seqlen_q % 64 == 0) && (a.hdim_q != 128)){
@@ -1158,6 +1173,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                     using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<128, FmhaBwdBf16, false, false, true, false>;
                                     // const std::string bwd_v3_name = "bwd_v3_bf16_a32_rtz_psskddv";
                                     r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
+                                    std::cout << "CHECKPOINT: 13" << std::endl;
                                     return r;
                                 }
                                 else if((a.seqlen_q % 64 != 0) && (a.hdim_q != 128)){
@@ -1166,6 +1182,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                     using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<128, FmhaBwdBf16, false, true, true, false>;
                                     // const std::string bwd_v3_name = "bwd_v3_bf16_a32_rtz_psskddv";
                                     r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
+                                    std::cout << "CHECKPOINT: 14" << std::endl;
                                     return r;
                                 }
                             }
@@ -1179,6 +1196,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                     using dq_dk_dv_v3_traits_ = fmha_bwd_dq_dk_dv_v3_traits_<128, FmhaBwdBf16, false, false, 0, false, false>;
                                     // const std::string bwd_v3_name = "bwd_v3_bf16_a16_rtne";
                                     r = fmha_bwd_v3_<dot_do_o_trait_, dq_dk_dv_v3_traits_>(s, a);
+                                    std::cout << "CHECKPOINT: 15" << std::endl;
                                     return r;
                                 }
                                 else{
@@ -1186,6 +1204,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                     using dq_dk_dv_v3_traits_ = fmha_bwd_dq_dk_dv_v3_traits_<128, FmhaBwdBf16, false, false, 0, false, true>;
                                     // const std::string bwd_v3_name = "bwd_v3_bf16_a16_rtne_pddv";
                                     r = fmha_bwd_v3_gen_<dot_do_o_trait_, dq_dk_dv_v3_traits_>(s, a);
+                                    std::cout << "CHECKPOINT: 16" << std::endl;
                                     return r;
                                 }
                             }
@@ -1195,6 +1214,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                     using dq_dk_dv_v3_traits_ = fmha_bwd_dq_dk_dv_v3_traits_<128, FmhaBwdBf16, false, false, 1, false, false>;
                                     // const std::string bwd_v3_name = "bwd_v3_bf16_a16_rtna";
                                     r = fmha_bwd_v3_<dot_do_o_trait_, dq_dk_dv_v3_traits_>(s, a);
+                                    std::cout << "CHECKPOINT: 17" << std::endl;
                                     return r;
                                 }
                                 else{
@@ -1202,6 +1222,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                     using dq_dk_dv_v3_traits_ = fmha_bwd_dq_dk_dv_v3_traits_<128, FmhaBwdBf16, false, false, 1, false, true>;
                                     // const std::string bwd_v3_name = "bwd_v3_bf16_a16_rtna_pddv";
                                     r = fmha_bwd_v3_gen_<dot_do_o_trait_, dq_dk_dv_v3_traits_>(s, a);
+                                    std::cout << "CHECKPOINT: 18" << std::endl;
                                     return r;
                                 }
                             }
@@ -1211,6 +1232,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                     using dq_dk_dv_v3_traits_ = fmha_bwd_dq_dk_dv_v3_traits_<128, FmhaBwdBf16, false, false, 2, false, false>;
                                     // const std::string bwd_v3_name = "bwd_v3_bf16_a16_rtz";
                                     r = fmha_bwd_v3_<dot_do_o_trait_, dq_dk_dv_v3_traits_>(s, a);
+                                    std::cout << "CHECKPOINT: 19" << std::endl;
                                     return r;
                                 }
                                 else{
@@ -1218,6 +1240,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                     using dq_dk_dv_v3_traits_ = fmha_bwd_dq_dk_dv_v3_traits_<128, FmhaBwdBf16, false, false, 2, false, true>;
                                     // const std::string bwd_v3_name = "bwd_v3_bf16_a16_rtz_pddv";
                                     r = fmha_bwd_v3_gen_<dot_do_o_trait_, dq_dk_dv_v3_traits_>(s, a);
+                                    std::cout << "CHECKPOINT: 20" << std::endl;
                                     return r;
                                 }
                             }
@@ -1234,6 +1257,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                     using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<128, FmhaBwdBf16, false, false, false, false>;
                                     // const std::string bwd_v3_name = "bwd_v3_bf16_causal_a32_rtne";
                                     r = fmha_bwd_v3_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
+                                    std::cout << "CHECKPOINT: 21" << std::endl;
                                     return r;
                                 }
                                 else if((a.seqlen_q == a.seqlen_k) || ((a.seqlen_q != a.seqlen_k) && (t.mask_type == mask_enum::mask_top_left))){
@@ -1243,7 +1267,8 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                         using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<128, FmhaBwdBf16, false, false, false, false>;
                                         // const std::string bwd_v3_name = "bwd_v3_bf16_causal_a32_rtne_psskddv";
                                         r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
-                                        return r;
+                                        std::cout << "CHECKPOINT: 22" << std::endl;
+                                    return r;
                                     }
                                     else if((a.seqlen_q % 64 != 0) && (a.hdim_q == 128)){
                                         using dot_do_o_trait_ = fmha_bwd_dot_do_o_traits_<128, FmhaBwdBf16, false, true, false>;
@@ -1251,7 +1276,8 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                         using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<128, FmhaBwdBf16, false, true, false, false>;
                                         // const std::string bwd_v3_name = "bwd_v3_bf16_causal_a32_rtne_psskddv";
                                         r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
-                                        return r;
+                                        std::cout << "CHECKPOINT: 23" << std::endl;
+                                    return r;
                                     }
                                     else if((a.seqlen_q % 64 == 0) && (a.hdim_q != 128)){
                                         using dot_do_o_trait_ = fmha_bwd_dot_do_o_traits_<128, FmhaBwdBf16, false, false, true>;
@@ -1259,7 +1285,8 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                         using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<128, FmhaBwdBf16, false, false, true, false>;
                                         // const std::string bwd_v3_name = "bwd_v3_bf16_causal_a32_rtne_psskddv";
                                         r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
-                                        return r;
+                                        std::cout << "CHECKPOINT: 24" << std::endl;
+                                    return r;
                                     }
                                     else if((a.seqlen_q % 64 != 0) && (a.hdim_q != 128)){
                                         using dot_do_o_trait_ = fmha_bwd_dot_do_o_traits_<128, FmhaBwdBf16, false, true, true>;
@@ -1267,7 +1294,8 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                         using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<128, FmhaBwdBf16, false, true, true, false>;
                                         // const std::string bwd_v3_name = "bwd_v3_bf16_causal_a32_rtne_psskddv";
                                         r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
-                                        return r;
+                                        std::cout << "CHECKPOINT: 25" << std::endl;
+                                    return r;
                                     }
                                 }
                             }
@@ -1280,6 +1308,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                     using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<128, FmhaBwdBf16, false, false, false, false>;
                                     // const std::string bwd_v3_name = "bwd_v3_bf16_causal_a32_rtna";
                                     r = fmha_bwd_v3_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
+                                    std::cout << "CHECKPOINT: 26" << std::endl;
                                     return r;
                                 }
                                 else if((a.seqlen_q == a.seqlen_k) || ((a.seqlen_q != a.seqlen_k) && (t.mask_type == mask_enum::mask_top_left))){
@@ -1289,7 +1318,8 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                         using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<128, FmhaBwdBf16, false, false, false, false>;
                                         // const std::string bwd_v3_name = "bwd_v3_bf16_causal_a32_rtna_psskddv";
                                         r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
-                                        return r;
+                                        std::cout << "CHECKPOINT: 27" << std::endl;
+                                    return r;
                                     }
                                     else if((a.seqlen_q % 64 != 0) && (a.hdim_q == 128)){
                                         using dot_do_o_trait_ = fmha_bwd_dot_do_o_traits_<128, FmhaBwdBf16, false, true, false>;
@@ -1297,7 +1327,8 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                         using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<128, FmhaBwdBf16, false, true, false, false>;
                                         // const std::string bwd_v3_name = "bwd_v3_bf16_causal_a32_rtna_psskddv";
                                         r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
-                                        return r;
+                                        std::cout << "CHECKPOINT: 28" << std::endl;
+                                    return r;
                                     }
                                     else if((a.seqlen_q % 64 == 0) && (a.hdim_q != 128)){
                                         using dot_do_o_trait_ = fmha_bwd_dot_do_o_traits_<128, FmhaBwdBf16, false, false, true>;
@@ -1305,7 +1336,8 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                         using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<128, FmhaBwdBf16, false, false, true, false>;
                                         // const std::string bwd_v3_name = "bwd_v3_bf16_causal_a32_rtna_psskddv";
                                         r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
-                                        return r;
+                                        std::cout << "CHECKPOINT: 29" << std::endl;
+                                    return r;
                                     }
                                     else if((a.seqlen_q % 64 != 0) && (a.hdim_q != 128)){
                                         using dot_do_o_trait_ = fmha_bwd_dot_do_o_traits_<128, FmhaBwdBf16, false, true, true>;
@@ -1313,7 +1345,8 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                         using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<128, FmhaBwdBf16, false, true, true, false>;
                                         // const std::string bwd_v3_name = "bwd_v3_bf16_causal_a32_rtna_psskddv";
                                         r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
-                                        return r;
+                                        std::cout << "CHECKPOINT: 30" << std::endl;
+                                    return r;
                                     }
                                 }
                             }
@@ -1326,6 +1359,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                     using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<128, FmhaBwdBf16, false, false, false, false>;
                                     // const std::string bwd_v3_name = "bwd_v3_bf16_causal_a32_rtz";
                                     r = fmha_bwd_v3_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
+                                    std::cout << "CHECKPOINT: 31" << std::endl;
                                     return r;
                                 }
                                 else if((a.seqlen_q == a.seqlen_k) || ((a.seqlen_q != a.seqlen_k) && (t.mask_type == mask_enum::mask_top_left))){
@@ -1335,6 +1369,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                         using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<128, FmhaBwdBf16, false, false, false, false>;
                                         // const std::string bwd_v3_name = "bwd_v3_bf16_causal_a32_rtz_psskddv";
                                         r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
+                                        std::cout << "CHECKPOINT: 32" << std::endl;
                                         return r;
                                     }
                                     else if((a.seqlen_q % 64 != 0) && (a.hdim_q == 128)){
@@ -1343,6 +1378,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                         using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<128, FmhaBwdBf16, false, true, false, false>;
                                         // const std::string bwd_v3_name = "bwd_v3_bf16_causal_a32_rtz_psskddv";
                                         r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
+                                        std::cout << "CHECKPOINT: 33" << std::endl;
                                         return r;
                                     }
                                     else if((a.seqlen_q % 64 == 0) && (a.hdim_q != 128)){
@@ -1351,6 +1387,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                         using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<128, FmhaBwdBf16, false, false, true, false>;
                                         // const std::string bwd_v3_name = "bwd_v3_bf16_causal_a32_rtz_psskddv";
                                         r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
+                                        std::cout << "CHECKPOINT: 34" << std::endl;
                                         return r;
                                     }
                                     else if((a.seqlen_q % 64 != 0) && (a.hdim_q != 128)){
@@ -1359,6 +1396,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                         using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<128, FmhaBwdBf16, false, true, true, false>;
                                         // const std::string bwd_v3_name = "bwd_v3_bf16_causal_a32_rtz_psskddv";
                                         r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
+                                        std::cout << "CHECKPOINT: 35" << std::endl;
                                         return r;
                                     }
                                 }
@@ -1373,6 +1411,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                     using dq_dk_dv_v3_traits_ = fmha_bwd_dq_dk_dv_v3_traits_<128, FmhaBwdBf16, true, false, 0, false, false>;
                                     // const std::string bwd_v3_name = "bwd_v3_bf16_causal_a16_rtne";
                                     r = fmha_bwd_v3_<dot_do_o_trait_, dq_dk_dv_v3_traits_>(s, a);
+                                    std::cout << "CHECKPOINT: 36" << std::endl;
                                     return r;
                                 }
                                 else{
@@ -1380,6 +1419,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                     using dq_dk_dv_v3_traits_ = fmha_bwd_dq_dk_dv_v3_traits_<128, FmhaBwdBf16, true, false, 0, false, true>;
                                     // const std::string bwd_v3_name = "bwd_v3_bf16_causal_a16_rtne_pddv";
                                     r = fmha_bwd_v3_gen_<dot_do_o_trait_, dq_dk_dv_v3_traits_>(s, a);
+                                    std::cout << "CHECKPOINT: 37" << std::endl;
                                     return r;
                                 }
                             }
@@ -1389,6 +1429,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                     using dq_dk_dv_v3_traits_ = fmha_bwd_dq_dk_dv_v3_traits_<128, FmhaBwdBf16, true, false, 1, false, false>;
                                     // const std::string bwd_v3_name = "bwd_v3_bf16_causal_a16_rtna";
                                     r = fmha_bwd_v3_<dot_do_o_trait_, dq_dk_dv_v3_traits_>(s, a);
+                                    std::cout << "CHECKPOINT: 38" << std::endl;
                                     return r;
                                 }
                                 else{
@@ -1396,6 +1437,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                     using dq_dk_dv_v3_traits_ = fmha_bwd_dq_dk_dv_v3_traits_<128, FmhaBwdBf16, true, false, 1, false, true>;
                                     // const std::string bwd_v3_name = "bwd_v3_bf16_causal_a16_rtna_pddv";
                                     r = fmha_bwd_v3_gen_<dot_do_o_trait_, dq_dk_dv_v3_traits_>(s, a);
+                                    std::cout << "CHECKPOINT: 39" << std::endl;
                                     return r;
                                 }
                             }
@@ -1405,6 +1447,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                     using dq_dk_dv_v3_traits_ = fmha_bwd_dq_dk_dv_v3_traits_<128, FmhaBwdBf16, true, false, 2, false, false>;
                                     // const std::string bwd_v3_name = "bwd_v3_bf16_causal_a16_rtz";
                                     r = fmha_bwd_v3_<dot_do_o_trait_, dq_dk_dv_v3_traits_>(s, a);
+                                    std::cout << "CHECKPOINT: 40" << std::endl;
                                     return r;
                                 }
                                 else{
@@ -1412,6 +1455,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                     using dq_dk_dv_v3_traits_ = fmha_bwd_dq_dk_dv_v3_traits_<128, FmhaBwdBf16, true, false, 2, false, true>;
                                     // const std::string bwd_v3_name = "bwd_v3_bf16_causal_a16_rtz_pddv";
                                     r = fmha_bwd_v3_gen_<dot_do_o_trait_, dq_dk_dv_v3_traits_>(s, a);
+                                    std::cout << "CHECKPOINT: 41" << std::endl;
                                     return r;
                                 }
                             }
@@ -1430,6 +1474,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                     using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<64, FmhaBwdFp16, false, false, false, false>;
                                     // const std::string bwd_v3_name = "bwd_v3_hd64_fp16_a32_pssk";
                                     r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
+                                    std::cout << "CHECKPOINT: 42" << std::endl;
                                     return r;
                                 }
                                 else{
@@ -1438,6 +1483,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                     using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<64, FmhaBwdFp16, false, true, false, false>;
                                     // const std::string bwd_v3_name = "bwd_v3_hd64_fp16_a32_pssk";
                                     r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
+                                    std::cout << "CHECKPOINT: 43" << std::endl;
                                     return r;
                                 }
                             }
@@ -1447,6 +1493,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                 using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<64, FmhaBwdFp16, true, true, false, false>;
                                 // const std::string bwd_v3_name = "bwd_v3_hd64_fp16_a32_pssk_group";
                                 r = fmha_bwd_v3_group_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
+                                std::cout << "CHECKPOINT: 44" << std::endl;
                                 return r;
                             }
                         }
@@ -1457,6 +1504,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                             using dq_dk_dv_v3_traits_ = fmha_bwd_dq_dk_dv_v3_traits_<64, FmhaBwdFp16, false, false, 0, false, false>;
                             // const std::string bwd_v3_name = "bwd_v3_hd64_fp16_a16";
                             r = fmha_bwd_v3_<dot_do_o_trait_, dq_dk_dv_v3_traits_>(s, a);
+                            std::cout << "CHECKPOINT: 45" << std::endl;
                             return r;
                         }
                     }
@@ -1469,6 +1517,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                     using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<64, FmhaBwdFp16, false, false, false, false>;
                                     // const std::string bwd_v3_name = "bwd_v3_hd64_fp16_causal_a32_pssk";
                                     r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
+                                    std::cout << "CHECKPOINT: 46" << std::endl;
                                     return r;
                                 }
                                 else{
@@ -1477,6 +1526,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                     using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<64, FmhaBwdFp16, false, true, false, false>;
                                     // const std::string bwd_v3_name = "bwd_v3_hd64_fp16_causal_a32_pssk";
                                     r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
+                                    std::cout << "CHECKPOINT: 47" << std::endl;
                                     return r;
                                 }
                             }
@@ -1486,6 +1536,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                 using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<64, FmhaBwdFp16, true, true, false, false>;
                                 // const std::string bwd_v3_name = "bwd_v3_hd64_fp16_causal_a32_pssk_group";
                                 r = fmha_bwd_v3_group_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
+                                std::cout << "CHECKPOINT: 48" << std::endl;
                                 return r;
                             }
                         }
@@ -1496,6 +1547,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                             using dq_dk_dv_v3_traits_ = fmha_bwd_dq_dk_dv_v3_traits_<64, FmhaBwdFp16, true, false, 0, false, false>;
                             // const std::string bwd_v3_name = "bwd_v3_hd64_fp16_causal_a16";
                             r = fmha_bwd_v3_<dot_do_o_trait_, dq_dk_dv_v3_traits_>(s, a);
+                            std::cout << "CHECKPOINT: 49" << std::endl;
                             return r;
                         }
                     }
@@ -1511,6 +1563,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                         using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<64, FmhaBwdBf16, false, false, false, false>;
                                         // const std::string bwd_v3_name = "bwd_v3_hd64_bf16_a32_rtne_pssk";
                                         r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
+                                        std::cout << "CHECKPOINT: 50" << std::endl;
                                         return r;
                                     }
                                     else{
@@ -1519,6 +1572,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                         using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<64, FmhaBwdBf16, false, true, false, false>;
                                         // const std::string bwd_v3_name = "bwd_v3_hd64_bf16_a32_rtne_pssk";
                                         r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
+                                        std::cout << "CHECKPOINT: 51" << std::endl;
                                         return r;
                                     }
                                 }
@@ -1529,6 +1583,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                         using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<64, FmhaBwdBf16, false, false, false, false>;
                                         // const std::string bwd_v3_name = "bwd_v3_hd64_bf16_a32_rtna_pssk";
                                         r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
+                                        std::cout << "CHECKPOINT: 52" << std::endl;
                                         return r;
                                     }
                                     else{
@@ -1537,6 +1592,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                         using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<64, FmhaBwdBf16, false, true, false, false>;
                                         // const std::string bwd_v3_name = "bwd_v3_hd64_bf16_a32_rtna_pssk";
                                         r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
+                                        std::cout << "CHECKPOINT: 53" << std::endl;
                                         return r;
                                     }
                                 }
@@ -1547,6 +1603,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                         using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<64, FmhaBwdBf16, false, false, false, false>;
                                         // const std::string bwd_v3_name = "bwd_v3_hd64_bf16_a32_rtz_pssk";
                                         r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
+                                        std::cout << "CHECKPOINT: 54" << std::endl;
                                         return r;
                                     }
                                     else{
@@ -1555,6 +1612,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                         using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<64, FmhaBwdBf16, false, true, false, false>;
                                         // const std::string bwd_v3_name = "bwd_v3_hd64_bf16_a32_rtz_pssk";
                                         r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
+                                        std::cout << "CHECKPOINT: 55" << std::endl;
                                         return r;
                                     }
                                 }
@@ -1574,6 +1632,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                     using dq_dk_dv_v3_traits_ = fmha_bwd_dq_dk_dv_v3_traits_<64, FmhaBwdBf16, false, true, 2, true, false, true>;
                                     r = fmha_bwd_v3_group_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
                                 }
+                                std::cout << "CHECKPOINT: 56" << std::endl;
                                 return r;
                             }
                         }
@@ -1585,6 +1644,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                 using dq_dk_dv_v3_traits_ = fmha_bwd_dq_dk_dv_v3_traits_<64, FmhaBwdBf16, false, false, 0, false, false>;
                                 // const std::string bwd_v3_name = "bwd_v3_hd64_bf16_a16_rtne";
                                 r = fmha_bwd_v3_<dot_do_o_trait_, dq_dk_dv_v3_traits_>(s, a);
+                                std::cout << "CHECKPOINT: 57" << std::endl;
                                 return r;
                             }
                             else if(t.how_v3_bf16_cvt == 1){
@@ -1592,6 +1652,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                 using dq_dk_dv_v3_traits_ = fmha_bwd_dq_dk_dv_v3_traits_<64, FmhaBwdBf16, false, false, 1, false, false>;
                                 // const std::string bwd_v3_name = "bwd_v3_hd64_bf16_a16_rtna";
                                 r = fmha_bwd_v3_<dot_do_o_trait_, dq_dk_dv_v3_traits_>(s, a);
+                                std::cout << "CHECKPOINT: 58" << std::endl;
                                 return r;
                             }
                             else if(t.how_v3_bf16_cvt == 2){
@@ -1599,6 +1660,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                 using dq_dk_dv_v3_traits_ = fmha_bwd_dq_dk_dv_v3_traits_<64, FmhaBwdBf16, false, false, 2, false, false>;
                                 // const std::string bwd_v3_name = "bwd_v3_hd64_bf16_a16_rtz";
                                 r = fmha_bwd_v3_<dot_do_o_trait_, dq_dk_dv_v3_traits_>(s, a);
+                                std::cout << "CHECKPOINT: 59" << std::endl;
                                 return r;
                             }
                         }
@@ -1613,6 +1675,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                         using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<64, FmhaBwdBf16, false, false, false, false>;
                                         // const std::string bwd_v3_name = "bwd_v3_hd64_bf16_causal_a32_rtne_pssk";
                                         r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
+                                        std::cout << "CHECKPOINT: 60" << std::endl;
                                         return r;
                                     }
                                     else{
@@ -1621,6 +1684,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                         using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<64, FmhaBwdBf16, false, true, false, false>;
                                         // const std::string bwd_v3_name = "bwd_v3_hd64_bf16_causal_a32_rtne_pssk";
                                         r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
+                                        std::cout << "CHECKPOINT: 61" << std::endl;
                                         return r;
                                     }
                                 }
@@ -1631,6 +1695,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                         using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<64, FmhaBwdBf16, false, false, false, false>;
                                         // const std::string bwd_v3_name = "bwd_v3_hd64_bf16_causal_a32_rtna_pssk";
                                         r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
+                                        std::cout << "CHECKPOINT: 62" << std::endl;
                                         return r;
                                     }
                                     else{
@@ -1639,6 +1704,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                         using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<64, FmhaBwdBf16, false, true, false, false>;
                                         // const std::string bwd_v3_name = "bwd_v3_hd64_bf16_causal_a32_rtna_pssk";
                                         r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
+                                        std::cout << "CHECKPOINT: 63" << std::endl;
                                         return r;
                                     }
                                 }
@@ -1649,6 +1715,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                         using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<64, FmhaBwdBf16, false, false, false, false>;
                                         // const std::string bwd_v3_name = "bwd_v3_hd64_bf16_causal_a32_rtz_pssk";
                                         r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
+                                        std::cout << "CHECKPOINT: 64" << std::endl;
                                         return r;
                                     }
                                     else{
@@ -1657,6 +1724,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                         using convert_dq_trait_ = fmha_bwd_convert_dq_traits_<64, FmhaBwdBf16, false, true, false, false>;
                                         // const std::string bwd_v3_name = "bwd_v3_hd64_bf16_causal_a32_rtz_pssk";
                                         r = fmha_bwd_v3_genl_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
+                                        std::cout << "CHECKPOINT: 65" << std::endl;
                                         return r;
                                     }
                                 }
@@ -1676,6 +1744,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                     using dq_dk_dv_v3_traits_ = fmha_bwd_dq_dk_dv_v3_traits_<64, FmhaBwdBf16, true, true, 2, true, false, true>;
                                     r = fmha_bwd_v3_group_<dot_do_o_trait_, dq_dk_dv_v3_traits_, convert_dq_trait_>(s, a);
                                 }
+                                std::cout << "CHECKPOINT: 66" << std::endl;
                                 return r;
                             }
                         }
@@ -1687,6 +1756,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                 using dq_dk_dv_v3_traits_ = fmha_bwd_dq_dk_dv_v3_traits_<64, FmhaBwdBf16, true, false, 0, false, false>;
                                 const std::string bwd_v3_name = "bwd_v3_hd64_bf16_causal_a16_rtne";
                                 r = fmha_bwd_v3_<dot_do_o_trait_, dq_dk_dv_v3_traits_>(s, a);
+                                std::cout << "CHECKPOINT: 67" << std::endl;
                                 return r;
                             }
                             else if(t.how_v3_bf16_cvt == 1){
@@ -1694,6 +1764,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                 using dq_dk_dv_v3_traits_ = fmha_bwd_dq_dk_dv_v3_traits_<64, FmhaBwdBf16, true, false, 1, false, false>;
                                 // const std::string bwd_v3_name = "bwd_v3_hd64_bf16_causal_a16_rtna";
                                 r = fmha_bwd_v3_<dot_do_o_trait_, dq_dk_dv_v3_traits_>(s, a);
+                                std::cout << "CHECKPOINT: 68" << std::endl;
                                 return r;
                             }
                             else if(t.how_v3_bf16_cvt == 2){
@@ -1701,6 +1772,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
                                 using dq_dk_dv_v3_traits_ = fmha_bwd_dq_dk_dv_v3_traits_<64, FmhaBwdBf16, true, false, 2, false, false>;
                                 // const std::string bwd_v3_name = "bwd_v3_hd64_bf16_causal_a16_rtz";
                                 r = fmha_bwd_v3_<dot_do_o_trait_, dq_dk_dv_v3_traits_>(s, a);
+                                std::cout << "CHECKPOINT: 69" << std::endl;
                                 return r;
                             }
                         }
@@ -1710,6 +1782,7 @@ float fmha_bwd_v3(mha_bwd_traits t, fmha_bwd_args a, const ck_tile::stream_confi
         }
     }
     std::cout << "MADE IT TO FINAL RETURN WHICH MEANS EVERYTHING WAS FALSE" << std::endl;
+    std::cout << "CHECKPOINT: 70" << std::endl;
     return r;
 }
 } // namespace aiter
