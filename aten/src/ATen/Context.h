@@ -161,6 +161,12 @@ class TORCH_API Context {
   static bool hasROCM() {
     return detail::getCUDAHooks().hasROCM();
   }
+  static bool hasCKSDPA() {
+    return detail::getCUDAHooks().hasCKSDPA();
+  }
+  static bool hasCKGEMM() {
+    return detail::getCUDAHooks().hasCKGEMM();
+  }
   static bool hasHIP() {
     return detail::getHIPHooks().hasHIP();
   }

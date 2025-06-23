@@ -221,14 +221,12 @@ bool CUDAHooks::hasCKSDPA() const {
 bool CUDAHooks::hasCKGEMM() const {
 #if !defined(USE_ROCM)
     return false;
-#elif defined(USE_ROCM) && defined(USE_ROCM_CK_SDPA)
+#elif defined(USE_ROCM) && defined(USE_ROCM_CK_GEMM)
     return true;
 #else
     return false;
 #endif
 }
-
-
 
 bool CUDAHooks::hasROCM() const {
   // Currently, this is same as `compiledWithMIOpen`.

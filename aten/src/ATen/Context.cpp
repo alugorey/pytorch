@@ -420,7 +420,7 @@ void Context::setBlasPreferredBackend(at::BlasBackend b) {
 #endif
 }
 
-at::ROCmFABackend Context::getROCmFAPreferredBackend() const {
+at::ROCmFABackend Context::getROCmFAPreferredBackend() {
   return rocm_fa_preferred_backend;
 }
 
