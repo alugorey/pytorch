@@ -386,7 +386,7 @@ at::BlasBackend Context::blasPreferredBackend() {
 
 bool ckSupported() {
   static const std::vector<std::string> supported_archs = {
-    "gfx90a", "gfx942"
+    "gfx90a", "gfx942", "gfx950"
   };
   for (auto index : c10::irange(detail::getCUDAHooks().deviceCount())) {
     if(!detail::getCUDAHooks().isGPUArch(supported_archs, index)) {
@@ -407,7 +407,7 @@ void Context::setBlasPreferredBackend(at::BlasBackend b) {
 #else
   TORCH_CHECK((b != at::BlasBackend::Cublaslt) || hasCuBLASLt(),
       "Cannot set preferred backend to cuBLASLt if PyTorch has not been compiled with cuBLASLt.");
-  TORCH_CHECK((b != at::BlasBackend::Ck) || (hasROCM() && ckSupported()),
+  TORCH_CHECK((b != at::BlasBackend::Ck) || (hasROCM() && ckSupported() && hasCKGEMM()),
       "Cannot set preferred backend to Ck if PyTorch has not been compiled for ROCm.");
   if (b != at::BlasBackend::Default && b != at::BlasBackend::Cublas) {
     TORCH_WARN_ONCE(
@@ -421,27 +421,45 @@ void Context::setBlasPreferredBackend(at::BlasBackend b) {
 }
 
 at::ROCmFABackend Context::getROCmFAPreferredBackend() {
+  // Set potential "Default" value so we don't have to interpret at call sites.
+  // We use aotriton backend as the default, for now.
+  if(rocm_fa_preferred_backend == at::ROCmFABackend::Default) {
+
+    rocm_fa_preferred_backend = at::ROCmFABackend::AOTriton;
+
+  } else if (rocm_fa_preferred_backend == at::ROCmFABackend::Ck) {
+    // Perform validity checking
+    if(!(hasCKSDPA() && ckSupported()){
+        TORCH_WARN_ONCE(
+          "CK has been set as the preferred SDPA backend in an environment that doesn't support"
+          " it. Backend being set to AOTriton!" );
+        rocm_fa_preferred_backend = at::ROCmFABackend::AOTriton;
+    }
+  }
+
   return rocm_fa_preferred_backend;
 }
 
+
 void Context::setROCmFAPreferredBackend(at::ROCmFABackend b) {
 
-  // TODO: add plumbing for hasCK for validity checking
-  TORCH_CHECK((b != at::ROCmFABackend::Ck) || hasROCM(),
-      "Cannot set preferred flash attention backend to Ck if PyTorch has not been compiled for ROCm.");
+  TORCH_CHECK(hasROCM() == true, "Cannot set ROCm flash attention backend on non-ROCm Platform")
+  TORCH_CHECK((b != at::ROCmFABackend::Ck) || (hasROCM() && ckSupported() && hasCKSDPA()),
+      "Cannot set preferred flash attention backend to Ck if PyTorch has not been compiled for ROCm and built CK");
 #ifdef USE_ROCM
   if(b == at::ROCmFABackend::Ck) {
-    if(ckSupported()){
+    if(ckSupported() && hasCKSDPA()){
       rocm_fa_preferred_backend = b;
     } else { // leave backend as is
       return;
     }
   }
-  else {
-     rocm_fa_preferred_backend = b;
+  else if(b = at::ROCmFABackend::Default) {
+    rocm_fa_preferred_backend = at::ROCmFABackend::AOTriton;
+  } else {
+    rocm_fa_preferred_backend = b;
   }
 #endif
-  rocm_fa_preferred_backend = b;
 }
 
 bool Context::allowFP16ReductionCuBLAS() const {
