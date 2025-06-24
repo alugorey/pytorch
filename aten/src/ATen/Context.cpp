@@ -359,6 +359,10 @@ at::BlasBackend Context::blasPreferredBackend() {
   // hipblaslt support for all archs is not as complete as hipblas
   if (blas_preferred_backend == at::BlasBackend::Cublaslt) {
     static const bool hipblaslt_unsupported = []() {
+      if(!hasCuBLASLt())
+      {
+          return false;
+      }
       static const std::vector<std::string> archs = {
           "gfx90a", "gfx942",
 #if ROCM_VERSION >= 60300
