@@ -433,7 +433,7 @@ at::ROCmFABackend Context::getROCmFAPreferredBackend() {
 
   } else if (rocm_fa_preferred_backend == at::ROCmFABackend::Ck) {
     // Perform validity checking
-    if(!(hasCKSDPA() && ckSupported()){
+    if(!(hasCKSDPA() && ckSupported())){
         TORCH_WARN_ONCE(
           "CK has been set as the preferred SDPA backend in an environment that doesn't support"
           " it. Backend being set to AOTriton!" );
@@ -458,7 +458,7 @@ void Context::setROCmFAPreferredBackend(at::ROCmFABackend b) {
       return;
     }
   }
-  else if(b = at::ROCmFABackend::Default) {
+  else if(b == at::ROCmFABackend::Default) {
     rocm_fa_preferred_backend = at::ROCmFABackend::AOTriton;
   } else {
     rocm_fa_preferred_backend = b;
