@@ -38,7 +38,6 @@ struct TORCH_API HIPHooksInterface : AcceleratorHooksInterface {
   virtual bool hasCKGEMM() const {
     return false;
   }
-
   virtual c10::DeviceIndex current_device() const {
     return -1;
   }
