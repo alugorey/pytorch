@@ -347,6 +347,12 @@ mha_fwd_ck(const at::Tensor &q,                      // batch_size x seqlen_q x 
                 softmax_scale,
                 p_dropout,
                 drop_seed_offset);
+        static int ck_touch_count = 0;
+        if(ck_touch_count < 10)
+        {
+            std::cout << "HIT CK ANDY: "<< ck_touch_count << std::endl;
+            ck_touch_count++;
+        }
         float t = fmha_fwd(traits, args, stream_config);
         TORCH_CHECK(t >= 0, "invalid argument for fmha_fwd");
     }
