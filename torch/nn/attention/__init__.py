@@ -4,6 +4,7 @@ import contextlib
 from typing import List, Union
 from warnings import warn
 
+import torch
 from torch._C import _SDPBackend as SDPBackend
 from torch.backends.cuda import (
     can_use_efficient_attention,
@@ -67,6 +68,54 @@ def _raise_kernel_warnings(params: SDPAParams) -> None:
             can_use_flash_attention(params, True)
 
 
+"""taken from pytorch upstream main: needed by _cur_sdpa_kernel_backends and _sdpa_kernel below
+"""
+from collections.abc import Iterable
+
+_backend_names = {
+    "cudnn": "CUDNN_ATTENTION",
+    "flash": "FLASH_ATTENTION",
+    "mem_efficient": "EFFICIENT_ATTENTION",
+    "math": "MATH",
+}
+
+def _cur_sdpa_kernel_backends(with_priority: bool = False):
+    """This setting sdp of the backend priority is from the older codebase
+    (prior to CK if I recall correctly) and that was accidentally left out
+    from PT 2.5.
+    See: https://github.com/ROCm/pytorch/commit/0119c2052192720d6fe53677e485675727edb8c4
+    It is fallback in the case that setting the sdp backend in the new way doesn't work
+    (see sdpa_kernel ctx manager)
+    """
+    backends = []
+    for name, val in _backend_names.items():
+        if getattr(torch.backends.cuda, f"{name}_sdp_enabled")():
+            backends.append(getattr(SDPBackend, val))
+    if with_priority:
+        curr_priority = torch._C._get_sdp_priority_order()
+        backends = sorted(
+            backends, key=lambda backend: curr_priority.index(int(backend))
+        )
+    return backends
+
+def _sdpa_kernel(backends: Iterable, set_priority: bool = False):
+    """Same deal as with _cur_sdpa_kernel_backends
+    """
+    for name, val in _backend_names.items():
+        enabled = getattr(SDPBackend, val) in backends
+        getattr(torch.backends.cuda, f"enable_{name}_sdp")(enabled)
+    if set_priority:
+        # backends should be a unique list
+        user_priority = [int(backend) for backend in backends]
+        previous_priority = torch._C._get_sdp_priority_order()
+        for backend in previous_priority:
+            if backend not in user_priority:
+                user_priority.append(int(backend))
+        torch._C._set_sdp_priority_order(user_priority)
+"""taken from pytorch upstream main ends
+"""
+
+
 @contextlib.contextmanager
 def sdpa_kernel(
     backends: Union[List[SDPBackend], SDPBackend], set_priority: bool = False
@@ -116,13 +165,14 @@ def sdpa_kernel(
         for backend in previous_priority:
             if backend not in user_priority:
                 user_priority.append(int(backend))
-    previous_backends = _cur_sdpa_kernel_backends()
     try:
         if set_priority:
             torch._C._set_sdp_priority_order(user_priority)  # type: ignore[arg-type]
         _sdpa_kernel(backends_set)
         yield {}
-    finally:
+    finally: 
+        # legacy fallback
+        previous_backends = _cur_sdpa_kernel_backends()
         _sdpa_kernel(previous_backends)
         if set_priority:
             torch._C._set_sdp_priority_order(previous_priority)  # type: ignore[arg-type]
