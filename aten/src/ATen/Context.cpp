@@ -448,6 +448,9 @@ at::ROCmFABackend Context::getROCmFAPreferredBackend() {
 void Context::setROCmFAPreferredBackend(at::ROCmFABackend b) {
 
   TORCH_CHECK(hasROCM() == true, "Cannot set ROCm flash attention backend on non-ROCm Platform")
+  std::cout << "hasROCM    : " << hasROCM() << std::endl;
+  std::cout << "hasCKSDPA  : " << hasCKSDPA() << std::endl;
+  std::cout << "ckSupported: " << ckSupported() << std::endl;
   TORCH_CHECK((b != at::ROCmFABackend::Ck) || (hasROCM() && ckSupported() && hasCKSDPA()),
       "Cannot set preferred flash attention backend to Ck if PyTorch has not been compiled for ROCm and built CK");
 #ifdef USE_ROCM

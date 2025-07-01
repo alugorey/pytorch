@@ -209,11 +209,24 @@ bool CUDAHooks::hasCuBLASLt() const {
 
 
 bool CUDAHooks::hasCKSDPA() const {
+
+    std::cout << "MADE IT HERE" << std::endl;
+
+
 #if !defined(USE_ROCM)
+    std::cout << "CASE 1" << std::endl;
     return false;
 #elif defined(USE_ROCM) && (defined(USE_ROCM_CK_SDPA) || defined(USE_CK_FLASH_ATTENTION))
+    std::cout << "CASE 2" << std::endl;
     return true;
 #else
+#if defined(USE_ROCM_CK_SDPA)
+    std::cout << "USE_ROCM_CK_SDPA WAS DEFINED" << std::endl;
+#endif
+#if defined(USE_CK_FLASH_ATTENTION)
+    std::cout << "USE_CK_FLASH_ATTENTION WAS DEFINED" << std::endl;
+#endif
+    std::cout << "RETURNING FALSE FOR CASE 3" << std::endl;
     return false;
 #endif
 }
