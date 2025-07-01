@@ -162,10 +162,10 @@ class TORCH_API Context {
     return detail::getCUDAHooks().hasROCM();
   }
   static bool hasCKSDPA() {
-    return detail::getHIPHooks().hasCKSDPA();
+    return detail::getCUDAHooks().hasCKSDPA();
   }
   static bool hasCKGEMM() {
-    return detail::getHIPHooks().hasCKGEMM();
+    return detail::getCUDAHooks().hasCKGEMM();
   }
   static bool hasHIP() {
     return detail::getHIPHooks().hasHIP();
