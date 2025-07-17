@@ -5,7 +5,6 @@
 #include <c10/util/Exception.h>
 #include <ATen/Context.h>
 
-
 namespace pytorch_flash {
 
 // AOTriton Implementation

@@ -1136,9 +1136,9 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, c10::SymInt, c10::SymInt> _efficient_
   // Need this in both aot and CK case
   const auto softmax_scale = sdp::calculate_scale(query, scale).expect_float();
   res = at::empty({B, M, num_heads, Kv}, query.options());
+
   if(at::globalContext().getROCmFAPreferredBackend() ==
     at::ROCmFABackend::Ck) {
-
 #if defined(USE_CK_FLASH_ATTENTION)
     std::optional<Tensor> out(res);
     std::optional<Tensor> seqused_k = std::nullopt;
