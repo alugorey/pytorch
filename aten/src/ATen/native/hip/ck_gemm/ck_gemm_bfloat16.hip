@@ -13,7 +13,7 @@ namespace at::native {
 
 void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
   // If any of the shapes cant be tiled, we must use padding.
-
+  std::cout << "MADE IT TO MY GEMM" << std::endl;
   // Determine padding and kernel size
   auto [kernel_size, use_padding] = get_kernel_size(m, n, k);
   std::cout << kernel_size << "" << use_padding << std::endl;

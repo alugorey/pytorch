@@ -237,7 +237,9 @@ void gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
                                                                    CMPER_WAVE,
                                                                    CNPER_WAVE,
                                                                    S<1, CBLOCK_M, 1, CBLOCK_N>,
-                                                                   CDE_SCALAR_VEC>;
+                                                                   CDE_SCALAR_VEC,
+                                                                   ck::BlockGemmPipelineScheduler::Intrawave,
+                                                                   ck::BlockGemmPipelineVersion::v3>;
 
 
   auto gemm = DeviceGemmInstance{};
