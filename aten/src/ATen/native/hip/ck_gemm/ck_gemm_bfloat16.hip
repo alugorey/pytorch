@@ -24,7 +24,7 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
     ck_gemm_kernel_bf16bf16bf16_256_256x128x64_16x16_8x4_8x32x1_8x32x1_1x32x1x8_4_Intrawave_v3(
                                             CUDABLAS_GEMM_ARGS(at::BFloat16), use_padding);
   } else { // kernel_size == KernelSize::Medium
-    ck_gemm_kernel_bf16bf16bf16_256_128x128x64_32x32_2x2_8x32x1_8x32x1_1x32x1x8_4_Intrawave_v3(
+    ck_gemm_kernel_bf16bf16bf16_256_128x128x64_16x16_4x4_8x32x1_8x32x1_1x32x1x8_4_Intrawave_v3(
                                             CUDABLAS_GEMM_ARGS(at::BFloat16), use_padding);
   }
 }
