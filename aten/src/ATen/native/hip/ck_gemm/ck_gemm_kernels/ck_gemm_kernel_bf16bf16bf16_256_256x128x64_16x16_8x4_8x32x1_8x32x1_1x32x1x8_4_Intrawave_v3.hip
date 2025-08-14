@@ -44,7 +44,7 @@ ck_gemm_kernel_bf16bf16bf16_256_256x128x64_16x16_8x4_8x32x1_8x32x1_1x32x1x8_4_In
           1,              // CMPER_WAVE
           2,              // CNPER_WAVE
           S<1, 32, 1, 8>, // BLOCK_CLUSTER_LENS
-          S<4>,           // CDE_SCALAR_VEC
+          S<8, 8, 1>,           // CDE_SCALAR_VEC
           true,           // PADDING
           true,           // TRANSA
           true>           // TRANSB
@@ -79,7 +79,7 @@ ck_gemm_kernel_bf16bf16bf16_256_256x128x64_16x16_8x4_8x32x1_8x32x1_1x32x1x8_4_In
             1,
             2,
             S<1, 32, 1, 8>,
-            S<4>,
+            S<8, 8, 1>,
             true,
             true,
             false>
@@ -114,7 +114,7 @@ ck_gemm_kernel_bf16bf16bf16_256_256x128x64_16x16_8x4_8x32x1_8x32x1_1x32x1x8_4_In
             1,
             2,
             S<1, 32, 1, 8>,
-            S<4>,
+            S<8, 8, 1>,
             true,
             false,
             true>
@@ -149,7 +149,7 @@ ck_gemm_kernel_bf16bf16bf16_256_256x128x64_16x16_8x4_8x32x1_8x32x1_1x32x1x8_4_In
             1,
             2,
             S<1, 32, 1, 8>,
-            S<4>,
+            S<8, 8, 1>,
             true,
             false,
             false>
@@ -190,7 +190,7 @@ ck_gemm_kernel_bf16bf16bf16_256_256x128x64_16x16_8x4_8x32x1_8x32x1_1x32x1x8_4_In
           1,              // CMPER_WAVE
           2,              // CNPER_WAVE
           S<1, 32, 1, 8>, // BLOCK_CLUSTER_LENS
-          S<4>,           // CDE_SCALAR_VEC
+          S<8, 8, 1>,           // CDE_SCALAR_VEC
           false,          // PADDING
           true,           // TRANSA
           true>           // TRANSB
@@ -225,7 +225,7 @@ ck_gemm_kernel_bf16bf16bf16_256_256x128x64_16x16_8x4_8x32x1_8x32x1_1x32x1x8_4_In
             1,
             2,
             S<1, 32, 1, 8>,
-            S<4>,
+            S<8, 8, 1>,
             false,
             true,
             false>
@@ -260,7 +260,7 @@ ck_gemm_kernel_bf16bf16bf16_256_256x128x64_16x16_8x4_8x32x1_8x32x1_1x32x1x8_4_In
             1,
             2,
             S<1, 32, 1, 8>,
-            S<4>,
+            S<8, 8, 1>,
             false,
             false,
             true>
@@ -295,7 +295,7 @@ ck_gemm_kernel_bf16bf16bf16_256_256x128x64_16x16_8x4_8x32x1_8x32x1_1x32x1x8_4_In
             1,
             2,
             S<1, 32, 1, 8>,
-            S<4>,
+            S<8, 8, 1>,
             false,
             false,
             false>
