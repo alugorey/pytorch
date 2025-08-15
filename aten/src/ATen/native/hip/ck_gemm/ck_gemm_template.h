@@ -154,7 +154,7 @@ template <
     bool PADDING = false,
     bool TRANSA = false,
     bool TRANSB = false>
-void gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
+void gemm_impl_multiD(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   // Get input information.
   // Test swapping
   /*

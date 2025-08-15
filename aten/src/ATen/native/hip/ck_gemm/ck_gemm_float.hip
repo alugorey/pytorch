@@ -21,7 +21,7 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
   if (use_padding) {
     if (m <= 128) {
       if(transa_ && transb_) {
-          gemm_impl<
+          gemm_impl_multiD<
             float,
             256,
             256,
@@ -57,7 +57,7 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
             (CUDABLAS_GEMM_ARGS(float));
       }
       else if(transa_ && !transb_) {
-          gemm_impl<
+          gemm_impl_multiD<
             float,
             256,
             256,
@@ -93,7 +93,7 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
             (CUDABLAS_GEMM_ARGS(float));
       }
       else if(!transa_ && transb_) {
-          gemm_impl<
+          gemm_impl_multiD<
             float,
             256,
             256,
@@ -129,7 +129,7 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
             (CUDABLAS_GEMM_ARGS(float));
       }
       else if(!transa_ && !transb_) {
-          gemm_impl<
+          gemm_impl_multiD<
             float,
             256,
             256,
@@ -171,7 +171,7 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
     } else {
 
       if(transa_ && transb_) {
-          gemm_impl<
+          gemm_impl_multiD<
             float,
             256,
             256,
@@ -207,7 +207,7 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
             (CUDABLAS_GEMM_ARGS(float));
       }
       else if(transa_ && !transb_) {
-          gemm_impl<
+          gemm_impl_multiD<
             float,
             256,
             256,
@@ -243,7 +243,7 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
             (CUDABLAS_GEMM_ARGS(float));
       }
       else if(!transa_ && transb_) {
-          gemm_impl<
+          gemm_impl_multiD<
             float,
             256,
             256,
@@ -279,7 +279,7 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
             (CUDABLAS_GEMM_ARGS(float));
       }
       else if(!transa_ && !transb_) {
-          gemm_impl<
+          gemm_impl_multiD<
             float,
             256,
             256,
@@ -321,7 +321,7 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
   } else {
     {
       if(transa_ && transb_) {
-          gemm_impl<
+          gemm_impl_multiD<
             float,
             256,
             256,
@@ -357,7 +357,7 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
             (CUDABLAS_GEMM_ARGS(float));
       }
       else if(transa_ && !transb_) {
-          gemm_impl<
+          gemm_impl_multiD<
             float,
             256,
             256,
@@ -393,7 +393,7 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
             (CUDABLAS_GEMM_ARGS(float));
       }
       else if(!transa_ && transb_) {
-          gemm_impl<
+          gemm_impl_multiD<
             float,
             256,
             256,
@@ -429,7 +429,7 @@ void dispatch_float_gemm(CUDABLAS_GEMM_ARGTYPES(float)) {
             (CUDABLAS_GEMM_ARGS(float));
       }
       else if(!transa_ && !transb_) {
-          gemm_impl<
+          gemm_impl_multiD<
             float,
             256,
             256,

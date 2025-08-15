@@ -14,7 +14,7 @@ ck_gemm_kernel_bf16bf16bf16_256_128x128x64_16x16_4x4_8x32x1_8x32x1_1x32x1x8_4_In
   // create outer layout loop
   if (use_padding) {
     if (transa_ & transb_) {            // TT
-      gemm_impl<
+      gemm_impl_multiD<
          at::BFloat16,
           256,            // BLOCK_SIZE
           128,            // MBLOCK
@@ -49,7 +49,7 @@ ck_gemm_kernel_bf16bf16bf16_256_128x128x64_16x16_4x4_8x32x1_8x32x1_1x32x1x8_4_In
           true>           // TRANSB
           (CUDABLAS_GEMM_ARGS(at::BFloat16));
     } else if (transa_ && !transb_) {   // TN
-      gemm_impl<
+      gemm_impl_multiD<
             at::BFloat16,
             256,
             128,
@@ -84,7 +84,7 @@ ck_gemm_kernel_bf16bf16bf16_256_128x128x64_16x16_4x4_8x32x1_8x32x1_1x32x1x8_4_In
             false>
             (CUDABLAS_GEMM_ARGS(at::BFloat16));
     } else if (!transa_ && transb_) {   // NT
-        gemm_impl<
+        gemm_impl_multiD<
             at::BFloat16,
             256,
             128,
@@ -119,7 +119,7 @@ ck_gemm_kernel_bf16bf16bf16_256_128x128x64_16x16_4x4_8x32x1_8x32x1_1x32x1x8_4_In
             true>
             (CUDABLAS_GEMM_ARGS(at::BFloat16));
     } else if (!transa_ && !transb_) {  // NN
-        gemm_impl<
+        gemm_impl_multiD<
            at::BFloat16,
             256,
             128,
@@ -160,7 +160,7 @@ ck_gemm_kernel_bf16bf16bf16_256_128x128x64_16x16_4x4_8x32x1_8x32x1_1x32x1x8_4_In
 
   } else { // !use_padding
     if (transa_ & transb_) {            // TT
-      gemm_impl<
+      gemm_impl_multiD<
          at::BFloat16,
           256,            // BLOCK_SIZE
           128,            // MBLOCK
@@ -195,7 +195,7 @@ ck_gemm_kernel_bf16bf16bf16_256_128x128x64_16x16_4x4_8x32x1_8x32x1_1x32x1x8_4_In
           true>           // TRANSB
           (CUDABLAS_GEMM_ARGS(at::BFloat16));
     } else if (transa_ && !transb_) {   // TN
-      gemm_impl<
+      gemm_impl_multiD<
             at::BFloat16,
             256,
             128,
@@ -230,7 +230,7 @@ ck_gemm_kernel_bf16bf16bf16_256_128x128x64_16x16_4x4_8x32x1_8x32x1_1x32x1x8_4_In
             false>
             (CUDABLAS_GEMM_ARGS(at::BFloat16));
     } else if (!transa_ && transb_) {   // NT
-        gemm_impl<
+        gemm_impl_multiD<
             at::BFloat16,
             256,
             128,
@@ -265,7 +265,7 @@ ck_gemm_kernel_bf16bf16bf16_256_128x128x64_16x16_4x4_8x32x1_8x32x1_1x32x1x8_4_In
             true>
             (CUDABLAS_GEMM_ARGS(at::BFloat16));
     } else if (!transa_ && !transb_) {  // NN
-        gemm_impl<
+        gemm_impl_multiD<
            at::BFloat16,
             256,
             128,
