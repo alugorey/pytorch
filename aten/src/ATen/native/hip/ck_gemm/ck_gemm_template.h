@@ -86,6 +86,8 @@ inline std::tuple<KernelSize, bool> get_kernel_size(
 
 
 // Elementwise Operators
+// TODO: Currently not optimally used for most cases. Need to properly integrate
+//       into the v3 pipeline.
 struct AlphaBetaAdd
 {
   AlphaBetaAdd(float alpha, float beta) : alpha_(alpha), beta_(beta){};
@@ -154,6 +156,8 @@ template <
     bool TRANSB = false>
 void gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   // Get input information.
+  // Test swapping
+  /*
   int M = m;
   int N = n;
   int K = k;
@@ -161,11 +165,25 @@ void gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   int StrideA = lda;
   int StrideB = ldb;
   int StrideC = ldc;
+*/
+  // THIS SWAPPING NEEDS TO STAY!
+  // TODO_ANDY: EXPLAIN WHY
+  int M = m;
+  int N = n;
+  int K = k;
 
+  int StrideA = lda;
+  int StrideB = ldb;
+  int StrideC = ldc;
   int KBatch = 1;
 
   float falpha = alpha;
   float fbeta = beta;
+  std::cout << "ALPHA: " << alpha << std::endl;
+  std::cout << "BETA : " << beta << std::endl;
+  std::string print_transa = TRANSA ? "T" : "N";
+  std::string print_transb = TRANSB ? "T" : "N";
+  std::cout << "Layout: " << print_transa << print_transb << std::endl;
 
   using ADataType = typename CkMathType<Dtype>::dtype;
   using BDataType = typename CkMathType<Dtype>::dtype;
@@ -184,6 +202,8 @@ void gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   using AElementOp = PassThrough;
   using BElementOp = PassThrough;
   using CElementOp = AlphaBetaAdd;
+//  using CElementOp = PassThrough;
+
 
   static constexpr int CBLOCK_N = NBLOCK / 16;
   static constexpr int CBLOCK_M = BLOCK_SIZE / CBLOCK_N;
@@ -246,7 +266,7 @@ void gemm_impl(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   auto a_element_op = AElementOp{};
   auto b_element_op = BElementOp{};
   auto c_element_op = CElementOp{alpha, beta};
-
+  //auto c_element_op = CElementOp{};
 
   using DDataArrayType = std::array<const void*, 0>;
   DDataArrayType DDataArray;
