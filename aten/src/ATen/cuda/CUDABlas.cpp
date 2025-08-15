@@ -1354,6 +1354,16 @@ void gemm_internal<at::Half>(CUDABLAS_GEMM_ARGTYPES(at::Half))
 template <>
 void gemm_internal<at::BFloat16>(CUDABLAS_GEMM_ARGTYPES(at::BFloat16))
 {
+  /*
+  std::cout << "vvvvvvvvvvvvvvvvvvvvvvvvvvv" << std::endl;
+  std::cout << "M       : " << m << std::endl;
+  std::cout << "N       : " << n << std::endl;
+  std::cout << "K       : " << k << std::endl;
+  std::cout << "Stride M: " << lda << std::endl;
+  std::cout << "Stride N: " << ldb << std::endl;
+  std::cout << "Stride K: " << ldc << std::endl;
+  std::cout << "^^^^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl;
+  */
   if (at::globalContext().blasPreferredBackend() == BlasBackend::Cublaslt) {
     gemm_internal_cublaslt<at::BFloat16>(CUDABLAS_GEMM_ARGS(at::BFloat16));
   }
