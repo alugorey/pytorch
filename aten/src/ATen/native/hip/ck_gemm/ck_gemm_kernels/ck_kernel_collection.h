@@ -6,7 +6,17 @@
 namespace at::native {
 /* Naming convention:
  * ck_gemm_kernel_AdtypeBdtypeOUTdtyp_BLOCKSIZE_MBLOCKxNBLOCKxKBLOCK_MPERXDL_NPERXDL_MPERWAVExNPERWAVE_<ABLOCK_CLUSTER_LENS>_<BBLOCK_CLUSTER_LENS>_<BLOCK_CLUSTER_LENS>_CDE_SCALAR_VEC_Intrawave_v3
+ *
+ * ck_gemm_kernel_AdtypeBdtypeOUTdtyp_BLOCKSIZE_MBLOCKxNBLOCKxKBLOCK_MPERXDL_NPERXDL_MPERWAVExNPERWAVE_LOOPSCHED_VERSION
  */
+
+
+
+// MNK = (64, 512, 4096)
+void
+ck_gemm_kernel_bf16bf16bf16_128_128x32x32_32x32_2x1_Default_v1(
+        CUDABLAS_GEMM_ARGTYPES(at::BFloat16),
+        bool use_padding);
 
 // Small
 void

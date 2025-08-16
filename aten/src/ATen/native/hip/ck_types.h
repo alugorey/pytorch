@@ -20,6 +20,8 @@
 #include <ck/tensor_operation/gpu/device/tensor_layout.hpp>
 #include <ck/utility/data_type.hpp>
 
+#include <tuple>
+
 using Row = ck::tensor_layout::gemm::RowMajor;
 using Col = ck::tensor_layout::gemm::ColumnMajor;
 
@@ -71,5 +73,16 @@ struct CkTensorLayout<false, false> {
   using a_layout = Row;
   using b_layout = Row;
 };
+
+// Define custom hash function for (M,N,K) tuples
+struct IntTupleHash {
+  size_t operator()(const std::tuple<int64_t, int64_t, int64_t>& t) const {
+    auto hash1 = std::hash<int64_t>{}(std::get<0>(t));
+    auto hash2 = std::hash<int64_t>{}(std::get<1>(t));
+    auto hash3 = std::hash<int64_t>{}(std::get<2>(t));
+    return hash1 ^ hash2 ^ hash3;
+  }
+};
+
 
 } // namespace at::native

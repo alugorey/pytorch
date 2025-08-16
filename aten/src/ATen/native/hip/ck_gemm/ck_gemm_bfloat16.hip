@@ -6,10 +6,21 @@
 #include <ATen/native/hip/ck_gemm/ck_gemm_kernels/ck_kernel_collection.h>
 #include <ck/utility/sequence.hpp>
 
+#include <unordered_map>
+#include <functional>
+
+
 template <ck::index_t... Is>
 using S = ck::Sequence<Is...>;
 
 namespace at::native {
+
+
+using GemmBaseKernel = std::function<void(CUDABLAS_GEMM_TYPES(at::BFloat16), bool)>;
+
+// For certain high priority shapes, we skip the heuristic and call best kernel directly
+static const std::unordered_map<std::tuple<int, int, int>, GemmBaseKernel, IntTupleHash> gemm_base_lookup_dispatch = {
+
 
 void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
   // If any of the shapes cant be tiled, we must use padding.
