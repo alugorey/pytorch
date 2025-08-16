@@ -1,8 +1,8 @@
 #undef __HIP_NO_HALF_CONVERSIONS__
 
-#include <ATen/native/hip/ck_gemm.h>
+#include <ATen/native/hip/ck_gemm/ck_gemm.h>
 #if defined(USE_ROCM_CK_GEMM)
-#include <ATen/native/hip/ck_gemm_template.h>
+#include <ATen/native/hip/ck_gemm/ck_gemm_template.h>
 #include <ck/utility/sequence.hpp>
 
 template <ck::index_t... Is>
