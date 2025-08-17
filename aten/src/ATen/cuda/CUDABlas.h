@@ -49,7 +49,7 @@ private:
 #define CUDABLAS_GEMM_TYPES(Dtype)                                         \
   char, char, int64_t, int64_t, int64_t, at::opmath_type<Dtype>,           \
       const Dtype*, int64_t, const Dtype*, int64_t, at::opmath_type<Dtype>,\
-      C_Dtype*, int64_t
+      Dtype*, int64_t
 
 #define CUDABLAS_GEMM_ARGS(Dtype) transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc
 

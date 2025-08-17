@@ -8,7 +8,7 @@
 
 #include <unordered_map>
 #include <functional>
-
+#include <initializer_list>
 
 template <ck::index_t... Is>
 using S = ck::Sequence<Is...>;
@@ -20,14 +20,28 @@ using GemmBaseKernel = std::function<void(CUDABLAS_GEMM_TYPES(at::BFloat16), boo
 
 // For certain high priority shapes, we skip the heuristic and call best kernel directly
 static const std::unordered_map<std::tuple<int, int, int>, GemmBaseKernel, IntTupleHash> gemm_base_lookup_dispatch = {
+    {{64, 512, 4096},
+     ck_gemm_kernel_bf16bf16bf16_128_128x32x32_32x32_2x1_Default_v1}};
 
 
 void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
   // If any of the shapes cant be tiled, we must use padding.
 
+
+
+
   // Determine padding and kernel size
   auto [kernel_size, use_padding] = get_kernel_size(m, n, k);
-  std::cout << kernel_size << "" << use_padding << std::endl;
+  
+  // First check direct look up
+  auto it = gemm_base_lookup_dispatch.find({m, n, k});
+  if(it != gemm_base_lookup_dispatch.end()) {
+    it->second(CUDABLAS_GEMM_ARGS(at::BFloat16), use_padding);
+  }
+
+
+
+  //std::cout << kernel_size << "" << use_padding << std::endl;
   if (kernel_size == KernelSize::Small) {
     ck_gemm_kernel_bf16bf16bf16_256_128x128x64_32x32_2x2_8x32x1_8x32x1_1x32x1x8_4_Intrawave_v3(
                                             CUDABLAS_GEMM_ARGS(at::BFloat16), use_padding);

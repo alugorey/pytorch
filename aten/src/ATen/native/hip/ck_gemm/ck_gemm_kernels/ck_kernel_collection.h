@@ -11,7 +11,6 @@ namespace at::native {
  */
 
 
-
 // MNK = (64, 512, 4096)
 void
 ck_gemm_kernel_bf16bf16bf16_128_128x32x32_32x32_2x1_Default_v1(
