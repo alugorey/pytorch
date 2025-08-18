@@ -32,6 +32,7 @@
 #include <ck/tensor_operation/gpu/device/impl/device_gemm_multiple_d_xdl_cshuffle_v3.hpp>
 #include <ck/tensor_operation/gpu/device/impl/device_gemm_wmma.hpp>
 #include <ck/tensor_operation/gpu/device/impl/device_gemm_xdl_cshuffle.hpp>
+#include <ck/tensor_operation/gpu/device/impl/device_gemm_xdl_cshuffle_v2.hpp>
 
 // Define commonly used types.
 template <ck::index_t... Is>
@@ -481,6 +482,185 @@ void gemm_impl_base(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
  auto stream = at::cuda::getCurrentHIPStream().stream();
  invoker.Run(argument, StreamConfig{stream, false});
 }
+
+
+template <
+    typename Dtype,
+    int BLOCK_SIZE,
+    int MBLOCK,
+    int NBLOCK,
+    int KBLOCK,
+    int AK1,
+    int BK1,
+    int MPER_XDL,
+    int NPER_XDL,
+    int MPER_WAVE,
+    int NPER_WAVE,
+    typename ABLOCK_CLUSTER_LENS,
+    typename ABLOCK_CLUSTER_ORDER,
+    typename ABLOCK_SRC_ORDER,
+    int ABLOCK_VECTOR_DIM,
+    int ABLOCK_SCALAR_VEC,
+    int ABLOCK_SCALAR_VEC_AK1,
+    bool ABLOCK_LDS_EXTRAM,
+    typename BBLOCK_CLUSTER_LENS,
+    typename BBLOCK_CLUSTER_ORDER,
+    typename BBLOCK_SRC_ORDER,
+    int BBLOCK_VECTOR_DIM,
+    int BBLOCK_SCALAR_VEC,
+    int BBLOCK_SCALAR_VEC_BK1,
+    bool BBLOCK_LDS_EXTRAN,
+    int CMPER_WAVE,
+    int CNPER_WAVE,
+    typename BLOCK_CLUSTER_LENS,
+    typename CDE_SCALAR_VEC,
+    ck::tensor_operation::device::GemmSpecialization PAD_TYPE = ck::tensor_operation::device::GemmSpecialization::Default,
+    bool TRANSA = false,
+    bool TRANSB = false,
+    ck::LoopScheduler LOOP_SCHED = ck::LoopScheduler::Default,
+    ck::PipelineVersion PIPELINE_VER = ck::PipelineVersion::v1>
+void gemm_impl_base_v2(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
+  // Get input information.
+  // Test swapping
+  
+  //int M = m;
+  //int N = n;
+  //int K = k;
+
+  //int StrideA = lda;
+  //int StrideB = ldb;
+  //int StrideC = ldc;
+
+  // THIS SWAPPING NEEDS TO STAY!
+  // TODO_ANDY: EXPLAIN WHY
+  std::cout << "CALLED GEMM BASE!" << std::endl;
+  int M = m;
+  int N = n;
+  int K = k;
+
+  int StrideA = lda;
+  int StrideB = ldb;
+  int StrideC = ldc;
+
+  float falpha = alpha;
+  float fbeta = beta;
+  
+  //std::cout << "ALPHA: " << alpha << std::endl;
+  //std::cout << "BETA : " << beta << std::endl;
+  //std::string print_transa = TRANSA ? "T" : "N";
+  //std::string print_transb = TRANSB ? "T" : "N";
+  //std::cout << "Layout: " << print_transa << print_transb << std::endl;
+
+  using ADataType = typename CkMathType<Dtype>::dtype;
+  using BDataType = typename CkMathType<Dtype>::dtype;
+  using CDataType = typename CkMathType<Dtype>::dtype;
+
+  using AccDataType = float;
+  using CShuffleDataType = typename CkMathType<Dtype>::dtype;
+
+  using ALayout = typename CkTensorLayout<TRANSA, TRANSB>::a_layout;
+  using BLayout = typename CkTensorLayout<TRANSA, TRANSB>::b_layout;
+
+  using DLayout = Row;
+  using CLayout = Row;
+
+  using AElementOp = PassThrough;
+  using BElementOp = PassThrough;
+  using CElementOp = PassThrough;
+
+
+  static constexpr int CBLOCK_N = NBLOCK / 16;
+  static constexpr int CBLOCK_M = BLOCK_SIZE / CBLOCK_N;
+
+  //static constexpr auto GemmDefault =
+  //    ck::tensor_operation::device::GemmSpecialization::Default;
+  //static constexpr auto GemmMNKPadding =
+  //    ck::tensor_operation::device::GemmSpecialization::MNPadding;
+  //static constexpr auto GemmSpec = PADDING ? GemmMNKPadding : GemmDefault;
+  static constexpr auto GemmSpec = PAD_TYPE;
+
+  using DeviceGemmInstance =
+    ck::tensor_operation::device::DeviceGemm_Xdl_CShuffleV2<ALayout,
+                                                                   BLayout,
+                                                                   CLayout,
+                                                                   ADataType,
+                                                                   BDataType,
+                                                                   CDataType,
+                                                                   AccDataType,
+                                                                   CShuffleDataType,
+                                                                   AElementOp,
+                                                                   BElementOp,
+                                                                   CElementOp,
+                                                                   GemmSpec,
+                                                                   1,               // NumGemmkPrefetch
+                                                                   BLOCK_SIZE,
+                                                                   MBLOCK,
+                                                                   NBLOCK,
+                                                                   KBLOCK,
+                                                                   AK1,
+                                                                   BK1,
+                                                                   MPER_XDL,
+                                                                   NPER_XDL,
+                                                                   MPER_WAVE,
+                                                                   NPER_WAVE,
+                                                                   ABLOCK_CLUSTER_LENS,
+                                                                   ABLOCK_CLUSTER_ORDER,
+                                                                   ABLOCK_SRC_ORDER,
+                                                                   ABLOCK_VECTOR_DIM,
+                                                                   ABLOCK_SCALAR_VEC,
+                                                                   ABLOCK_SCALAR_VEC_AK1,
+                                                                   ABLOCK_LDS_EXTRAM,
+                                                                   BBLOCK_CLUSTER_LENS,
+                                                                   BBLOCK_CLUSTER_ORDER,
+                                                                   BBLOCK_SRC_ORDER,
+                                                                   BBLOCK_VECTOR_DIM,
+                                                                   BBLOCK_SCALAR_VEC,
+                                                                   BBLOCK_SCALAR_VEC_BK1,
+                                                                   BBLOCK_LDS_EXTRAN,
+                                                                   CMPER_WAVE,
+                                                                   CNPER_WAVE,
+                                                                   S<1, CBLOCK_M, 1, CBLOCK_N>,
+                                                                   8,                   // CShuffleBlckTrsfr_Nblk
+                                                                   LOOP_SCHED,
+                                                                   PIPELINE_VER>;
+
+
+  auto gemm = DeviceGemmInstance{};
+  auto invoker = gemm.MakeInvoker();
+
+  auto a_element_op = AElementOp{};
+  auto b_element_op = BElementOp{};
+  auto c_element_op = CElementOp{};
+
+  // We swap A and B inputs here as a temporary workaround
+  auto argument = gemm.MakeArgument(
+     reinterpret_cast<const ADataType*>(b),
+     reinterpret_cast<const BDataType*>(a),
+     reinterpret_cast<CDataType*>(c),
+     N,
+     M,
+     K,
+     StrideB,
+     StrideA,
+     StrideC,
+     a_element_op,
+     b_element_op,
+     c_element_op);
+
+
+ if(!gemm.IsSupportedArgument(argument))
+ {
+        throw std::runtime_error(
+            "wrong! device_gemm with the specified compilation parameters does "
+            "not support this GEMM problem");
+ }
+
+ auto stream = at::cuda::getCurrentHIPStream().stream();
+ invoker.Run(argument, StreamConfig{stream, false});
+}
+
+
+
 
 template <
     typename Dtype,
