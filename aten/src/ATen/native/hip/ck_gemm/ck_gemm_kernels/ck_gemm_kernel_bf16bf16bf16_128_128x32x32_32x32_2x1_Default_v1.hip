@@ -53,7 +53,7 @@ ck_gemm_kernel_bf16bf16bf16_128_128x32x32_32x32_2x1_Default_v1(
             1,                  // CNPER_WAVE
             S<1, 32, 1, 4>,     // BLOCK_CLUSTER_LENS
             S<8>,               // CDE_SCALAR_VEC
-            true,               // PADDING
+            ck::tensor_operation::device::GemmSpecialization::MNPadding,// PADDING
             true,               // TRANSA
             false,              // TRANSB
             ck::LoopScheduler::Default,

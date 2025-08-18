@@ -337,7 +337,7 @@ template <
     int CNPER_WAVE,
     typename BLOCK_CLUSTER_LENS,
     typename CDE_SCALAR_VEC,
-    bool PADDING = false,
+    ck::tensor_operation::device::GemmSpecialization PAD_TYPE = ck::tensor_operation::device::GemmSpecialization::Default,
     bool TRANSA = false,
     bool TRANSB = false,
     ck::LoopScheduler LOOP_SCHED = ck::LoopScheduler::Default,
@@ -395,12 +395,12 @@ void gemm_impl_base(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   static constexpr int CBLOCK_N = NBLOCK / 16;
   static constexpr int CBLOCK_M = BLOCK_SIZE / CBLOCK_N;
 
-  static constexpr auto GemmDefault =
-      ck::tensor_operation::device::GemmSpecialization::Default;
-  static constexpr auto GemmMNKPadding =
-      ck::tensor_operation::device::GemmSpecialization::MNKPadding;
-  static constexpr auto GemmSpec = PADDING ? GemmMNKPadding : GemmDefault;
-
+  //static constexpr auto GemmDefault =
+  //    ck::tensor_operation::device::GemmSpecialization::Default;
+  //static constexpr auto GemmMNKPadding =
+  //    ck::tensor_operation::device::GemmSpecialization::MNPadding;
+  //static constexpr auto GemmSpec = PADDING ? GemmMNKPadding : GemmDefault;
+  static constexpr auto GemmSpec = PAD_TYPE;
 
   using DeviceGemmInstance =
     ck::tensor_operation::device::DeviceGemm_Xdl_CShuffle<ALayout,
