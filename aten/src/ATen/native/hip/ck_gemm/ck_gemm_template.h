@@ -32,7 +32,7 @@
 #include <ck/tensor_operation/gpu/device/impl/device_gemm_multiple_d_xdl_cshuffle_v3.hpp>
 #include <ck/tensor_operation/gpu/device/impl/device_gemm_wmma.hpp>
 #include <ck/tensor_operation/gpu/device/impl/device_gemm_xdl_cshuffle.hpp>
-#include <ck/tensor_operation/gpu/device/impl/device_gemm_xdl_cshuffle_v2.hpp>
+//#include <ck/tensor_operation/gpu/device/impl/device_gemm_xdl_cshuffle_v2.hpp>
 
 // Define commonly used types.
 template <ck::index_t... Is>
@@ -483,7 +483,7 @@ void gemm_impl_base(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
  invoker.Run(argument, StreamConfig{stream, false});
 }
 
-
+/*
 template <
     typename Dtype,
     int BLOCK_SIZE,
@@ -659,7 +659,7 @@ void gemm_impl_base_v2(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
  invoker.Run(argument, StreamConfig{stream, false});
 }
 
-
+*/
 
 
 template <
