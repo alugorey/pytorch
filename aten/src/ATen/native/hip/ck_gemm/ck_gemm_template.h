@@ -146,7 +146,7 @@ template <
     typename BBLOCK_SRC_ORDER,
     int BBLOCK_VECTOR_DIM,
     int BBLOCK_SCALAR_VEC,
-    int BBLOCK_SCALAR_VEC_AK1,
+    int BBLOCK_SCALAR_VEC_BK1,
     bool BBLOCK_LDS_EXTRAN,
     int CMPER_WAVE,
     int CNPER_WAVE,
@@ -256,7 +256,7 @@ void gemm_impl_multiD(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
                                                                    BBLOCK_SRC_ORDER,
                                                                    BBLOCK_VECTOR_DIM,
                                                                    BBLOCK_SCALAR_VEC,
-                                                                   BBLOCK_SCALAR_VEC_AK1,
+                                                                   BBLOCK_SCALAR_VEC_BK1,
                                                                    BBLOCK_LDS_EXTRAN,
                                                                    CMPER_WAVE,
                                                                    CNPER_WAVE,
@@ -330,7 +330,7 @@ template <
     typename BBLOCK_SRC_ORDER,
     int BBLOCK_VECTOR_DIM,
     int BBLOCK_SCALAR_VEC,
-    int BBLOCK_SCALAR_VEC_AK1,
+    int BBLOCK_SCALAR_VEC_BK1,
     bool BBLOCK_LDS_EXTRAN,
     int CMPER_WAVE,
     int CNPER_WAVE,
@@ -338,7 +338,9 @@ template <
     typename CDE_SCALAR_VEC,
     bool PADDING = false,
     bool TRANSA = false,
-    bool TRANSB = false>
+    bool TRANSB = false,
+    ck::LoopScheduler LOOP_SCHED = ck::LoopScheduler::Default,
+    ck::PipelineVersion PIPELINE_VER = ck::PipelineVersion::v1>
 void gemm_impl_base(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   // Get input information.
   // Test swapping
@@ -353,6 +355,7 @@ void gemm_impl_base(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
 
   // THIS SWAPPING NEEDS TO STAY!
   // TODO_ANDY: EXPLAIN WHY
+  std::cout << "CALLED GEMM BASE!" << std::endl;
   int M = m;
   int N = n;
   int K = k;
@@ -434,7 +437,7 @@ void gemm_impl_base(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
                                                                    BBLOCK_SRC_ORDER,
                                                                    BBLOCK_VECTOR_DIM,
                                                                    BBLOCK_SCALAR_VEC,
-                                                                   BBLOCK_SCALAR_VEC_AK1,
+                                                                   BBLOCK_SCALAR_VEC_BK1,
                                                                    BBLOCK_LDS_EXTRAN,
                                                                    CMPER_WAVE,
                                                                    CNPER_WAVE,
@@ -501,7 +504,7 @@ template <
     typename BBLOCK_SRC_ORDER,
     int BBLOCK_VECTOR_DIM,
     int BBLOCK_SCALAR_VEC,
-    int BBLOCK_SCALAR_VEC_AK1,
+    int BBLOCK_SCALAR_VEC_BK1,
     bool BBLOCK_LDS_EXTRAN,
     int CMPER_WAVE,
     int CNPER_WAVE,
@@ -585,7 +588,7 @@ void gemm_impl_wmma(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
                                                                   BBLOCK_SRC_ORDER,
                                                                   BBLOCK_VECTOR_DIM,
                                                                   BBLOCK_SCALAR_VEC,
-                                                                  BBLOCK_SCALAR_VEC_AK1,
+                                                                  BBLOCK_SCALAR_VEC_BK1,
                                                                   BBLOCK_LDS_EXTRAN,
                                                                   CMPER_WAVE,
                                                                   CNPER_WAVE,

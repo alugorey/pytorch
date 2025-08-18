@@ -39,7 +39,7 @@ ck_gemm_kernel_bf16bf16bf16_256_128x128x64_32x32_2x2_8x32x1_8x32x1_1x32x1x8_4_In
           S<1,0,2>,       // BBLOCK_SRC_ORDER
           2,              // BBLOCK_VECTOR_DIM
           8,              // BBLOCK_SCALAR_VEC
-          8,              // BBLOCK_SCALAR_VEC_AK1
+          8,              // BBLOCK_SCALAR_VEC_BK1
           0,              // BBLOCK_LDS_EXTRAN
           1,              // CMPER_WAVE
           1,              // CNPER_WAVE
@@ -185,7 +185,7 @@ ck_gemm_kernel_bf16bf16bf16_256_128x128x64_32x32_2x2_8x32x1_8x32x1_1x32x1x8_4_In
           S<1,0,2>,       // BBLOCK_SRC_ORDER
           2,              // BBLOCK_VECTOR_DIM
           8,              // BBLOCK_SCALAR_VEC
-          8,              // BBLOCK_SCALAR_VEC_AK1
+          8,              // BBLOCK_SCALAR_VEC_BK1
           0,              // BBLOCK_LDS_EXTRAN
           1,              // CMPER_WAVE
           1,              // CNPER_WAVE
