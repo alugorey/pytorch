@@ -276,6 +276,7 @@ void gemm_impl_multiD(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   DDataArrayType DDataArray;
 
   // We swap A and B inputs here as a temporary workaround
+  //
   auto argument = gemm.MakeArgument(
      reinterpret_cast<const void*>(b),
      reinterpret_cast<const void*>(a),
@@ -443,8 +444,8 @@ void gemm_impl_base(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
                                                                    CNPER_WAVE,
                                                                    S<1, CBLOCK_M, 1, CBLOCK_N>,
                                                                    8,                   // CShuffleBlckTrsfr_Nblk
-                                                                   ck::LoopScheduler::Default,
-                                                                   ck::PipelineVersion::v1>;
+                                                                   LOOP_SCHED,
+                                                                   PIPELINE_VER>;
 
 
   auto gemm = DeviceGemmInstance{};
@@ -456,9 +457,9 @@ void gemm_impl_base(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
 
   // We swap A and B inputs here as a temporary workaround
   auto argument = gemm.MakeArgument(
-     reinterpret_cast<const void*>(b),
-     reinterpret_cast<const void*>(a),
-     reinterpret_cast<void*>(c),
+     reinterpret_cast<const ADataType*>(b),
+     reinterpret_cast<const BDataType*>(a),
+     reinterpret_cast<CDataType*>(c),
      N,
      M,
      K,
