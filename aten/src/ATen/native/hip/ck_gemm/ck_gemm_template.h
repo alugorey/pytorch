@@ -32,6 +32,8 @@
 #include <ck/tensor_operation/gpu/device/impl/device_gemm_multiple_d_xdl_cshuffle_v3.hpp>
 #include <ck/tensor_operation/gpu/device/impl/device_gemm_wmma.hpp>
 #include <ck/tensor_operation/gpu/device/impl/device_gemm_xdl_cshuffle.hpp>
+
+// TODO: [Note: Integrate v2 pipeline]. Requires adding CK specific compilation flags
 //#include <ck/tensor_operation/gpu/device/impl/device_gemm_xdl_cshuffle_v2.hpp>
 
 // Define commonly used types.
@@ -483,7 +485,7 @@ void gemm_impl_base(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
  invoker.Run(argument, StreamConfig{stream, false});
 }
 
-/*
+/* TODO: See [Note: Integrate v2 pipeline]
 template <
     typename Dtype,
     int BLOCK_SIZE,
