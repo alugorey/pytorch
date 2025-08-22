@@ -160,8 +160,6 @@ template <
     bool TRANSB = false>
 void gemm_impl_multiD(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   // Get input information.
-  // Test swapping
-  /*
   int M = m;
   int N = n;
   int K = k;
@@ -169,29 +167,12 @@ void gemm_impl_multiD(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   int StrideA = lda;
   int StrideB = ldb;
   int StrideC = ldc;
-*/
-  // THIS SWAPPING NEEDS TO STAY!
-  // TODO_ANDY: WRONG! CAUSES MEM ACCESS FAULT DUE TO LAYOUT
-  int M = m;
-  int N = n;
-  int K = k;
 
-  int StrideA = lda;
-  int StrideB = ldb;
-  int StrideC = ldc;
   int KBatch = 1;
 
   float falpha = alpha;
   float fbeta = beta;
-  
-  std::cout << "ALPHA: " << alpha << std::endl;
-  std::cout << "BETA : " << beta << std::endl;
-  std::string print_transa = TRANSA ? "T" : "N";
-  std::string print_transb = TRANSB ? "T" : "N";
-  std::cout << "Layout: " << print_transa << print_transb << std::endl;
-  std::cout << "M: " << m << std::endl;
-  std::cout << "N: " << n << std::endl;
-  std::cout << "K: " << k << std::endl;
+
   using ADataType = typename CkMathType<Dtype>::dtype;
   using BDataType = typename CkMathType<Dtype>::dtype;
   using CDataType = typename CkMathType<Dtype>::dtype;
@@ -209,7 +190,6 @@ void gemm_impl_multiD(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   using AElementOp = PassThrough;
   using BElementOp = PassThrough;
   using CElementOp = AlphaBetaAdd;
-//  using CElementOp = PassThrough;
 
 
   static constexpr int CBLOCK_N = NBLOCK / 16;
@@ -347,19 +327,7 @@ template <
     ck::PipelineVersion PIPELINE_VER = ck::PipelineVersion::v1>
 void gemm_impl_base(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   // Get input information.
-  // Test swapping
-  
-  //int M = m;
-  //int N = n;
-  //int K = k;
 
-  //int StrideA = lda;
-  //int StrideB = ldb;
-  //int StrideC = ldc;
-
-  // THIS SWAPPING NEEDS TO STAY!
-  // TODO_ANDY: EXPLAIN WHY
-  std::cout << "CALLED GEMM BASE!" << std::endl;
   int M = m;
   int N = n;
   int K = k;
@@ -370,12 +338,6 @@ void gemm_impl_base(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
 
   float falpha = alpha;
   float fbeta = beta;
-  
-  //std::cout << "ALPHA: " << alpha << std::endl;
-  //std::cout << "BETA : " << beta << std::endl;
-  //std::string print_transa = TRANSA ? "T" : "N";
-  //std::string print_transb = TRANSB ? "T" : "N";
-  //std::cout << "Layout: " << print_transa << print_transb << std::endl;
 
   using ADataType = typename CkMathType<Dtype>::dtype;
   using BDataType = typename CkMathType<Dtype>::dtype;
@@ -398,11 +360,6 @@ void gemm_impl_base(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   static constexpr int CBLOCK_N = NBLOCK / 16;
   static constexpr int CBLOCK_M = BLOCK_SIZE / CBLOCK_N;
 
-  //static constexpr auto GemmDefault =
-  //    ck::tensor_operation::device::GemmSpecialization::Default;
-  //static constexpr auto GemmMNKPadding =
-  //    ck::tensor_operation::device::GemmSpecialization::MNPadding;
-  //static constexpr auto GemmSpec = PADDING ? GemmMNKPadding : GemmDefault;
   static constexpr auto GemmSpec = PAD_TYPE;
 
   using DeviceGemmInstance =
@@ -523,19 +480,7 @@ template <
     ck::PipelineVersion PIPELINE_VER = ck::PipelineVersion::v1>
 void gemm_impl_base_v2(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   // Get input information.
-  // Test swapping
-  
-  //int M = m;
-  //int N = n;
-  //int K = k;
 
-  //int StrideA = lda;
-  //int StrideB = ldb;
-  //int StrideC = ldc;
-
-  // THIS SWAPPING NEEDS TO STAY!
-  // TODO_ANDY: EXPLAIN WHY
-  std::cout << "CALLED GEMM BASE!" << std::endl;
   int M = m;
   int N = n;
   int K = k;
@@ -546,12 +491,7 @@ void gemm_impl_base_v2(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
 
   float falpha = alpha;
   float fbeta = beta;
-  
-  //std::cout << "ALPHA: " << alpha << std::endl;
-  //std::cout << "BETA : " << beta << std::endl;
-  //std::string print_transa = TRANSA ? "T" : "N";
-  //std::string print_transb = TRANSB ? "T" : "N";
-  //std::cout << "Layout: " << print_transa << print_transb << std::endl;
+
 
   using ADataType = typename CkMathType<Dtype>::dtype;
   using BDataType = typename CkMathType<Dtype>::dtype;
@@ -574,11 +514,6 @@ void gemm_impl_base_v2(CUDABLAS_GEMM_ARGTYPES(Dtype)) {
   static constexpr int CBLOCK_N = NBLOCK / 16;
   static constexpr int CBLOCK_M = BLOCK_SIZE / CBLOCK_N;
 
-  //static constexpr auto GemmDefault =
-  //    ck::tensor_operation::device::GemmSpecialization::Default;
-  //static constexpr auto GemmMNKPadding =
-  //    ck::tensor_operation::device::GemmSpecialization::MNPadding;
-  //static constexpr auto GemmSpec = PADDING ? GemmMNKPadding : GemmDefault;
   static constexpr auto GemmSpec = PAD_TYPE;
 
   using DeviceGemmInstance =

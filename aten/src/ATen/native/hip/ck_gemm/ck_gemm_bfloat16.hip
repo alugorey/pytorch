@@ -16,7 +16,7 @@ using S = ck::Sequence<Is...>;
 namespace at::native {
 
 
-using GemmBaseKernel = std::function<void(CUDABLAS_GEMM_TYPES(at::BFloat16), bool)>;
+using GemmBaseKernel = std::function<void(CUDABLAS_GEMM_TYPES(at::BFloat16))>;
 
 // For certain high priority shapes, we skip the heuristic and call best kernel directly
 static const std::unordered_map<std::tuple<int, int, int>, GemmBaseKernel, IntTupleHash> gemm_base_lookup_dispatch = {
@@ -30,16 +30,13 @@ void dispatch_bfloat16_gemm(CUDABLAS_GEMM_ARGTYPES(at::BFloat16)) {
 
   // Determine padding and kernel size
   auto [kernel_size, use_padding] = get_kernel_size(m, n, k);
-  
-  // TODO: need to probably hardcode the padding type, since that is likely going to change frequencly
-  //       per kernl
+
   // First check direct look up
   auto it = gemm_base_lookup_dispatch.find({m, n, k});
   if(it != gemm_base_lookup_dispatch.end()) {
-    it->second(CUDABLAS_GEMM_ARGS(at::BFloat16), use_padding);
+    it->second(CUDABLAS_GEMM_ARGS(at::BFloat16));
   } else { // No direct mapping found, go to heuristic based on MNK size
 
-  //std::cout << kernel_size << "" << use_padding << std::endl;
     if (kernel_size == KernelSize::Small) {
       ck_gemm_kernel_bf16bf16bf16_256_128x128x64_32x32_2x2_8x32x1_8x32x1_1x32x1x8_4_Intrawave_v3(
                                             CUDABLAS_GEMM_ARGS(at::BFloat16), use_padding);
