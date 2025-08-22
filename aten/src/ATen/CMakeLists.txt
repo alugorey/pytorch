@@ -200,7 +200,10 @@ if(USE_FLASH_ATTENTION)
     message(STATUS "Generating CK kernel instances...")
     add_subdirectory(native/transformers/hip/flash_attn/ck)
     file(GLOB flash_attention_hip_ck_hip "native/transformers/hip/flash_attn/ck/*.hip")
-    list(APPEND native_transformers_hip_hip ${flash_attention_hip_ck_hip})
+    hip_add_library(ck_sdpa OBJECT ${flash_attention_hip_ck_hip})
+    set_target_properties( ck_sdpa PROPERTIES CXX_STANDARD 20)
+
+    list(APPEND native_transformers_hip_hip $<TARGET_OBJECTS:ck_sdpa>)
     # FAv3 Generation
     add_subdirectory(native/transformers/hip/flash_attn/ck/fav_v3)
     file(GLOB flash_attention_v3_hip "native/transformers/hip/flash_attn/ck/fav_v3/*.hip")
