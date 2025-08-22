@@ -467,8 +467,6 @@ if(USE_ROCM)
     ${native_sparse_hip_hip}
     ${native_quantized_hip_hip}
     ${native_transformers_hip_hip} ${native_transformers_src_hip_hip}
-    ${native_ck_hip}
-    ${native_ck_kernels_hip}
   )
   if(NOT USE_ROCM_CK_GEMM)
     file(GLOB native_hip_bgemm "native/hip/bgemm_kernels/*.hip")
@@ -476,6 +474,8 @@ if(USE_ROCM)
 
     exclude(ATen_HIP_SRCS "${ATen_HIP_SRCS}"
       ${native_hip_bgemm} ${native_hip_ck})
+  else()
+    list(APPEND ATen_HIP_SRCS ${native_ck_hip} ${native_ck_kernels_hip})
   endif()
   if(WIN32) # Windows doesn't support Composable Kernels and Triton
     exclude(ATen_HIP_SRCS "${ATen_HIP_SRCS}"
@@ -759,8 +759,11 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/cmake-exports/ATenConfig.cmake"
 
 set(INSTALL_HEADERS ${base_h} ${ATen_CORE_HEADERS} ${native_nested_h} ${ATen_TRANSFORMER_HEADERS})
 if(NOT INTERN_BUILD_MOBILE)
-  list(APPEND INSTALL_HEADERS ${native_h} ${native_cpu_h} ${native_ao_sparse_h} ${native_quantized_h} ${cuda_h} ${native_cuda_h} ${native_hip_h} ${native_mtia_h} ${cudnn_h} ${hip_h} ${mtia_h} ${xpu_h} ${mps_h} ${native_kleidiai_h} ${native_mps_h} ${native_utils_h} ${miopen_h} ${mkldnn_xpu_h} ${native_ck_h} ${native_ck_kernels_h})
+  list(APPEND INSTALL_HEADERS ${native_h} ${native_cpu_h} ${native_ao_sparse_h} ${native_quantized_h} ${cuda_h} ${native_cuda_h} ${native_hip_h} ${native_mtia_h} ${cudnn_h} ${hip_h} ${mtia_h} ${xpu_h} ${mps_h} ${native_kleidiai_h} ${native_mps_h} ${native_utils_h} ${miopen_h} ${mkldnn_xpu_h})
   # Metal
+  if(USE_ROCM_CK_GEMM)
+    list(APPEND INSTALL_HEADERS ${native_ck_h} ${native_ck_kernels_h})
+  endif()
   if(USE_PYTORCH_METAL_EXPORT)
     # Add files needed from exporting metal models(optimized_for_mobile)
     list(APPEND INSTALL_HEADERS ${metal_h} ${metal_prepack_h})
