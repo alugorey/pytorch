@@ -195,13 +195,53 @@ if(USE_FLASH_ATTENTION)
       endif()
     endif()
     message(STATUS "USE_ROCM_CK_SDPA is set; building PyTorch with CK SDPA enabled")
+
     message(STATUS "Generating CK kernel instances...")
     add_subdirectory(native/transformers/hip/flash_attn/ck)
+
+
+    # Additional CK compiler flags
+    set(CK_SDPA_EXTRA_HIPCC_FLAGS
+        CK_ENABLE_BF16
+        CK_ENABLE_BF8
+        CK_ENABLE_FP16
+        CK_ENABLE_FP32
+        CK_ENABLE_FP64
+        CK_ENABLE_FP8
+        CK_ENABLE_INT8
+        CK_TILE_USE_WMMA=0
+        CK_TIME_KERNEL=1
+        CK_USE_FNUZ_FP8
+        CK_USE_GFX94
+        CK_USE_XDL
+        DL_KERNELS
+        DPP-KERNELS
+        USE_PROF_API=1
+        __HIP_PLATFORM_AMD__=1
+        __HIP_PLATFORM_HCC__=1
+        NDEBUG
+        CK_TILE_FMHA_FWD_FAST_EXP2=1
+        CK_TILE_FMHA_FWD_SPLITKV_API=0
+        CK_TILE_FMHA_FWD_APPENDKV_API=0
+        CK_TILE_FMHA_FWD_PAGEDKV_API=0
+        __GCC_HAVE_DWARF2_CFI_ASM=1)
+
+
     file(GLOB flash_attention_hip_ck_hip "native/transformers/hip/flash_attn/ck/*.hip")
+    set_source_files_properties(${flash_attention_hip_ck_hip}
+                               PROPERTIES
+                               COMPILE_DEFINITIONS
+                               ${CK_SDPA_EXTRA_HIPCC_FLAGS})
+
     list(APPEND native_transformers_hip_hip ${flash_attention_hip_ck_hip})
     # FAv3 Generation
     add_subdirectory(native/transformers/hip/flash_attn/ck/fav_v3)
     file(GLOB flash_attention_v3_hip "native/transformers/hip/flash_attn/ck/fav_v3/*.hip")
+    set_source_files_properties(${flash_attention_v3_hip}
+                               PROPERTIES
+                               COMPILE_DEFINITIONS
+                               ${CK_SDPA_EXTRA_HIPCC_FLAGS})
+
     list(APPEND native_transformers_hip_hip ${flash_attention_v3_hip})
   endif()
   file(GLOB flash_attention_hip_aot_hip "native/transformers/hip/flash_attn/aot/*.hip")
