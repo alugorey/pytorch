@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.27 FATAL_ERROR)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 
+include(CheckCXXCompilerFlag)
+
 if(NOT MSVC)
   string(APPEND CMAKE_CXX_FLAGS " -Wno-ignored-qualifiers")
   string(APPEND CMAKE_C_FLAGS " -Wno-ignored-qualifiers")
@@ -198,9 +200,7 @@ if(USE_FLASH_ATTENTION)
 
 
     set(CK_SDPA_EXTRA_HIPCC_FLAGS
-        #-fdeprecated-macro
         -fno-autolink
-        #-ferror-limit 19
         -fhip-new-launch-api
         -fgnuc-version=4.2.1
         -fno-implicit-modules
@@ -208,37 +208,46 @@ if(USE_FLASH_ATTENTION)
         -fcxx-exceptions
         -fexceptions
         -fcolor-diagnostics
-        #-vectorize-loops
-        #-vectorize-slp
-        -mllvm
-        --lsr-drop-solution=1
-        -mllvm
-        -enable-post-misched=0
-        -mllvm
-        -amdgpu-coerce-illegal-types=1
-        -mllvm
-        -amdgpu-early-inline-all=true
-        -mllvm
-        -amdgpu-function-calls=false
-        #-cuid=838168e6bef2a49b
-        #-fcuda-allow-variadic-functions
-        -fno-offload-uniform-block
+        #-mllvm
+        #--lsr-drop-solution=1
+        #-mllvm
+        #-enable-post-misched=0
+        #-mllvm
+        #-amdgpu-coerce-illegal-types=1
+        #-mllvm
+        #-amdgpu-early-inline-all=true
+        #-mllvm
+        #-amdgpu-function-calls=false
+        #-fno-offload-uniform-block
         -faddrsig
-        #-mrelocation-model pic
-        #-pic-level 2
-        #-fhalf-no-semantic-interposition
-        #-mframe-pointer=none
-        #-fdenormal-fp-math-f32=preserve-sign,preserve-sign
         -fno-rounding-math
         -mconstructor-aliases
-        #-aux-target-cpu x86-64
-        #-fcuda-is-device
         -mllvm
         -amdgpu-internalize-symbols
-        -Wno-nrvo
-        #-fcuda-allow-variadic-functions
-        -fvisibility=hidden)
-        #-fapply-global-visibility-to-externs)
+        -fvisibility=hidden
+        -Wno-float-equal)
+
+
+    check_cxx_compiler_flag("-fno-offload-uniform-block" HAS_NO_OFFLOAD_UNIFORM_BLOCK)
+    if(HAS_NO_OFFLOAD_UNIFORM_BLOCK)
+        #      add_compile_options(-fno-offload-uniform-block)
+      list(APPEND CK_SDPA_EXTRA_HIPCC_FLAGS "-fno-offload-uniform-block")
+    endif()
+    check_cxx_compiler_flag("-mllvm --lsr-drop-solution=1" HAS_LSR_DROP_SOLUTION)
+    if(HAS_LSR_DROP_SOLUTION)
+        list(APPEND CK_SDPA_EXTRA_HIPCC_FLAGS "SHELL: -mllvm --lsr-drop-solution=1")
+    endif()
+    check_cxx_compiler_flag("-mllvm -enable-post-misched=0" HAS_ENABLE_POST_MISCHED)
+    if(HAS_ENABLE_POST_MISCHED)
+        list(APPEND CK_SDPA_EXTRA_HIPCC_FLAGS "SHELL: -mllvm -enable-post-misched=0")
+    endif()
+    set(check-coerce)
+    check_cxx_compiler_flag(" -mllvm -amdgpu-coerce-illegal-types=1" check-coerce)
+    if(check-coerce)
+      add_compile_options("SHELL: -mllvm -amdgpu-coerce-illegal-types=1")
+      add_compile_options("SHELL: -mllvm -amdgpu-early-inline-all=true")
+      add_compile_options("SHELL: -mllvm -amdgpu-function-calls=false")
+    endif()
 
     # Additional CK compiler flags
     set(CK_SDPA_EXTRA_HIPCC_OPTIONS
@@ -254,16 +263,13 @@ if(USE_FLASH_ATTENTION)
         CK_USE_FNUZ_FP8
         CK_USE_GFX94
         CK_USE_XDL
-        DL_KERNELS
-        DPP_KERNELS
-        CK_ENABLE_DPP_KERNELS
         USE_PROF_API=1
         __HIP_PLATFORM_AMD__=1
         __HIP_PLATFORM_HCC__=1
         CK_TILE_FMHA_FWD_FAST_EXP2=1
-        CK_TILE_FMHA_FWD_SPLITKV_API=0
-        CK_TILE_FMHA_FWD_APPENDKV_API=0
-        CK_TILE_FMHA_FWD_PAGEDKV_API=0
+        CK_TILE_FMHA_FWD_SPLITKV_API=1
+        CK_TILE_FMHA_FWD_APPENDKV_API=1
+        CK_TILE_FMHA_FWD_PAGEDKV_API=1
         __GCC_HAVE_DWARF2_CFI_ASM=1
         USE_ROCM_CK_SDPA)
 
