@@ -196,12 +196,52 @@ if(USE_FLASH_ATTENTION)
     endif()
     message(STATUS "USE_ROCM_CK_SDPA is set; building PyTorch with CK SDPA enabled")
 
-    message(STATUS "Generating CK kernel instances...")
-    add_subdirectory(native/transformers/hip/flash_attn/ck)
 
+    set(CK_SDPA_EXTRA_HIPCC_FLAGS
+        #-fdeprecated-macro
+        -fno-autolink
+        #-ferror-limit 19
+        -fhip-new-launch-api
+        -fgnuc-version=4.2.1
+        -fno-implicit-modules
+        -fskip-odr-check-in-gmf
+        -fcxx-exceptions
+        -fexceptions
+        -fcolor-diagnostics
+        #-vectorize-loops
+        #-vectorize-slp
+        -mllvm
+        --lsr-drop-solution=1
+        -mllvm
+        -enable-post-misched=0
+        -mllvm
+        -amdgpu-coerce-illegal-types=1
+        -mllvm
+        -amdgpu-early-inline-all=true
+        -mllvm
+        -amdgpu-function-calls=false
+        #-cuid=838168e6bef2a49b
+        #-fcuda-allow-variadic-functions
+        -fno-offload-uniform-block
+        -faddrsig
+        #-mrelocation-model pic
+        #-pic-level 2
+        #-fhalf-no-semantic-interposition
+        #-mframe-pointer=none
+        #-fdenormal-fp-math-f32=preserve-sign,preserve-sign
+        -fno-rounding-math
+        -mconstructor-aliases
+        #-aux-target-cpu x86-64
+        #-fcuda-is-device
+        -mllvm
+        -amdgpu-internalize-symbols
+        -Wno-nrvo
+        #-fcuda-allow-variadic-functions
+        -fvisibility=hidden)
+        #-fapply-global-visibility-to-externs)
 
     # Additional CK compiler flags
-    set(CK_SDPA_EXTRA_HIPCC_FLAGS
+    set(CK_SDPA_EXTRA_HIPCC_OPTIONS
         CK_ENABLE_BF16
         CK_ENABLE_BF8
         CK_ENABLE_FP16
@@ -215,34 +255,49 @@ if(USE_FLASH_ATTENTION)
         CK_USE_GFX94
         CK_USE_XDL
         DL_KERNELS
-        DPP-KERNELS
+        DPP_KERNELS
+        CK_ENABLE_DPP_KERNELS
         USE_PROF_API=1
         __HIP_PLATFORM_AMD__=1
         __HIP_PLATFORM_HCC__=1
-        NDEBUG
         CK_TILE_FMHA_FWD_FAST_EXP2=1
         CK_TILE_FMHA_FWD_SPLITKV_API=0
         CK_TILE_FMHA_FWD_APPENDKV_API=0
         CK_TILE_FMHA_FWD_PAGEDKV_API=0
         __GCC_HAVE_DWARF2_CFI_ASM=1)
 
-
-    file(GLOB flash_attention_hip_ck_hip "native/transformers/hip/flash_attn/ck/*.hip")
-    set_source_files_properties(${flash_attention_hip_ck_hip}
-                               PROPERTIES
-                               COMPILE_DEFINITIONS
-                               ${CK_SDPA_EXTRA_HIPCC_FLAGS})
-
-    list(APPEND native_transformers_hip_hip ${flash_attention_hip_ck_hip})
+    message(STATUS "Generating CK kernel instances...")
+    add_subdirectory(native/transformers/hip/flash_attn/ck)
     # FAv3 Generation
     add_subdirectory(native/transformers/hip/flash_attn/ck/fav_v3)
-    file(GLOB flash_attention_v3_hip "native/transformers/hip/flash_attn/ck/fav_v3/*.hip")
-    set_source_files_properties(${flash_attention_v3_hip}
-                               PROPERTIES
-                               COMPILE_DEFINITIONS
-                               ${CK_SDPA_EXTRA_HIPCC_FLAGS})
+    file(GLOB ck_sdpa_sources_hip
+         "native/transformers/hip/flash_attn/ck/*.hip"
+         "native/transformers/hip/flash_attn/ck/fav_v3/*.hip")
 
-    list(APPEND native_transformers_hip_hip ${flash_attention_v3_hip})
+
+    #file(GLOB flash_attention_hip_ck_hip "native/transformers/hip/flash_attn/ck/*.hip")
+
+
+
+    set_source_files_properties(${ck_sdpa_sources_hip} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT 1)
+    hip_add_library(ck_sdpa STATIC
+                    ${ck_sdpa_sources_hip}
+                    HIPCC_OPTIONS ${HIP_HCC_FLAGS} ${CK_SDPA_EXTRA_HIPCC_FLAGS})
+    set_target_properties(ck_sdpa PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    target_compile_definitions(ck_sdpa PRIVATE ${CK_SDPA_EXTRA_HIPCC_OPTIONS})
+    target_include_directories(ck_sdpa PUBLIC
+                               ${CMAKE_CURRENT_SOURCE_DIR}/../../../third_party/composable_kernel/include
+                               ${CMAKE_CURRENT_SOURCE_DIR}/../../../third_party/composable_kernel/library/include
+                               ${CMAKE_CURRENT_SOURCE_DIR}/../../../third_party/composable_kernel/example/ck_tile/01_fmha
+                               ${CMAKE_CURRENT_BINARY_DIR}/composable_kernel
+                               ${CMAKE_CURRENT_SOURCE_DIR}/../../../third_party/aiter/csrc/include
+                               ${CMAKE_CURRENT_SOURCE_DIR}/native/transformers/hip/flash_attn/ck
+                               )
+
+    #    list(APPEND native_transformers_hip_hip ${flash_attention_hip_ck_hip})
+    #file(GLOB flash_attention_v3_hip "native/transformers/hip/flash_attn/ck/fav_v3/*.hip")
+
+    #list(APPEND native_transformers_hip_hip ${flash_attention_v3_hip})
   endif()
   file(GLOB flash_attention_hip_aot_hip "native/transformers/hip/flash_attn/aot/*.hip")
   file(GLOB flash_attention_src_hip_hip "native/transformers/hip/flash_attn/src/*.hip")
