@@ -284,7 +284,7 @@ if(USE_FLASH_ATTENTION)
                     ${ck_sdpa_sources_hip}
                     HIPCC_OPTIONS ${HIP_HCC_FLAGS} ${CK_SDPA_EXTRA_HIPCC_FLAGS})
     set_target_properties(ck_sdpa PROPERTIES POSITION_INDEPENDENT_CODE ON)
-    target_compile_definitions(ck_sdpa PRIVATE ${CK_SDPA_EXTRA_HIPCC_OPTIONS})
+    target_compile_definitions(ck_sdpa PUBLIC ${CK_SDPA_EXTRA_HIPCC_OPTIONS})
     target_include_directories(ck_sdpa PUBLIC
                                ${CMAKE_CURRENT_SOURCE_DIR}/../../../third_party/composable_kernel/include
                                ${CMAKE_CURRENT_SOURCE_DIR}/../../../third_party/composable_kernel/library/include
