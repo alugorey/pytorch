@@ -264,7 +264,8 @@ if(USE_FLASH_ATTENTION)
         CK_TILE_FMHA_FWD_SPLITKV_API=0
         CK_TILE_FMHA_FWD_APPENDKV_API=0
         CK_TILE_FMHA_FWD_PAGEDKV_API=0
-        __GCC_HAVE_DWARF2_CFI_ASM=1)
+        __GCC_HAVE_DWARF2_CFI_ASM=1
+        USE_ROCM_CK_SDPA)
 
     message(STATUS "Generating CK kernel instances...")
     add_subdirectory(native/transformers/hip/flash_attn/ck)
