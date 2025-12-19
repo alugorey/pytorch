@@ -283,6 +283,7 @@ def generate_experiment_configs() -> list[ExperimentConfig]:
 def main():
     seed = 123
     torch.manual_seed(seed)
+    torch.backends.cuda.preferred_rocm_fa_library("ck")
     results = []
     for config in tqdm(generate_experiment_configs()):
         results.append(Experiment(config, run_single_experiment(config)))
