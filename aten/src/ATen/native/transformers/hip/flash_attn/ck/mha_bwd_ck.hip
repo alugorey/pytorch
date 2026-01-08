@@ -182,6 +182,8 @@ fmha_bwd_args get_ck_fmha_bwd_args(const mask_info &mask,
                          nullptr,                    // seqstart_q_ptr
                          nullptr,                    // seqstart_k_ptr
                          nullptr,                    // seqlen_k_ptr
+                         nullptr,                    // cu_seqlen_q_ptr
+                         nullptr,                    // cu_seqlen_k_ptr
                          seqlen_q,                   // seqlen_q
                          seqlen_k,                   // seqlen_k
                          b,                          // batch
