@@ -30,7 +30,7 @@ fmha_bwd_traits get_ck_fmha_bwd_traits(const mask_info &mask,
 }
 
 
-
+/* WAS NEVER USED, CAN REMOVE
 aiter::mha_bwd_traits get_mha_bwd_traits(fmha_bwd_traits t, mask_info mask)
 {
     return aiter::mha_bwd_traits(t.hdim_q,
@@ -48,6 +48,7 @@ aiter::mha_bwd_traits get_mha_bwd_traits(fmha_bwd_traits t, mask_info mask)
                           1);                    // how_v3_bf16_cvt
 
 }
+*/
 
 fmha_bwd_args get_ck_fmha_bwd_args(const mask_info &mask,
                                    // sizes
@@ -160,78 +161,82 @@ fmha_bwd_args get_ck_fmha_bwd_args(const mask_info &mask,
 
     float p_undrop = 1.0 - p_dropout;
 
-    return fmha_bwd_args{q.data_ptr(),
-                         k.data_ptr(),
-                         v.data_ptr(),
-                         attn_bias_ptr,              // bias
-                         out.data_ptr(),
-                         softmax_lse.data_ptr(),
-                         dout.data_ptr(),
-                         d.data_ptr(),
-                         nullptr,                    // rand_val
-                         dq.data_ptr(),
-                         dk.data_ptr(),
-                         dv.data_ptr(),
-                         dbias_ptr,                 // dbias
-                         dq_acc.data_ptr(),         // dq_acc
-                         nullptr,                   // seqstart_q
-                         nullptr,                   // seqstart_k
-                         nullptr,                   // seqlen_k_ptr
-                         seqlen_q,
-                         seqlen_k,
-                         b,
-                         seqlen_q,                  // max_seqlen_q
-                         seqlen_k,                  // max_seqlen_k
-                         hdim,                      // hdim_q
-                         hdim,                      // hdim_v
-                         h,                         // nhead
-                         h_k,                       // nhead_k
-                         softmax_scale,
-                         stride_q,
-                         stride_k,
-                         stride_v,
-                         stride_attn_bias,
-                         stride_o,
-                         0,                         // stride_randval
-                         stride_do,
-                         stride_dq_acc,
-                         stride_dq,
-                         stride_dk,
-                         stride_dv,
+
+    // NOTE: Comments next to variables represents the corresponding name in the fmha_bwd_args struct defined in
+    // pytorch/third_party/composable_kernel/example/ck_tile/fmha_bwd.hpp
+
+    return fmha_bwd_args{q.data_ptr(),               // q_ptr
+                         k.data_ptr(),               // k_ptr
+                         v.data_ptr(),               // v_ptr
+                         attn_bias_ptr,              // bias_ptr
+                         out.data_ptr(),             // o_ptr
+                         softmax_lse.data_ptr(),     // lse_ptr
+                         dout.data_ptr(),            // do_ptr
+                         d.data_ptr(),               // d_ptr
+                         nullptr,                    // rand_val_ptr
+                         dq.data_ptr(),              // dq_ptr
+                         dk.data_ptr(),              // dk_ptr
+                         dv.data_ptr(),              // dv_ptr
+                         dbias_ptr,                  // dbias_ptr
+                         dq_acc.data_ptr(),          // dq_acc_ptr
+                         nullptr,                    // seqstart_q_ptr
+                         nullptr,                    // seqstart_k_ptr
+                         nullptr,                    // seqlen_k_ptr
+                         seqlen_q,                   // seqlen_q
+                         seqlen_k,                   // seqlen_k
+                         b,                          // batch
+                         seqlen_q,                   // max_seqlen_q
+                         seqlen_k,                   // max_seqlen_k
+                         hdim,                       // hdim_q
+                         hdim,                       // hdim_v
+                         h,                          // nhead_q
+                         h_k,                        // nhead_k
+                         softmax_scale,              // scale
+                         stride_q,                   // stride_q
+                         stride_k,                   // stride_k
+                         stride_v,                   // stride_v
+                         stride_attn_bias,           // stride_bias
+                         stride_o,                   // stride_o
+                         0,                          // stride_randval
+                         stride_do,                  // stride_do
+                         stride_dq_acc,              // stride_dq_acc
+                         stride_dq,                  // stride_dq
+                         stride_dk,                  // stride_dk
+                         stride_dv,                  // stride_dv
                          stride_dbias,               // stride_dbias
-                         nhead_stride_q,
-                         nhead_stride_k,
-                         nhead_stride_v,
+                         nhead_stride_q,             // nhead_stride_q
+                         nhead_stride_k,             // nhead_stride_k
+                         nhead_stride_v,             // nhead_stride_v
                          nhead_stride_bias,          // nhead_stride_bias
-                         nhead_stride_o,
+                         nhead_stride_o,             // nhead stride_o
                          0,                          // nhead_stride_randval
-                         nhead_stride_do,
-                         nhead_stride_lse,
-                         nhead_stride_dq_acc,
-                         nhead_stride_dq,
-                         nhead_stride_dk,
-                         nhead_stride_dv,
+                         nhead_stride_do,            // nhead_stride_do
+                         nhead_stride_lse,           // nhead_stride_lsed
+                         nhead_stride_dq_acc,        // nhead_stride_dq_acc
+                         nhead_stride_dq,            // nhead_stride_dq
+                         nhead_stride_dk,            // nhead_stride_dk
+                         nhead_stride_dv,            // nhead_stride_dv
                          nhead_stride_dbias,         // nhead_stride_dbias
-                         batch_stride_q,
-                         batch_stride_k,
-                         batch_stride_v,
+                         batch_stride_q,             // batch_stride_q
+                         batch_stride_k,             // batch_stride_k
+                         batch_stride_v,             // batch_stride_v
                          batch_stride_bias,          // batch_stride_bias
-                         batch_stride_o,
+                         batch_stride_o,             // batch_stride_o
                          0,                          // batch_stride_randval
-                         batch_stride_do,
-                         batch_stride_lse,
-                         batch_stride_dq_acc,
-                         batch_stride_dq,
-                         batch_stride_dk,
-                         batch_stride_dv,
+                         batch_stride_do,            // batch_stride_do
+                         batch_stride_lse,           // batch_stride_lsed
+                         batch_stride_dq_acc,        // batch_stride_dq_acc
+                         batch_stride_dq,            // batch_stride_dq
+                         batch_stride_dk,            // batch_stride_dk
+                         batch_stride_dv,            // batch_stride_dv
                          batch_stride_dbias,         // batch_stride_dbias
-                         split_stride_dq_acc,
-                         mask.left,
-                         mask.right,
-                         static_cast<ck_tile::index_t>(mask.type),
-                         p_dropout,
-                         p_undrop,
-                         drop_seed_offset};
+                         split_stride_dq_acc,        // split_stride_dq_acc
+                         mask.left,                  // window_size_left
+                         mask.right,                 // window_size_right
+                         static_cast<ck_tile::index_t>(mask.type), // mask_type
+                         p_dropout,                  // p_drop
+                         p_undrop,                   // p_undrop
+                         drop_seed_offset};          // drop_seed_offset
 }
 std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor>
 mha_bwd_ck(const at::Tensor &dout,                   // batch_size x seqlen_q x num_heads, x head_size_og

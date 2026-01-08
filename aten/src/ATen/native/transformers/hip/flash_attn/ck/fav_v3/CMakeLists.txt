@@ -1,6 +1,7 @@
 include(CMakePrintHelpers)
 
-
+cmake_minimum_required(VERSION 4.0)
+project(proj)
 #[[
 # OLD
 # Generate AITER/CK Asm code
@@ -25,5 +26,10 @@ execute_process(COMMAND bash -c "for file in ${CMAKE_CURRENT_LIST_DIR}/*.cpp; do
 
 # new
 # AITER_CPU_ARCHS=gfx942
+set(AITER_GPU_ARCH "gfx942")
+set(ENV{AITER_GPU_ARCHS} ${AITER_GPU_ARCH})
 execute_process(
-    COMMAND python3 ${CMAKE_SOURCE_DIR}/third_party/aiter/hsa/codegen.py -m fmha_v3_bwd --output_dir ${CMAKE_CURRENT_LIST_DIR})
+     COMMAND python3 ${CMAKE_SOURCE_DIR}/third_party/aiter/hsa/codegen.py -m fmha_v3_bwd --output_dir ${CMAKE_CURRENT_LIST_DIR})
+
+unset(ENV{AITER_GPU_ARCHS})
+message(STATUS "Finished generating aiter FA sources")
