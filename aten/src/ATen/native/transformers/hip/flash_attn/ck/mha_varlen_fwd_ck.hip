@@ -15,17 +15,19 @@ fmha_fwd_traits get_ck_fmha_varlen_fwd_traits(const mask_info &mask,
                                               bool has_lse,
                                               bool enable_bias)
 {
-    return fmha_fwd_traits{head_size,
-                           head_size,
-                           dtype,
-                           true, // is_group_mode
-                           true, // is_v_rowmajor
-                           false, // has_logits_soft_cap
-                           mask.type,
-                           enable_bias ? bias_enum::elementwise_bias : bias_enum::no_bias,
-                           has_lse,
-                           has_dropout,
-                           false}; // do_fp8_static_quant
+    return fmha_fwd_traits{head_size,               // hdim_q
+                           head_size,               // hdim_v
+                           dtype,                   // data_type
+                           true,                    // is_group_mode
+                           true,                    // is_v_rowmajor
+                           false,                   // has_logits_soft_cap
+                           mask.type,               // mask_type
+                           enable_bias ? bias_enum::elementwise_bias : bias_enum::no_bias, // bias_type
+                           has_lse,                 // has_lse
+                           has_dropout,             // has_dropout
+                           quant_scale_enum::no_scale, // qscale_type
+                           false,                   // skip_min_seqlen_q
+                           false};                  // has_sink
 }
 
 fmha_fwd_args get_ck_fmha_varlen_fwd_args(bool has_lse,
