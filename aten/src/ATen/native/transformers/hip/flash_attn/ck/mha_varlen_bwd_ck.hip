@@ -76,7 +76,7 @@ fmha_bwd_args get_ck_fmha_varlen_bwd_args(const mask_info &mask,
     ck_tile::index_t batch_stride_v = 0;
     ck_tile::index_t stride_v = v.stride(0);
     ck_tile::index_t nhead_stride_v = v.stride(1);
-
+ 
     // o: (total_q, nheads, hdim)
     ck_tile::index_t batch_stride_o = 0;
     ck_tile::index_t stride_o = out.stride(0);
@@ -170,11 +170,11 @@ fmha_bwd_args get_ck_fmha_varlen_bwd_args(const mask_info &mask,
                          nullptr,                                           // seqlen_k_ptr
                          nullptr,                                           // cu_seqlen_q_ptr
                          nullptr,                                           // cu_seqlen_k_ptr
-                         seqlen_q,                                          // seqlen_q
-                         seqlen_k,                                          // seqlen_k
+                         max_seqlen_q,                                          // seqlen_q
+                         max_seqlen_k,                                          // seqlen_k
                          b,                                                 // batch
-                         seqlen_q,                                          // max_seqlen_q
-                         seqlen_k,                                          // max_seqlen_k
+                         max_seqlen_q,                                          // max_seqlen_q
+                         max_seqlen_k,                                          // max_seqlen_k
                          hdim,                                              // hdim_q
                          hdim,                                              // hdim_v
                          h,                                                 // nhead_q
