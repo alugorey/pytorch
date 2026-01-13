@@ -191,10 +191,11 @@ aiter::mha_bwd_args get_aiter_mha_bwd_args(
                                data_type,                                         // data_type
                                false,                                             // is_group_mode
                                static_cast<int>(mask.type),                       // ck_mask_type
+                               bias_type,                                         // bias_type
                                bias_requires_grad,                                // has_dbias
-                                                                                  // has_dropout
+                               has_dropout,                                       // has_dropout
                                false,                                             // is_store_randval
-                                                                                  // is_deterministic
+                               is_deterministic,                                  // is_deterministic
                                q.data_ptr(),                                      // q_ptr
                                k.data_ptr(),                                      // k_ptr
                                v.data_ptr(),                                      // v_ptr
@@ -220,8 +221,6 @@ aiter::mha_bwd_args get_aiter_mha_bwd_args(
                                b,                                                 // batch
                                seqlen_q,                                          // max_seqlen_q
                                seqlen_k,                                          // max_seqlen_k
-                               hdim,                                              // hdim_q
-                               hdim,                                              // hdim_v
                                h,                                                 // nhead_q
                                h_k,                                               // nhead_k
                                softmax_scale,                                     // scale
@@ -446,7 +445,7 @@ mha_bwd_ck(const at::Tensor &dout,                   // batch_size x seqlen_q x 
                 q_dtype_str,
                 bias_type,
                 has_dropout,
-                deterministic
+                deterministic,
                 mask,
                 batch_size,
                 seqlen_q,
