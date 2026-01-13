@@ -9,7 +9,7 @@
 
 namespace pytorch_flash {
 
-
+//TODO: This varlen variant currently uses CK as it's backend. Update to AITER
 fmha_bwd_traits get_ck_fmha_varlen_bwd_traits(const mask_info &mask,
                                               std::string dtype,
                                               int head_size,
