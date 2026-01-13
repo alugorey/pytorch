@@ -65,6 +65,8 @@ aiter::mha_bwd_traits get_mha_bwd_traits(fmha_bwd_traits t, mask_info mask)
 aiter::mha_bwd_args get_aiter_mha_bwd_args(
                                    std::string data_type,
                                    int bias_type,
+                                   bool has_dropout,
+                                   bool is_deterministic,
                                    // ^new stuff added to signature ^
                                    const mask_info &mask,
                                    // sizes
@@ -188,7 +190,11 @@ aiter::mha_bwd_args get_aiter_mha_bwd_args(
                                hdim,                                              // hdim_v
                                data_type,                                         // data_type
                                false,                                             // is_group_mode
-                               static_cast<int>(mask.type)                        // ck_mask_type
+                               static_cast<int>(mask.type),                       // ck_mask_type
+                               bias_requires_grad,                                // has_dbias
+                                                                                  // has_dropout
+                               false,                                             // is_store_randval
+                                                                                  // is_deterministic
                                q.data_ptr(),                                      // q_ptr
                                k.data_ptr(),                                      // k_ptr
                                v.data_ptr(),                                      // v_ptr
@@ -291,7 +297,7 @@ mha_bwd_ck(const at::Tensor &dout,                   // batch_size x seqlen_q x 
 #endif
     if (is_causal) { window_size_right = 0; }
 
-    bool is_dropout = p_dropout > 0.0;
+    bool has_dropout = p_dropout > 0.0;
     auto stream = at::cuda::getCurrentHIPStream().stream();
 
     auto q_dtype = q.dtype();
@@ -438,6 +444,9 @@ mha_bwd_ck(const at::Tensor &dout,                   // batch_size x seqlen_q x 
         auto args =
             get_aiter_mha_bwd_args(
                 q_dtype_str,
+                bias_type,
+                has_dropout,
+                deterministic
                 mask,
                 batch_size,
                 seqlen_q,
@@ -463,6 +472,9 @@ mha_bwd_ck(const at::Tensor &dout,                   // batch_size x seqlen_q x 
                 p_dropout,
                 drop_seed_offset);
 
+        // NEW
+        float t = aiter::mha_bwd(args, stream_config);
+        /* OLD
         float t = aiter::mha_bwd(args,
                                  stream_config,
                                  q_dtype_str,
@@ -477,7 +489,7 @@ mha_bwd_ck(const at::Tensor &dout,                   // batch_size x seqlen_q x 
                                  1);                // how_v3_bf16_cvt
 
 
-
+        */
 
         TORCH_CHECK(t >= 0, "invalid argument for fmha_bwd");
     } else {
