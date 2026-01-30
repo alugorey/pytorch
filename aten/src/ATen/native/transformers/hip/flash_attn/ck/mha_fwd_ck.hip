@@ -272,10 +272,12 @@ mha_fwd_ck(const at::Tensor &q,                      // batch_size x seqlen_q x 
         std::cout << "MAKING P HAVE SHAPE" << std::endl;
         TORCH_CHECK(has_dropout, "return_dropout_randval require p_dropout > 0");
         p = at::empty({batch_size, num_heads, seqlen_q, seqlen_k}, opts.dtype(at::kByte));
+        //std::cout << p << std::endl;
     }
     else {
         std::cout << "NOW IT DOESN'T HAVE SHAPE" << std::endl;
-        p = at::empty({ 0, 0, 0, 0 }, opts.dtype(at::kByte));
+        p = at::empty({ batch_size, num_heads, seqlen_q, seqlen_k }, opts.dtype(at::kByte));
+        //std::cout << p << std::endl;
         //p = at::empty({0, 0}, opts.dtype(at::kByte));
     }
 
