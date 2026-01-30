@@ -273,7 +273,7 @@ mha_fwd_ck(const at::Tensor &q,                      // batch_size x seqlen_q x 
         p = at::empty({batch_size, num_heads, seqlen_q, seqlen_k}, opts.dtype(at::kByte));
     }
     else {
-        p = at::empty({ 0 }, opts.dtype(at::kByte));
+        p = at::empty({ 0, 0, 0, 0 }, opts.dtype(at::kByte));
     }
 
 
@@ -354,6 +354,14 @@ mha_fwd_ck(const at::Tensor &q,                      // batch_size x seqlen_q x 
         q_padded = q_padded.transpose(1, 2).reshape({batch_size, 1, num_heads_k * seqlen_q, head_size});
         softmax_lse = softmax_lse.reshape({batch_size, num_heads_k * seqlen_q, 1});
     }
-    return {out, q_padded, k_padded, v_padded, softmax_lse, rng_state, _unused, p};
+    // EXPECTED OUTPUT AT MHA_FWD()
+    return {out,            // output
+            q_padded,       // q_padded
+            k_padded,       // k_padded
+            v_padded,       // v_padded
+            softmax_lse,    // logsumexp
+            rng_state,      // philox_seed
+            _unused,        // philox_offset
+            p};             // debug_attn_mask
 }
 } //namespace pytorch_flash
