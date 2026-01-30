@@ -395,8 +395,15 @@ mha_bwd_ck(const at::Tensor &dout,                   // batch_size x seqlen_q x 
     int64_t counter_offset = batch_size * num_heads * ck_tile::get_warp_size();
     std::pair<uint64_t*, uint64_t*> drop_seed_offset = {nullptr,nullptr};
     if(is_dropout) {
-        drop_seed_offset.first = philox_seed[0].data_ptr<uint64_t>();
-        drop_seed_offset.second = philox_seed[1].data_ptr<uint64_t>();
+        std::cout << "DROPOUT IN BACKWARDS" << std::endl;
+        std::cout << philox_seed << std::endl;
+        std::cout << philox_offset << std::endl;
+//        drop_seed_offset.first = philox_seed[0].data_ptr<uint64_t>();
+//        drop_seed_offset.second = philox_seed[1].data_ptr<uint64_t>();
+          drop_seed_offset.first = philox_seed.data_ptr<uint64_t>();
+          std::cout << "mha_bwd_ck-seed: " << *(drop_seed_offset.first) << std::endl;
+          drop_seed_offset.second = philox_offset.data_ptr<uint64_t>();
+          std::cout << "mha_bwd_ck-ofst: " << *(drop_seed_offset.second) << std::endl;
     }
 
     if (seqlen_q > 0) {

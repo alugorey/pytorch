@@ -269,15 +269,19 @@ mha_fwd_ck(const at::Tensor &q,                      // batch_size x seqlen_q x 
 
     at::Tensor p;
     if (return_dropout_randval) {
+        std::cout << "MAKING P HAVE SHAPE" << std::endl;
         TORCH_CHECK(has_dropout, "return_dropout_randval require p_dropout > 0");
         p = at::empty({batch_size, num_heads, seqlen_q, seqlen_k}, opts.dtype(at::kByte));
     }
     else {
+        std::cout << "NOW IT DOESN'T HAVE SHAPE" << std::endl;
         p = at::empty({ 0, 0, 0, 0 }, opts.dtype(at::kByte));
+        //p = at::empty({0, 0}, opts.dtype(at::kByte));
     }
 
 
     uint64_t drop_seed = 1, drop_offset = 0;
+    at::Tensor seed_t, offset_t;
     int64_t counter_offset = batch_size * num_heads * ck_tile::get_warp_size();
 
     auto rng_state_options = at::TensorOptions().dtype(at::kUInt64).device(at::kCUDA);
@@ -295,19 +299,23 @@ mha_fwd_ck(const at::Tensor &q,                      // batch_size x seqlen_q x 
 
         std::tie(drop_seed, drop_offset) = at::cuda::philox::unpack(philox_args);
 
+    } else {
+        seed_t = at::empty({}, at::dtype(at::kLong).device(at::kCUDA));
+        offset_t = at::empty({}, at::dtype(at::kLong).device(at::kCUDA));
     }
     rng_state[0] = *(reinterpret_cast<int64_t*>(&drop_seed));
     rng_state[1] = *(reinterpret_cast<int64_t*>(&drop_offset));
     auto drop_options = at::TensorOptions().dtype(at::kLong).device(at::kCUDA);
-
+    auto drop_seed_offset = std::make_pair(rng_state[0].data_ptr<uint64_t>(),
+                                           rng_state[1].data_ptr<uint64_t>());
     std::optional<at::Tensor> attn_bias;
     if( attn_bias_.has_value())
     {
       attn_bias = attn_bias_;
     }
     if (seqlen_k > 0) {
-        auto drop_seed_offset = std::make_pair(rng_state[0].data_ptr<uint64_t>(),
-                                               rng_state[1].data_ptr<uint64_t>());
+        //auto drop_seed_offset = std::make_pair(rng_state[0].data_ptr<uint64_t>(),
+        //                                       rng_state[1].data_ptr<uint64_t>());
         auto stream = at::cuda::getCurrentHIPStream().stream();
         ck_tile::stream_config stream_config{stream};
 
@@ -350,18 +358,30 @@ mha_fwd_ck(const at::Tensor &q,                      // batch_size x seqlen_q x 
         softmax_lse.fill_(std::numeric_limits<float>::infinity());
     }
     if (seqlenq_ngroups_swapped) {
+        std::cout << "SEQLEN_SWAPPED" << std::endl;
         out = out.transpose(1, 2).reshape({batch_size, 1, num_heads_k * seqlen_q, head_size});
         q_padded = q_padded.transpose(1, 2).reshape({batch_size, 1, num_heads_k * seqlen_q, head_size});
         softmax_lse = softmax_lse.reshape({batch_size, num_heads_k * seqlen_q, 1});
     }
     // EXPECTED OUTPUT AT MHA_FWD()
+    // Before returning populate seed_t and offset_t
+    if(p_dropout > 0.0)
+    {
+        seed_t = at::scalar_tensor(at::Scalar(reinterpret_cast<uint64_t>(*(drop_seed_offset.first))),
+                                   at::dtype(at::kUInt64).device(at::kCUDA));
+        offset_t = at::scalar_tensor(at::Scalar(reinterpret_cast<uint64_t>(*(drop_seed_offset.second))),
+                                   at::dtype(at::kUInt64).device(at::kCUDA));
+        std::cout << "DROPOUT IN FORWARDS" << std::endl;
+        std::cout << seed_t << std::endl;
+        std::cout << offset_t << std::endl;
+    }
     return {out,            // output
             q_padded,       // q_padded
             k_padded,       // k_padded
             v_padded,       // v_padded
             softmax_lse,    // logsumexp
-            rng_state,      // philox_seed
-            _unused,        // philox_offset
+            seed_t,   //rng_state,      // philox_seed
+            offset_t, //_unused,        // philox_offset
             p};             // debug_attn_mask
 }
 } //namespace pytorch_flash
