@@ -372,7 +372,7 @@ mha_varlen_bwd_ck(const at::Tensor &dout,                   // total_q x num_hea
     at::cuda::CUDAGuard device_guard{(char)q.get_device()};
 
     auto opts = q.options();
-    auto softmax_d = at::empty({batch_size, num_heads, max_seqlen_q}, opts.dtype(at::kFloat));
+    auto softmax_d = at::empty({num_heads, total_q}, opts.dtype(at::kFloat));
     at::Tensor dq_accum;
 
     if (!deterministic) {
@@ -399,6 +399,7 @@ mha_varlen_bwd_ck(const at::Tensor &dout,                   // total_q x num_hea
         softmax_d.zero_();
     }
 
+    /* OLD
     uint64_t drop_seed = 1, drop_offset = 0;
 
     if (is_dropout) {
@@ -406,6 +407,15 @@ mha_varlen_bwd_ck(const at::Tensor &dout,                   // total_q x num_hea
         drop_offset = *reinterpret_cast<uint64_t*>(philox_offset.data_ptr());
     }
     auto drop_seed_offset = std::make_pair(&drop_seed, &drop_offset);
+    */
+    uint64_t* drop_seed, drop_offset;
+    int64_t counter_offset = batch_size * num_heads * ck_tile::get_warp_size();
+    std::pair<uint64_t*, uint64_t*> drop_seed_offset = {nullptr,nullptr};
+    if(is_dropout) {
+        drop_seed_offset.first = philox_seed.data_ptr<uint64_t>();
+        drop_seed_offset.second = philox_offset.data_ptr<uint64_t>();
+    }
+
 
     if (max_seqlen_q > 0) {
         ck_tile::stream_config stream_config{stream};

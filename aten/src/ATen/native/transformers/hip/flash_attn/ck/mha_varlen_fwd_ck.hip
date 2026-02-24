@@ -67,22 +67,22 @@ fmha_fwd_args get_ck_fmha_varlen_fwd_args(bool has_lse,
     ck_tile::index_t stride_k = k.stride(0);
     ck_tile::index_t stride_v = v.stride(0);
     ck_tile::index_t stride_o = out.stride(0);
-    ck_tile::index_t stride_randval = has_dropout_randval ? dropout_randval.stride(1) : 0;
+    ck_tile::index_t stride_randval = has_dropout_randval ? dropout_randval.stride(2) : 0;
 
     ck_tile::index_t nhead_stride_q = q.stride(1);
     ck_tile::index_t nhead_stride_k = k.stride(1);
     ck_tile::index_t nhead_stride_v = v.stride(1);
     ck_tile::index_t nhead_stride_o = out.stride(1);
-    ck_tile::index_t nhead_stride_lse = has_lse ? softmax_lse.stride(0) : 0;
-    ck_tile::index_t nhead_stride_randval = has_dropout_randval ? dropout_randval.stride(0) : 0;
+    ck_tile::index_t nhead_stride_lse = has_lse ? softmax_lse.stride(1) : 0;
+    ck_tile::index_t nhead_stride_randval = has_dropout_randval ? dropout_randval.stride(1) : 0;
 
     ck_tile::index_t batch_stride_q = 0;
     ck_tile::index_t batch_stride_k = 0;
     ck_tile::index_t batch_stride_v = 0;
     ck_tile::index_t batch_stride_o = 0;
 
-    ck_tile::index_t batch_stride_lse = 0;
-    ck_tile::index_t batch_stride_randval = 0;
+    ck_tile::index_t batch_stride_lse = has_lse ? softmax_lse.stride(0) : 0;
+    ck_tile::index_t batch_stride_randval = has_dropout_randval ? dropout_randval.stride(0) : 0;
 
 
     ck_tile::index_t nhead_stride_q_descale = 0;
@@ -312,7 +312,10 @@ mha_varlen_fwd_ck(const at::Tensor &q,                   // total_q x num_heads 
     at::Tensor p;
     if (return_dropout_randval) {
         TORCH_CHECK(has_dropout, "return_dropout_randval require p_dropout > 0");
-        p = at::empty({num_heads, total_q, max_seqlen_k}, opts.dtype(at::kByte));
+        p = at::empty({batch_size, num_heads, max_seqlen_q, max_seqlen_k}, opts);
+    }
+    else {
+        p = at::empty({0, 0, 0, 0 }, opts);
     }
 
     if (zero_tensors)
@@ -322,22 +325,42 @@ mha_varlen_fwd_ck(const at::Tensor &q,                   // total_q x num_heads 
         if (return_dropout_randval) {p.zero_();}
     }
 
+
+    uint64_t drop_seed = 1, drop_offset = 0;
+    at::Tensor seed_t, offset_t;
+    int64_t counter_offset = batch_size * num_heads * ck_tile::get_warp_size();
+
+    // rng_state is used to pass philox params to CK in a type it likes i.e. uint64
+    auto rng_state_options = at::TensorOptions().dtype(at::kUInt64).device(at::kCUDA);
+    auto rng_state = at::zeros({2}, rng_state_options.dtype(at::kUInt64));
+    /* OLD
     int64_t counter_offset = batch_size * num_heads * ck_tile::get_warp_size();
     auto rng_state = at::empty({2}, opts.dtype(at::kLong));
     auto rng_state_ptr = reinterpret_cast<uint64_t*>(rng_state.data_ptr());
-
+    */
     if (p_dropout > 0.0)  {
+
         auto gen = at::get_generator_or_default<at::CUDAGeneratorImpl>(
             gen_, at::cuda::detail::getDefaultCUDAGenerator());
         // See Note [Acquire lock when using random generators]
         std::lock_guard<std::mutex> lock(gen->mutex_);
         auto philox_args = gen->philox_cuda_state(counter_offset);
+
+        /* OLD
         hipLaunchKernelGGL(
             flash::ParsePhiloxCudaState, dim3(1), dim3(64), 0, at::cuda::getCurrentCUDAStream(), philox_args, rng_state_ptr);
+        */
+        std::tie(drop_seed, drop_offset) = at::cuda::philox::unpack(philox_args);
+        rng_state[0] = *(reinterpret_cast<int64_t*>(&drop_seed));
+        rng_state[1] = *(reinterpret_cast<int64_t*>(&drop_offset));
+    } else{
+        seed_t = at::empty({}, at::dtype(at::kLong).device(at::kCUDA));
+        offset_t = at::empty({}, at::dtype(at::kLong).device(at::kCUDA));
     }
 
-    // remove const from attn_bias_
+
     std::optional<at::Tensor> attn_bias;
+    std::pair<uint64_t*, uint64_t*> drop_seed_offset;
     if( attn_bias_.has_value())
     {
       attn_bias = attn_bias_;
@@ -345,7 +368,12 @@ mha_varlen_fwd_ck(const at::Tensor &q,                   // total_q x num_heads 
 
 
     if (max_seqlen_k > 0) {
+        /* OLD
         auto drop_seed_offset = std::make_pair(rng_state_ptr, rng_state_ptr + 1);
+
+        */
+        drop_seed_offset.first = rng_state[0].data_ptr<uint64_t>();
+        drop_seed_offset.second = rng_state[1].data_ptr<uint64_t>();
         auto stream = at::cuda::getCurrentCUDAStream().stream();
         ck_tile::stream_config stream_config{stream};
 
@@ -389,10 +417,20 @@ mha_varlen_fwd_ck(const at::Tensor &q,                   // total_q x num_heads 
         if (out_.has_value()) { out_.value().copy_(out); }
     }
 
+    // Before returning populate seed_t and offset_t if dropout is used
+    if(p_dropout > 0.0)
+    {
+        seed_t = at::scalar_tensor(at::Scalar(reinterpret_cast<uint64_t>(*(drop_seed_offset.first))),
+                                   at::dtype(at::kUInt64).device(at::kCUDA));
+        offset_t = at::scalar_tensor(at::Scalar(reinterpret_cast<uint64_t>(*(drop_seed_offset.second))),
+                                   at::dtype(at::kUInt64).device(at::kCUDA));
+    }
+    
+    /* OLD
     //return kludge -- TODO:: REMOVE
     at::Tensor seed_t = at::empty({}, at::dtype(at::kLong));
     at::Tensor offset_t = at::empty({}, at::dtype(at::kLong));
-
+    */
     return {out, q_padded, k_padded, v_padded, softmax_lse, seed_t, offset_t, p};
 }
 }

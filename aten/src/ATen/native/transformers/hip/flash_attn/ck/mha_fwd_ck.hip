@@ -309,7 +309,6 @@ mha_fwd_ck(const at::Tensor &q,                      // batch_size x seqlen_q x 
     // rng_state is used to pass philox params to CK in a type it likes i.e. uint64
     auto rng_state_options = at::TensorOptions().dtype(at::kUInt64).device(at::kCUDA);
     auto rng_state = at::zeros({2}, rng_state_options.dtype(at::kUInt64));
-    auto _unused = at::empty({}, at::dtype(c10::kUInt64).device(at::kCUDA));
 
     if (p_dropout > 0.0)  {
 

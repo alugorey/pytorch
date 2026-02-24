@@ -4260,13 +4260,27 @@ class TestSDPACudaOnly(NNTestCase):
     @parametrize("dtype", [torch.float16])
     @parametrize("scale", [None, "l1"])
     @parametrize("is_causal", [True, False])
+    @parametrize("sdpa_backend", ["aotriton", "ck"] if PLATFORM_SUPPORTS_CK_SDPA else ["aotriton"])
     def test_flash_attention_vs_math_ref_grads_nestedtensor(self, device, batch_size: int, max_seq_len_q: int, max_seq_len_kv: int,
                                                             head_dim: int, dropout_p: float, dtype: torch.dtype,
-                                                            scale: str, is_causal: bool):
+                                                            scale: str, is_causal: bool,
+                                                            sdpa_backend: str):
+        #torch.backends.cuda.preferred_rocm_fa_library("ck")
         if is_causal:
             # TODO we should support this
             self.assertRaisesRegex(RuntimeError, "Nested tensors for query / key are not supported when is_causal=True")
             return
+
+        TEST_WITH_CK = False
+        if TEST_WITH_ROCM:
+            torch.backends.cuda.preferred_rocm_fa_library(sdpa_backend)
+            # When no args are given to preferred_rocm_fa_library, it acts as a getter
+            TEST_WITH_CK = (torch.backends.cuda.preferred_rocm_fa_library() == torch._C._ROCmFABackend.Ck)
+
+        if TEST_WITH_CK and head_dim > 128:
+            self.skipTest("CK does not support head dims over 128")
+
+
         scale = scale if scale is None else (1 / head_dim)
         n_heads = 4
         seq_lens_q = torch.randint(low=1, high=max_seq_len_q, size=(batch_size,))
