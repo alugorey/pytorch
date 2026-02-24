@@ -310,19 +310,20 @@ mha_varlen_fwd_ck(const at::Tensor &q,                   // total_q x num_heads 
     softmax_lse = at::empty({num_heads, total_q}, opts.dtype(at::kFloat));
 
     at::Tensor p;
+    at::Tensor p_randval;
     if (return_dropout_randval) {
         TORCH_CHECK(has_dropout, "return_dropout_randval require p_dropout > 0");
-        p = at::empty({batch_size, num_heads, max_seqlen_q, max_seqlen_k}, opts);
+        p_randval = at::empty({batch_size, num_heads, max_seqlen_q, max_seqlen_k}, opts.dtype(at::kByte));
     }
     else {
-        p = at::empty({0, 0, 0, 0 }, opts);
+        p_randval = at::empty({0, 0, 0, 0 }, opts.dtype(at::kByte));
     }
 
     if (zero_tensors)
     {
         out.zero_();
         softmax_lse.fill_(-std::numeric_limits<float>::infinity());
-        if (return_dropout_randval) {p.zero_();}
+        if (return_dropout_randval) {p_randval.zero_();}
     }
 
 
@@ -398,7 +399,7 @@ mha_varlen_fwd_ck(const at::Tensor &q,                   // total_q x num_heads 
                 attn_bias,
                 out,
                 softmax_lse,
-                p,
+                p_randval,
                 softmax_scale,
                 p_dropout,
                 drop_seed_offset);
@@ -425,7 +426,17 @@ mha_varlen_fwd_ck(const at::Tensor &q,                   // total_q x num_heads 
         offset_t = at::scalar_tensor(at::Scalar(reinterpret_cast<uint64_t>(*(drop_seed_offset.second))),
                                    at::dtype(at::kUInt64).device(at::kCUDA));
     }
-    
+    if (return_dropout_randval) {
+        auto p_float = p_randval.to(at::kFloat);
+        float threshold = p_dropout * 255.0f;
+        auto kept_mask = p_float.ge(threshold);
+        auto ones_f = at::ones_like(p_float);
+        auto neg_ones_f = at::full_like(p_float, static_cast<float>(-1.0));
+        p = at::where(kept_mask, ones_f, neg_ones_f).to(q_dtype);
+    }
+    else {
+        p = at::empty({0, 0, 0, 0}, opts);
+    } 
     /* OLD
     //return kludge -- TODO:: REMOVE
     at::Tensor seed_t = at::empty({}, at::dtype(at::kLong));

@@ -4339,6 +4339,10 @@ class TestSDPACudaOnly(NNTestCase):
             softmax_mask = self.convert_flash_attn_S_to_softmax(
                 dbug_mask, max_seq_len_q, max_seq_len_kv, query_padding_mask, key_padding_mask, causal=is_causal)
             dropout_mask = softmax_mask >= 0
+
+            #if TEST_WITH_CK:
+            #    dropout_mask = (softmax_mask <= int((1.0 - dropout_p) * 255.0)).to(torch.float32)
+
             nt_stack = []
             for tensor_component in range(batch_size):
                 batch_stack = []
