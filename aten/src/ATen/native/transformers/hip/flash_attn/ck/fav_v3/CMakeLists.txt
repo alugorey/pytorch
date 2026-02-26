@@ -3,6 +3,12 @@ include(CMakePrintHelpers)
 # Generate AITER/CK Asm code
 execute_process(
     COMMAND ${CMAKE_COMMAND} -E env "AITER_GPU_ARCHS=gfx942;gfx950"
+            python3 ${CMAKE_SOURCE_DIR}/third_party/aiter/hsa/codegen.py -m fmha_v3_fwd --output_dir ${CMAKE_CURRENT_LIST_DIR}
+    RESULT_VARIABLE ret
+)
+
+execute_process(
+    COMMAND ${CMAKE_COMMAND} -E env "AITER_GPU_ARCHS=gfx942;gfx950"
             python3 ${CMAKE_SOURCE_DIR}/third_party/aiter/hsa/codegen.py -m fmha_v3_bwd --output_dir ${CMAKE_CURRENT_LIST_DIR}
     RESULT_VARIABLE ret
 )
@@ -10,6 +16,8 @@ execute_process(
 if(ret AND NOT ret EQUAL 0)
     message( FATAL_ERROR "Failed to generate FAv3 CK Kernels")
 endif()
+
+execute_process(COMMAND bash -c "cp ${CMAKE_SOURCE_DIR}/third_party/aiter/csrc/cpp_itfs/mha_fwd.cu ${CMAKE_CURRENT_LIST_DIR}/mha_fwd.hip")
 
 execute_process(COMMAND bash -c "cp ${CMAKE_SOURCE_DIR}/third_party/aiter/csrc/cpp_itfs/mha_bwd.cu ${CMAKE_CURRENT_LIST_DIR}/mha_bwd.hip")
 
@@ -22,11 +30,12 @@ set(AITER_EMBEDDED_HSA_HEADER "${AITER_EMBEDDED_HSA_HEADER_DIR}/aiter_embedded_h
 set(GENERATE_SCRIPT "${CMAKE_CURRENT_LIST_DIR}/generate_aiter_embedded_hsa.py")
 
 # Generate the embedded HSA header using Python script (much faster than CMake loops)
+# TODO ANDY: MAKE THE ARCHITECTURES LOOK AT AN ENV VAR FIRST AND THEN HARD CODE
 execute_process(
     COMMAND python3 ${GENERATE_SCRIPT}
             --hsa-dir ${AITER_HSA_DIR}
             --output ${AITER_EMBEDDED_HSA_HEADER}
-            --subdirs gfx942/fmha_v3_bwd gfx950/fmha_v3_bwd
+            --subdirs gfx942/fmha_v3_bwd gfx950/fmha_v3_bwd gfx942/fmha_v3_fwd gfx950/fmha_v3_fwd
     RESULT_VARIABLE ret
 )
 
