@@ -1,7 +1,7 @@
 # generate a list of kernels, but not actually emit files at config stage
 execute_process(
   COMMAND python3 ${CMAKE_SOURCE_DIR}/third_party/composable_kernel/example/ck_tile/01_fmha/generate.py --optdim=32,64,128,256
-  --api fwd --receipt 4 --filter "*_pssk_*_lse*ntrload*nsink*" --list_blobs ${CMAKE_CURRENT_LIST_DIR}/fwd_blob_list.txt
+  --api fwd --receipt 4 --filter "*_lse*ntrload*nsink*" --list_blobs ${CMAKE_CURRENT_LIST_DIR}/fwd_blob_list.txt
   RESULT_VARIABLE ret
 )
 
@@ -10,7 +10,7 @@ if(ret AND NOT ret EQUAL 0)
 endif()
 
 execute_process(
-  COMMAND python3 ${CMAKE_SOURCE_DIR}/third_party/composable_kernel/example/ck_tile/01_fmha/generate.py
+  COMMAND python3 ${CMAKE_SOURCE_DIR}/third_party/composable_kernel/example/ck_tile/01_fmha/generate.py --optdim=32,64,128,256
   --api fwd_splitkv --receipt 4 --filter "*psdv*_lse*_nsquant*" --list_blobs ${CMAKE_CURRENT_LIST_DIR}/fwd_splitkv_blob_list.txt
   RESULT_VARIABLE ret
 )
@@ -20,7 +20,7 @@ if(ret AND NOT ret EQUAL 0)
 endif()
 
 execute_process(
-  COMMAND python3 ${CMAKE_SOURCE_DIR}/third_party/composable_kernel/example/ck_tile/01_fmha/generate.py
+  COMMAND python3 ${CMAKE_SOURCE_DIR}/third_party/composable_kernel/example/ck_tile/01_fmha/generate.py --optdim=32,64,128,256
   --api fwd_appendkv --receipt 4 --filter "*psskddv_*" --list_blobs ${CMAKE_CURRENT_LIST_DIR}/fwd_appendkv_blob_list.txt
   RESULT_VARIABLE ret
 )
@@ -40,21 +40,21 @@ if(ret AND NOT ret EQUAL 0)
 endif()
 
 # Generate the files for both fwd, fwd_splitkv, fwd_appendkv, and bwd
-execute_process(COMMAND python3 ${CMAKE_SOURCE_DIR}/third_party/composable_kernel/example/ck_tile/01_fmha/generate.py --api fwd  --optdim=32,64,128,256 --receipt 4 --filter "*_pssk_*_lse*ntrload*nsink*" --output_dir ${CMAKE_CURRENT_LIST_DIR}
+execute_process(COMMAND python3 ${CMAKE_SOURCE_DIR}/third_party/composable_kernel/example/ck_tile/01_fmha/generate.py --api fwd  --optdim=32,64,128,256 --receipt 4 --filter "*_lse*ntrload*nsink*" --output_dir ${CMAKE_CURRENT_LIST_DIR}
 )
 
 if(ret AND NOT ret EQUAL 0)
   message( FATAL_ERROR "CK Tile FMHA FAILED to generate FWD kernels.")
 endif()
 
-execute_process(COMMAND python3 ${CMAKE_SOURCE_DIR}/third_party/composable_kernel/example/ck_tile/01_fmha/generate.py --api fwd_splitkv --receipt 4 --filter "*psdv*_lse*_nsquant*" --output_dir ${CMAKE_CURRENT_LIST_DIR}
+execute_process(COMMAND python3 ${CMAKE_SOURCE_DIR}/third_party/composable_kernel/example/ck_tile/01_fmha/generate.py --api fwd_splitkv --optdim=32,64,128,256 --receipt 4 --filter "*psdv*_lse*_nsquant*" --output_dir ${CMAKE_CURRENT_LIST_DIR}
 )
 
 if(ret AND NOT ret EQUAL 0)
     message( FATAL_ERROR "CK Tile FMHA FAILED to generate FWD_SPLITKV kernels.")
 endif()
 
-execute_process(COMMAND python3 ${CMAKE_SOURCE_DIR}/third_party/composable_kernel/example/ck_tile/01_fmha/generate.py --api fwd_appendkv --receipt 4 --filter "*psskddv_*" --output_dir ${CMAKE_CURRENT_LIST_DIR}
+execute_process(COMMAND python3 ${CMAKE_SOURCE_DIR}/third_party/composable_kernel/example/ck_tile/01_fmha/generate.py --api fwd_appendkv --optdim=32,64,128,256 --receipt 4 --filter "*psskddv_*" --output_dir ${CMAKE_CURRENT_LIST_DIR}
 )
 
 if(ret AND NOT ret EQUAL 0)
