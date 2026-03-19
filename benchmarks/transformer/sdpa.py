@@ -387,4 +387,5 @@ def main():
 
 
 if __name__ == "__main__":
+    torch.backends.cuda.preferred_rocm_fa_library("ck")
     main()
