@@ -433,7 +433,7 @@ mha_fwd_ck(const at::Tensor &q,                      // batch_size x seqlen_q x 
                 softmax_scale,
                 p_dropout,
                 drop_seed_offset);
-        dump_fmha_fwd_kernel_selection_params(traits, args);
+//        dump_fmha_fwd_kernel_selection_params(traits, args);
         float t = fmha_fwd(traits, args, stream_config);
         TORCH_CHECK(t >= 0, "invalid argument for fmha_fwd");
     }
