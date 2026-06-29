@@ -169,6 +169,12 @@ EOF
         ROCM_VERSION="${ROCM_VERSION}.3"
     fi
 
+    # the base 7.0.0 release is published under the unsuffixed 7.0 apt repo
+    # (repo.radeon.com/rocm/apt/7.0.0 does not exist; 7.0 == the 7.0.0 release)
+    if [[ $(ver $ROCM_VERSION) -eq $(ver 7.0) ]]; then
+        ROCM_VERSION="7.0"
+    fi
+
     # Default url values
     rocm_baseurl="http://repo.radeon.com/rocm/apt/${ROCM_VERSION}"
     UBUNTU_VERSION_NAME=`cat /etc/os-release | grep UBUNTU_CODENAME | awk -F= '{print $2}'`

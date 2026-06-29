@@ -184,6 +184,14 @@ case "$tag" in
       INDUCTOR_BENCHMARKS=yes
     fi
     ;;
+  pytorch-linux-jammy-rocm7.0.0-py3)
+    ANACONDA_PYTHON_VERSION=3.10
+    GCC_VERSION=13
+    ROCM_VERSION=7.0.0
+    TRITON=yes
+    KATEX=yes
+    PYTORCH_ROCM_ARCH="gfx942"
+    ;;
   pytorch-linux-noble-rocm-nightly-py3)
     ANACONDA_PYTHON_VERSION=3.12
     GCC_VERSION=13
@@ -340,6 +348,11 @@ fi
 # `--load`, so push directly to the registry instead. The caller is expected
 # to have logged in to the target registry already (e.g. via ecr-login).
 output_flag="--load -t ${tmp_tag}"
+# Allow the caller to also tag the built image with a final, human-friendly name
+# (post-build sanity checks below still run against ${tmp_tag}).
+if [[ -n "${DOCKER_TAG:-}" ]]; then
+  output_flag="${output_flag} -t ${DOCKER_TAG}"
+fi
 cache_flag=""
 if [[ -n "${REMOTE_BUILDKIT:-}" ]]; then
   output_flag="--push"
@@ -357,6 +370,7 @@ fi
 build_image() {
   docker buildx build \
        ${progress_flag} \
+       --ulimit nofile=65536:65536 \
        ${cache_flag} \
        --build-arg "BUILD_ENVIRONMENT=${image}" \
        --build-arg "LLVMDEV=${LLVMDEV:-}" \
