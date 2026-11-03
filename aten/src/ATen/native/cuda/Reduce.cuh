@@ -530,6 +530,28 @@ struct ReduceOp {
       value_list[i] = ident;
     }
 
+#ifdef USE_ROCM
+    // Issue several independent vector loads per thread before consuming any of them.
+    // With one load per iteration each thread has a single 16-byte request in flight,
+    // which cannot cover memory latency on high-bandwidth parts (e.g. gfx1250).
+    // Accumulation order per accumulator is unchanged, so results are bitwise identical.
+    constexpr int vec_unroll = vt0;
+    while ((idx + (vec_unroll - 1) * stride) * input_vec_size + input_vec_size - 1 < end) {
+      load_t values_vecs[vec_unroll];
+      #pragma unroll
+      for (int u = 0; u < vec_unroll; u++) {
+        values_vecs[u] = memory::load_vector<input_vec_size>(data, idx + u * stride);
+      }
+      #pragma unroll
+      for (int u = 0; u < vec_unroll; u++) {
+        #pragma unroll
+        for (index_t i = 0; i < input_vec_size; i++) {
+          value_list[i] = ops.reduce(value_list[i], values_vecs[u].val[i], shift + (idx + u * stride) * input_vec_size + i);
+        }
+      }
+      idx += stride * vec_unroll;
+    }
+#endif
     while (idx * input_vec_size + input_vec_size - 1 < end) {
       const auto values_vec = memory::load_vector<input_vec_size>(data, idx);
       #pragma unroll
