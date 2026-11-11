@@ -9,6 +9,7 @@
 #include <ATen/native/cuda/MemoryAccess.cuh>
 #include <ATen/OpMathType.h>
 #include <c10/macros/Macros.h>
+#include <c10/util/complex.h>
 #include <c10/cuda/CUDACachingAllocator.h>
 #include <array>
 #include <functional>
@@ -536,7 +537,14 @@ struct ReduceOp {
     // which cannot cover memory latency on high-bandwidth parts (e.g. gfx1250).
     // Accumulation order per accumulator is unchanged, so results are bitwise identical.
     constexpr int vec_unroll = vt0;
-    while ((idx + (vec_unroll - 1) * stride) * input_vec_size + input_vec_size - 1 < end) {
+    // Skip the unroll for full reductions of 64-bit integer or complex data. Measured on gfx1250,
+    // those already run at the bandwidth roof and the extra loads in flight made them 10-15% slower
+    // (int64 full reduce, which int/bool sums use after casting, and complex64 full reduce).
+    // fp64 full reductions and multi-output (inner-dim) int64 reductions still gain, so they stay unrolled.
+    constexpr bool unroll_may_regress =
+        (std::is_integral_v<scalar_t> && sizeof(scalar_t) == 8) || c10::is_complex<scalar_t>::value;
+    const bool use_unroll = !(unroll_may_regress && config.num_outputs == 1);
+    while (use_unroll && (idx + (vec_unroll - 1) * stride) * input_vec_size + input_vec_size - 1 < end) {
       load_t values_vecs[vec_unroll];
       #pragma unroll
       for (int u = 0; u < vec_unroll; u++) {
