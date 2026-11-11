@@ -66,6 +66,7 @@
 #include <ATen/ops/dist_native.h>
 #include <ATen/ops/empty.h>
 #include <ATen/ops/empty_like.h>
+#include <ATen/ops/empty_strided.h>
 #include <ATen/ops/equal_native.h>
 #include <ATen/ops/exp.h>
 #include <ATen/ops/gather.h>
@@ -1254,6 +1255,67 @@ std::vector<Tensor> gradient(const Tensor& self, IntArrayRef dim, int64_t edge_o
 
 // ALL REDUCE #################################################################
 
+#if defined(USE_ROCM)
+// [Reduce into an input-layout temporary]
+// Reduction outputs are allocated contiguous (resize_reduction passes empty strides), and
+// TensorIterator orders dimensions by the output first. When the input's fastest-moving
+// dimension is kept by the reduction but is not the output's fastest dimension (e.g. a
+// channels-last-like input reduced over an outer dim), every input read becomes strided and
+// the reduction runs far below memory bandwidth (13.1 ms vs 0.5 ms for a 1.65 GB fp32 case
+// on MI300X). Reducing into a temporary whose strides follow the input's memory order lets
+// the kernel read the input coalesced; the result is then copied into `result`, so the
+// output's shape, strides and values seen by the caller are unchanged.
+// Returns the temporary's strides, or nullopt when the rewrite does not apply.
+static std::optional<DimVector> input_matched_reduction_strides(
+    const Tensor& self, const Tensor& result, OptionalIntArrayRef opt_dim, bool keepdim) {
+  constexpr int64_t kMinNumel = 1 << 20;  // small tensors: the extra copy launch would not pay off
+  if (!self.is_cuda() || self.numel() < kMinNumel || result.numel() <= 1 ||
+      result.layout() != kStrided || !self.is_non_overlapping_and_dense()) {
+    return std::nullopt;
+  }
+  const int64_t ndim = self.dim();
+  auto mask = make_dim_mask(opt_dim, ndim);
+  // the input's innermost (stride-1, size>1) dimension must be kept by the reduction
+  int64_t inner = -1;
+  for (const auto d : c10::irange(ndim)) {
+    if (self.size(d) > 1 && self.stride(d) == 1) {
+      inner = d;
+      break;
+    }
+  }
+  if (inner < 0 || mask[inner]) {
+    return std::nullopt;
+  }
+  // result dim of every kept input dim
+  std::vector<int64_t> in_dims;  // input dim for each result dim
+  for (const auto d : c10::irange(ndim)) {
+    if (keepdim || !mask[d]) {
+      in_dims.push_back(d);
+    }
+  }
+  if (static_cast<int64_t>(in_dims.size()) != result.dim()) {
+    return std::nullopt;
+  }
+  const int64_t r_inner = std::find(in_dims.begin(), in_dims.end(), inner) - in_dims.begin();
+  if (result.stride(r_inner) == 1) {
+    return std::nullopt;  // output already shares the input's fastest dimension
+  }
+  // strides for the result's shape, laid out in the input's memory order (slowest .. fastest)
+  std::vector<int64_t> order(result.dim());
+  std::iota(order.begin(), order.end(), 0);
+  std::stable_sort(order.begin(), order.end(), [&](int64_t a, int64_t b) {
+    return self.stride(in_dims[a]) > self.stride(in_dims[b]);
+  });
+  DimVector strides(result.dim());
+  int64_t acc = 1;
+  for (auto it = order.rbegin(); it != order.rend(); ++it) {
+    strides[*it] = acc;
+    acc *= std::max<int64_t>(result.size(*it), 1);
+  }
+  return strides;
+}
+#endif
+
 static inline bool should_use_acc_buffer(at::TensorIterator& iter) {
   const auto ndim = iter.ndim();
   if (!iter.device().is_cpu() || iter.noutputs() != 1) {
@@ -1280,6 +1342,18 @@ TORCH_IMPL_FUNC(sum_out)
  bool keepdim,
  std::optional<ScalarType> opt_dtype,
  const Tensor& result) {
+#if defined(USE_ROCM)
+  // See [Reduce into an input-layout temporary]
+  if (auto tmp_strides = input_matched_reduction_strides(self, result, opt_dim, keepdim)) {
+    auto tmp = at::empty_strided(result.sizes(), *tmp_strides, result.options());
+    auto tmp_iter = meta::make_reduction_from_out_ty(self, tmp, opt_dim, keepdim, tmp.scalar_type());
+    if (tmp_iter.numel() != 0) {
+      sum_stub(tmp_iter.device_type(), tmp_iter);
+      result.copy_(tmp);
+      return;
+    }
+  }
+#endif
   auto iter = meta::make_reduction_from_out_ty(self, result, opt_dim, keepdim, result.scalar_type());
   if (iter.numel() == 0) {
     result.zero_();
@@ -1467,6 +1541,18 @@ TORCH_IMPL_FUNC(mean_out)
     }
   } else {
     // device is not CPU
+#if defined(USE_ROCM)
+    // See [Reduce into an input-layout temporary]
+    if (auto tmp_strides = input_matched_reduction_strides(self, result, opt_dim, keepdim)) {
+      auto tmp = at::empty_strided(result.sizes(), *tmp_strides, result.options());
+      auto tmp_iter = at::meta::make_reduction_from_out_ty(self, tmp, opt_dim, keepdim, dtype);
+      if (tmp_iter.numel() != 0) {
+        mean_stub(tmp_iter.device_type(), tmp_iter);
+        result.copy_(tmp);
+        return;
+      }
+    }
+#endif
     auto iter = at::meta::make_reduction_from_out_ty(
         self, result, opt_dim, keepdim, dtype);
     if (iter.numel() == 0) {
