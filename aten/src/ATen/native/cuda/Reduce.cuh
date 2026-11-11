@@ -10,6 +10,8 @@
 #include <ATen/OpMathType.h>
 #include <c10/macros/Macros.h>
 #include <c10/util/complex.h>
+#include <c10/util/env.h>
+#include <string>
 #include <c10/cuda/CUDACachingAllocator.h>
 #include <array>
 #include <functional>
@@ -536,7 +538,7 @@ struct ReduceOp {
     // With one load per iteration each thread has a single 16-byte request in flight,
     // which cannot cover memory latency on high-bandwidth parts (e.g. gfx1250).
     // Accumulation order per accumulator is unchanged, so results are bitwise identical.
-    constexpr int vec_unroll = vt0;
+    constexpr int vec_unroll = vt0 < 4 ? vt0 : 4;  // vectorized-input unroll validated at 4
     // Skip the unroll for full reductions of 64-bit integer or complex data. Measured on gfx1250,
     // those already run at the bandwidth roof and the extra loads in flight made them 10-15% slower
     // (int64 full reduce, which int/bool sums use after casting, and complex64 full reduce).
@@ -1065,6 +1067,14 @@ int get_output_vec_size(const TensorIterator &iter) {
   return vec_size;
 }
 
+#ifdef USE_ROCM
+// EXPERIMENT ONLY: read an integer tuning knob from the environment once.
+inline int reduce_knob(const char* name, int dflt) {
+  auto v = c10::utils::get_env(name);
+  return v.has_value() ? std::stoi(*v) : dflt;
+}
+#endif
+
 template<typename arg_t, typename scalar_t, int vt0, int input_vec_size=vt0>
 ReduceConfig setReduceConfig(const TensorIterator& iter){
   // Start by assuming that each thread handles a single output and all
@@ -1162,11 +1172,14 @@ ReduceConfig setReduceConfig(const TensorIterator& iter){
   }
 
 #ifdef USE_ROCM
-  constexpr int min_values_per_thread = 128;
+  // EXPERIMENT ONLY: runtime knobs for tuning sweeps (not for upstream).
+  static const int min_values_per_thread = reduce_knob("PYTORCH_ROCM_REDUCE_MIN_VALUES_PER_THREAD", 128);
+  static const int max_values_per_thread = reduce_knob("PYTORCH_ROCM_REDUCE_MAX_VALUES_PER_THREAD", 256);
+  static const int min_ctas_per_output = reduce_knob("PYTORCH_ROCM_REDUCE_MIN_CTAS", 64);
 #else
   constexpr int min_values_per_thread = 16;
-#endif
   constexpr int max_values_per_thread = 256;
+#endif
 
   const int warp_split_threshold =
       std::min<int>(block_height * 16, max_values_per_thread);
@@ -1206,7 +1219,7 @@ ReduceConfig setReduceConfig(const TensorIterator& iter){
     if (config.ctas_per_output > 1) {
 #ifdef USE_ROCM
       // Set min ctas value as 64. Having more reductions (i.e less values_per_thread) seems to improve perf.
-      config.ctas_per_output = std::max(config.ctas_per_output, 64);
+      config.ctas_per_output = std::max(config.ctas_per_output, min_ctas_per_output);
 #endif
       config.input_mult[2] = config.split_input(config.ctas_per_output);
     }

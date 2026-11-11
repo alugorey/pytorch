@@ -18,9 +18,17 @@ struct sum_functor {
     };
     constexpr bool is_16_bits = sizeof(scalar_t) == 2;
     if constexpr (is_16_bits) {
+#ifdef USE_ROCM
+      // 16-bit outer (column) reductions load 4 elements = 8 bytes per load; keep 8 loads in flight
+      // per thread instead of 4 so they match fp32's bytes in flight.
+      gpu_reduce_kernel<scalar_t, out_t, /*vt0=*/8, /*input_vec_size=*/8>(
+        iter, func_wrapper<out_t>(sum_combine)
+      );
+#else
       gpu_reduce_kernel<scalar_t, out_t, /*vt0=*/4, /*input_vec_size=*/8>(
         iter, func_wrapper<out_t>(sum_combine)
       );
+#endif
     } else {
       gpu_reduce_kernel<scalar_t, out_t>(
         iter, func_wrapper<out_t>(sum_combine)
