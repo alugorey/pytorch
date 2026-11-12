@@ -7,8 +7,29 @@
 #include <ATen/native/ReduceOps.h>
 #include <ATen/jit_macros.h>
 #include <ATen/OpMathType.h>
+#include <ATen/cuda/CUDAContext.h>
+#include <cstring>
 
 namespace at::native {
+
+#ifdef USE_ROCM
+// See sum_functor. EXPERIMENT knobs (sum-colsum-exp branch only):
+//   PYTORCH_ROCM_REDUCE_VT8 = -1 auto (gfx125x only, default), 0 never, 1 always (still length-gated)
+//   PYTORCH_ROCM_REDUCE_VT8_MIN_LEN = minimum inputs per output (default 64)
+static bool use_eight_loads_for_16bit_sum(const TensorIterator& iter) {
+  static const int mode = reduce_knob("PYTORCH_ROCM_REDUCE_VT8", -1);
+  static const int min_len = reduce_knob("PYTORCH_ROCM_REDUCE_VT8_MIN_LEN", 64);
+  bool arch_ok = mode == 1;
+  if (mode < 0) {
+    const char* arch = at::cuda::getCurrentDeviceProperties()->gcnArchName;
+    arch_ok = std::strncmp(arch, "gfx125", 6) == 0;
+  }
+  if (!arch_ok || iter.num_output_elements() == 0) {
+    return false;
+  }
+  return iter.numel() / iter.num_output_elements() >= min_len;
+}
+#endif
 
 template <typename scalar_t, typename acc_t = scalar_t, typename out_t = scalar_t>
 struct sum_functor {
@@ -19,11 +40,19 @@ struct sum_functor {
     constexpr bool is_16_bits = sizeof(scalar_t) == 2;
     if constexpr (is_16_bits) {
 #ifdef USE_ROCM
-      // 16-bit outer (column) reductions load 4 elements = 8 bytes per load; keep 8 loads in flight
-      // per thread instead of 4 so they match fp32's bytes in flight.
-      gpu_reduce_kernel<scalar_t, out_t, /*vt0=*/8, /*input_vec_size=*/8>(
-        iter, func_wrapper<out_t>(sum_combine)
-      );
+      // 16-bit outer (column) reductions load 4 elements = 8 bytes per load. On gfx125x, keeping 8
+      // loads in flight per thread instead of 4 speeds up long column sums; it slows short
+      // reductions (2-4 elements per output) and, on gfx942, the largest column sums, so it is
+      // limited to gfx125x and to reductions with at least 64 inputs per output.
+      if (use_eight_loads_for_16bit_sum(iter)) {
+        gpu_reduce_kernel<scalar_t, out_t, /*vt0=*/8, /*input_vec_size=*/8>(
+          iter, func_wrapper<out_t>(sum_combine)
+        );
+      } else {
+        gpu_reduce_kernel<scalar_t, out_t, /*vt0=*/4, /*input_vec_size=*/8>(
+          iter, func_wrapper<out_t>(sum_combine)
+        );
+      }
 #else
       gpu_reduce_kernel<scalar_t, out_t, /*vt0=*/4, /*input_vec_size=*/8>(
         iter, func_wrapper<out_t>(sum_combine)
