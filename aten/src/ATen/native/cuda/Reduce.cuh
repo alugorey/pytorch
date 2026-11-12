@@ -340,7 +340,8 @@ struct ReduceJitOp {
   }
 };
 
-template <typename scalar_t, typename ops_t, typename index_t, typename out_scalar_t=scalar_t, int vt0=4, int input_vec_size=vt0>
+template <typename scalar_t, typename ops_t, typename index_t, typename out_scalar_t=scalar_t, int vt0=4, int input_vec_size=vt0,
+          bool unroll_input=false>
 struct ReduceOp {
   using traits = function_traits<decltype(&ops_t::reduce)>;
   using arg_t = typename std::decay<typename traits::template arg<0>::type>::type;
@@ -538,28 +539,25 @@ struct ReduceOp {
     // With one load per iteration each thread has a single 16-byte request in flight,
     // which cannot cover memory latency on high-bandwidth parts (e.g. gfx1250).
     // Accumulation order per accumulator is unchanged, so results are bitwise identical.
-    constexpr int vec_unroll = vt0 < 4 ? vt0 : 4;  // vectorized-input unroll validated at 4
-    // Skip the unroll for full reductions of 64-bit integer or complex data. Measured on gfx1250,
-    // those already run at the bandwidth roof and the extra loads in flight made them 10-15% slower
-    // (int64 full reduce, which int/bool sums use after casting, and complex64 full reduce).
-    // fp64 full reductions and multi-output (inner-dim) int64 reductions still gain, so they stay unrolled.
-    constexpr bool unroll_may_regress =
-        (std::is_integral_v<scalar_t> && sizeof(scalar_t) == 8) || c10::is_complex<scalar_t>::value;
-    const bool use_unroll = !(unroll_may_regress && config.num_outputs == 1);
-    while (use_unroll && (idx + (vec_unroll - 1) * stride) * input_vec_size + input_vec_size - 1 < end) {
-      load_t values_vecs[vec_unroll];
-      #pragma unroll
-      for (int u = 0; u < vec_unroll; u++) {
-        values_vecs[u] = memory::load_vector<input_vec_size>(data, idx + u * stride);
-      }
-      #pragma unroll
-      for (int u = 0; u < vec_unroll; u++) {
+    // Compiled only into the unroll_input instantiation, which gpu_reduce_kernel launches only when
+    // the vectorized-input path runs; every other launch uses the original kernel code unchanged.
+    if constexpr (unroll_input) {
+      constexpr int vec_unroll = vt0 < 4 ? vt0 : 4;  // vectorized-input unroll validated at 4
+      while ((idx + (vec_unroll - 1) * stride) * input_vec_size + input_vec_size - 1 < end) {
+        load_t values_vecs[vec_unroll];
         #pragma unroll
-        for (index_t i = 0; i < input_vec_size; i++) {
-          value_list[i] = ops.reduce(value_list[i], values_vecs[u].val[i], shift + (idx + u * stride) * input_vec_size + i);
+        for (int u = 0; u < vec_unroll; u++) {
+          values_vecs[u] = memory::load_vector<input_vec_size>(data, idx + u * stride);
         }
+        #pragma unroll
+        for (int u = 0; u < vec_unroll; u++) {
+          #pragma unroll
+          for (index_t i = 0; i < input_vec_size; i++) {
+            value_list[i] = ops.reduce(value_list[i], values_vecs[u].val[i], shift + (idx + u * stride) * input_vec_size + i);
+          }
+        }
+        idx += stride * vec_unroll;
       }
-      idx += stride * vec_unroll;
     }
 #endif
     while (idx * input_vec_size + input_vec_size - 1 < end) {
@@ -948,6 +946,21 @@ struct ReduceOp {
   }
 };
 
+#ifdef USE_ROCM
+// Launcher for the unroll_input instantiation: the vectorized-input path always runs with
+// output_vec_size == 1, so only that kernel variant is instantiated (keeps binary growth small).
+template<int max_threads, typename R>
+static void launch_reduce_kernel_vec1(const ReduceConfig& config, const R& reduction) {
+  TORCH_INTERNAL_ASSERT(config.output_vec_size == 1);
+  dim3 block = config.block();
+  dim3 grid = config.grid();
+  auto stream = at::cuda::getCurrentCUDAStream();
+  int shared_memory = config.shared_memory_size();
+  reduce_kernel<max_threads / 1, 1, R><<<grid, block, shared_memory, stream>>>(reduction);
+  C10_CUDA_KERNEL_LAUNCH_CHECK();
+}
+#endif
+
 template<int max_threads, typename R>
 static void launch_reduce_kernel(const ReduceConfig& config, const R& reduction) {
   dim3 block = config.block();
@@ -1311,24 +1324,51 @@ inline void gpu_reduce_kernel(TensorIterator& iter, const ops_t& ops, ident_t id
   AT_ASSERT(can_use_32bit_indexing);
   auto output_calc = make_output_calculator<uint32_t>(iter);
   auto input_calc = make_input_calculator<uint32_t>(iter);
-  auto reduce = ReduceOp<scalar_t, ops_t, uint32_t, out_scalar_t, vt0, input_vec_size>(
-      ops,
-      config,
-      input_calc,
-      output_calc,
-      in_data,
-      out_data,
-      out_data_extra,
-      acc_data,
-      buffer.get(),
-      (int*)semaphores.get(),
-      ident,
-      noutputs,
-      base_idx);
-  reduce.accumulate = iter.should_accumulate();
-  reduce.final_output = iter.is_final_output();
-
-  launch_reduce_kernel<mnt_wrapper<scalar_t>::MAX_NUM_THREADS>(config, reduce);
+  auto make_and_launch = [&](auto unroll_tag) {
+    constexpr bool unroll = decltype(unroll_tag)::value;
+    auto reduce = ReduceOp<scalar_t, ops_t, uint32_t, out_scalar_t, vt0, input_vec_size, unroll>(
+        ops,
+        config,
+        input_calc,
+        output_calc,
+        in_data,
+        out_data,
+        out_data_extra,
+        acc_data,
+        buffer.get(),
+        (int*)semaphores.get(),
+        ident,
+        noutputs,
+        base_idx);
+    reduce.accumulate = iter.should_accumulate();
+    reduce.final_output = iter.is_final_output();
+#ifdef USE_ROCM
+    if constexpr (unroll) {
+      launch_reduce_kernel_vec1<mnt_wrapper<scalar_t>::MAX_NUM_THREADS>(config, reduce);
+    } else {
+      launch_reduce_kernel<mnt_wrapper<scalar_t>::MAX_NUM_THREADS>(config, reduce);
+    }
+#else
+    launch_reduce_kernel<mnt_wrapper<scalar_t>::MAX_NUM_THREADS>(config, reduce);
+#endif
+  };
+#ifdef USE_ROCM
+  // Use the unrolled vectorized-input kernel only when that path actually runs. Skip it for full
+  // reductions of 64-bit integer or complex data: measured on gfx1250 those already run at the
+  // bandwidth roof and the extra loads in flight made them 10-15% slower (int64 full reduce, which
+  // int/bool sums use after casting, and complex64 full reduce).
+  constexpr bool unroll_may_regress =
+      (std::is_integral_v<scalar_t> && sizeof(scalar_t) == 8) || c10::is_complex<scalar_t>::value;
+  // Also skip it when each thread has too few vectors for the unrolled loop to run at least twice:
+  // small reductions would only pay for the bigger kernel.
+  constexpr int kUnrollMinValuesPerThread = 2 * 4 * input_vec_size;
+  if (config.vectorize_input && !(unroll_may_regress && config.num_outputs == 1) &&
+      config.values_per_thread() >= kUnrollMinValuesPerThread) {
+    make_and_launch(std::true_type{});
+    return;
+  }
+#endif
+  make_and_launch(std::false_type{});
 }
 
 //TODO this is 100 lines of almost-copy-paste, because we have to have different template args for this function
