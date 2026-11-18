@@ -12,6 +12,7 @@
 #include <c10/util/complex.h>
 #include <c10/util/env.h>
 #include <cstring>
+#include <numeric>
 #include <string>
 #include <c10/cuda/CUDACachingAllocator.h>
 #include <array>
@@ -187,6 +188,20 @@ struct ReduceConfig {
     }
     return offset;
   }
+
+#ifdef USE_ROCM
+  // Staging buffer size for the gfx1250 layout, see [Staging line padding] in ReduceOp.
+  int64_t padded_global_memory_size() const {
+    if (!should_global_reduce()) {
+      return 0;
+    }
+    const int64_t bytes = int64_t(element_size_bytes) * output_vec_size;
+    const int64_t multiple = 256 / std::gcd<int64_t>(bytes, 256);
+    const int64_t run = should_block_x_reduce() ? ctas_per_output : int64_t(ctas_per_output) * block().x;
+    const int64_t padded_run = (run + multiple - 1) / multiple * multiple;
+    return std::max(global_memory_size(), int64_t(grid().x) * padded_run * bytes);
+  }
+#endif
 
   int shared_memory_size() const {
     if (!should_block_y_reduce() &&
@@ -816,6 +831,30 @@ struct ReduceOp {
     }
   }
 
+  // [Staging line padding]
+  // In the global reduce, the last block of each output block reads its CTAs' staging values with
+  // plain loads ([CMTSTRS]: no acquire). When the runs of two output blocks share a cache line, one
+  // last block can pull the line into a cache before the other output's CTAs have written their
+  // part, and the other last block may then read the stale line. On gfx1250 this returned sums
+  // that include the staging buffer's previous contents (stock included). Padding each output
+  // block's run to whole 256-byte lines keeps every line private to one output block, whose writes
+  // all complete before its last block reads them. The host sizes the buffer with
+  // ReduceConfig::padded_global_memory_size on gfx125x.
+  template <int output_vec_size>
+  C10_DEVICE int staging_offset(int cta2) const {
+#if defined(__gfx1250__)
+    constexpr int bytes = sizeof(std::array<arg_t, output_vec_size>);
+    constexpr int multiple = 256 / std::gcd(bytes, 256);  // a power of two
+    auto padded = [](int n) { return (n + multiple - 1) & ~(multiple - 1); };
+    if (config.should_block_x_reduce()) {
+      return cta2 + blockIdx.x * padded(gridDim.y);
+    }
+    return threadIdx.x + cta2 * blockDim.x + blockIdx.x * padded(gridDim.y * blockDim.x);
+#else
+    return config.staging_memory_offset(cta2);
+#endif
+  }
+
   template <int output_vec_size>
   C10_DEVICE std::array<arg_t, output_vec_size> global_reduce(std::array<arg_t, output_vec_size> value, std::array<arg_t, output_vec_size> *acc, char* shared_memory) const {
     using arg_vec_t = std::array<arg_t, output_vec_size>;
@@ -835,7 +874,7 @@ struct ReduceOp {
 
     bool should_store = config.should_store(output_idx);
     if (should_store) {
-      index_t offset = config.staging_memory_offset(blockIdx.y);
+      index_t offset = staging_offset<output_vec_size>(blockIdx.y);
 #ifndef USE_ROCM
       reduce_buffer[offset] = value;
 #else // [CMTSTRS]
@@ -862,7 +901,7 @@ struct ReduceOp {
         index_t input_offset = threadIdx.x + threadIdx.y * blockDim.x;
         index_t step = blockDim.x * blockDim.y;
         for (; input_offset < config.ctas_per_output; input_offset += step) {
-          index_t idx = config.staging_memory_offset(input_offset);
+          index_t idx = staging_offset<output_vec_size>(input_offset);
           arg_vec_t next = reduce_buffer[idx];
           #pragma unroll
           for (int i = 0; i < output_vec_size; i++) {
@@ -878,7 +917,7 @@ struct ReduceOp {
          arg_vec_t next[PRFCH];
          #pragma unroll
          for (int u = 0; (u < PRFCH) && (input_offset + u*step < config.ctas_per_output); u++) {
-          index_t idx = config.staging_memory_offset(input_offset + u*step);
+          index_t idx = staging_offset<output_vec_size>(input_offset + u*step);
           next[u] = reduce_buffer[idx];
          }
          for (int u = 0; (u < PRFCH) && (input_offset + u*step < config.ctas_per_output); u++) {
@@ -898,7 +937,7 @@ struct ReduceOp {
         index_t step = blockDim.y;
 #endif
         for (; input_offset < config.ctas_per_output; input_offset += step) {
-          index_t idx = config.staging_memory_offset(input_offset);
+          index_t idx = staging_offset<output_vec_size>(input_offset);
           arg_vec_t next = reduce_buffer[idx];
           #pragma unroll
           for (int i = 0; i < output_vec_size; i++) {
@@ -1397,7 +1436,14 @@ inline void gpu_reduce_kernel(TensorIterator& iter, const ops_t& ops, ident_t id
   at::DataPtr semaphores;
   if (config.should_global_reduce()) {
     auto& allocator = *c10::cuda::CUDACachingAllocator::get();
+#ifdef USE_ROCM
+    // gfx125x: room for the padded staging layout of gfx1250 device code ([Staging line padding])
+    const bool pad_staging =
+        std::strncmp(at::cuda::getCurrentDeviceProperties()->gcnArchName, "gfx125", 6) == 0;
+    buffer = allocator.allocate(pad_staging ? config.padded_global_memory_size() : config.global_memory_size());
+#else
     buffer = allocator.allocate(config.global_memory_size());
+#endif
     semaphores = allocator.allocate(config.semaphore_size());
 
     auto stream = at::cuda::getCurrentCUDAStream();
@@ -1534,7 +1580,14 @@ inline void jitted_gpu_reduce_kernel(TensorIterator& iter, const std::string& fu
   at::DataPtr semaphores;
   if (config.should_global_reduce()) {
     auto& allocator = *c10::cuda::CUDACachingAllocator::get();
+#ifdef USE_ROCM
+    // gfx125x: room for the padded staging layout of gfx1250 device code ([Staging line padding])
+    const bool pad_staging =
+        std::strncmp(at::cuda::getCurrentDeviceProperties()->gcnArchName, "gfx125", 6) == 0;
+    buffer = allocator.allocate(pad_staging ? config.padded_global_memory_size() : config.global_memory_size());
+#else
     buffer = allocator.allocate(config.global_memory_size());
+#endif
     semaphores = allocator.allocate(config.semaphore_size());
 
     auto stream = at::cuda::getCurrentCUDAStream();
