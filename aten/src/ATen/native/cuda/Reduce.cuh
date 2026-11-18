@@ -99,9 +99,13 @@ struct ReduceConfig {
   bool vectorize_input = false;
   int output_vec_size = 1;
 
+  // max_threads_override (ROCm gfx125x tuning, 0 = off) lets output-vectorized reductions use
+  // blocks of up to MAX_NUM_THREADS threads instead of MAX_NUM_THREADS / output_vec_size.
   template <typename T>
-  void set_block_dimension(int64_t dim0, int64_t dim1) {
-    const int max_num_threads = mnt_wrapper<T>::MAX_NUM_THREADS / output_vec_size;
+  void set_block_dimension(int64_t dim0, int64_t dim1, int max_threads_override = 0) {
+    const int max_num_threads = max_threads_override > 0
+        ? std::min(max_threads_override, mnt_wrapper<T>::MAX_NUM_THREADS)
+        : mnt_wrapper<T>::MAX_NUM_THREADS / output_vec_size;
     int dim0_pow2 = dim0 < max_num_threads ? static_cast<int>(last_pow2(dim0)) : max_num_threads;
     int dim1_pow2 = dim1 < max_num_threads ? static_cast<int>(last_pow2(dim1)) : max_num_threads;
     block_width = std::min(dim0_pow2, int(at::cuda::warp_size()));
@@ -972,6 +976,15 @@ static void launch_reduce_kernel(const ReduceConfig& config, const R& reduction)
 
   switch(config.output_vec_size) {
   case 4:
+#ifdef USE_ROCM
+    // Blocks larger than max_threads / 4 only come from the gfx125x output-vectorized tuning
+    // (see rocm_reduce_tuning); they get their own instantiation so the default kernel is unchanged.
+    if (config.num_threads > max_threads / 4) {
+      reduce_kernel<max_threads, 4, R><<<grid, block, shared_memory, stream>>>(reduction);
+      C10_CUDA_KERNEL_LAUNCH_CHECK();
+      break;
+    }
+#endif
     reduce_kernel<max_threads / 4, 4, R><<<grid, block, shared_memory, stream>>>(reduction);
     C10_CUDA_KERNEL_LAUNCH_CHECK();
     break;
@@ -1091,13 +1104,16 @@ inline int reduce_knob(const char* name, int dflt) {
 // gfx125x launch-config tuning for gpu_reduce_kernel (EXPERIMENT knobs, each 0 = off = stock config):
 //   PYTORCH_ROCM_REDUCE_CTA_BUDGET: scale the 64-CTA floor down so that the floor alone never asks
 //     for more than this many threads in total (the floor is meant for reductions with few outputs).
+//   PYTORCH_ROCM_REDUCE_OUTVEC_THREADS: max threads per block for output-vectorized (vec 4) reductions.
 struct RocmReduceTuning {
   int cta_budget = 0;
+  int outvec_threads = 0;
 };
 
 inline RocmReduceTuning rocm_reduce_tuning() {
   static const RocmReduceTuning knobs{
-      reduce_knob("PYTORCH_ROCM_REDUCE_CTA_BUDGET", 0)};
+      reduce_knob("PYTORCH_ROCM_REDUCE_CTA_BUDGET", 0),
+      reduce_knob("PYTORCH_ROCM_REDUCE_OUTVEC_THREADS", 0)};
   if (std::strncmp(at::cuda::getCurrentDeviceProperties()->gcnArchName, "gfx125", 6) != 0) {
     return RocmReduceTuning{};
   }
@@ -1190,7 +1206,12 @@ ReduceConfig setReduceConfig(const TensorIterator& iter){
   }
 
   // Adjust block_width and block_height
+#ifdef USE_ROCM
+  config.set_block_dimension<scalar_t>(
+      dim0, dim1, config.output_vec_size == 4 ? tuning.outvec_threads : 0);
+#else
   config.set_block_dimension<scalar_t>(dim0, dim1);
+#endif
 
   int block_width = config.block_width;
   int block_height = config.block_height;
@@ -1335,7 +1356,31 @@ inline void gpu_reduce_kernel(TensorIterator& iter, const ops_t& ops, ident_t id
   char* acc_data = acc_buf_ptr->get_acc_slice(out_data);
 
 #ifdef USE_ROCM
-  ReduceConfig config = setReduceConfig<arg_t, scalar_t, vt0, input_vec_size>(iter, rocm_reduce_tuning());
+  RocmReduceTuning tuning = rocm_reduce_tuning();
+  const int outvec_threads = tuning.outvec_threads;
+  tuning.outvec_threads = 0;
+  ReduceConfig config = setReduceConfig<arg_t, scalar_t, vt0, input_vec_size>(iter, tuning);
+  if (outvec_threads > 0 && config.output_vec_size == 4) {
+    // Try 512- then 256-thread blocks. Take one only when its warps split the input and the launch
+    // keeps at least as many threads; 512 also needs no CTA split or at least 8 CTAs per output
+    // (with 2-4 CTAs, 256-thread blocks measured faster on gfx1250).
+    auto total_threads = [](const ReduceConfig& c) {
+      return int64_t(c.grid().x) * c.ctas_per_output * c.num_threads;
+    };
+    for (int threads : {512, 256}) {
+      if (threads > outvec_threads || threads <= config.num_threads) {
+        continue;
+      }
+      tuning.outvec_threads = threads;
+      auto big = setReduceConfig<arg_t, scalar_t, vt0, input_vec_size>(iter, tuning);
+      if (big.num_threads > config.num_threads && big.input_mult[ReduceConfig::BLOCK_Y] != 0 &&
+          total_threads(big) >= total_threads(config) &&
+          (big.num_threads < 512 || big.ctas_per_output == 1 || big.ctas_per_output >= 8)) {
+        config = big;
+        break;
+      }
+    }
+  }
 #else
   ReduceConfig config = setReduceConfig<arg_t, scalar_t, vt0, input_vec_size>(iter);
 #endif
