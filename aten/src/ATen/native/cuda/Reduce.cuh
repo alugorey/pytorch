@@ -1105,15 +1105,19 @@ inline int reduce_knob(const char* name, int dflt) {
 //   PYTORCH_ROCM_REDUCE_CTA_BUDGET: scale the 64-CTA floor down so that the floor alone never asks
 //     for more than this many threads in total (the floor is meant for reductions with few outputs).
 //   PYTORCH_ROCM_REDUCE_OUTVEC_THREADS: max threads per block for output-vectorized (vec 4) reductions.
+//   PYTORCH_ROCM_REDUCE_SHORT_INNER: reductions over a contiguous inner dim of at most this many
+//     elements use one thread per output instead of splitting each output across lanes.
 struct RocmReduceTuning {
   int cta_budget = 0;
   int outvec_threads = 0;
+  int short_inner = 0;
 };
 
 inline RocmReduceTuning rocm_reduce_tuning() {
   static const RocmReduceTuning knobs{
       reduce_knob("PYTORCH_ROCM_REDUCE_CTA_BUDGET", 0),
-      reduce_knob("PYTORCH_ROCM_REDUCE_OUTVEC_THREADS", 0)};
+      reduce_knob("PYTORCH_ROCM_REDUCE_OUTVEC_THREADS", 0),
+      reduce_knob("PYTORCH_ROCM_REDUCE_SHORT_INNER", 0)};
   if (std::strncmp(at::cuda::getCurrentDeviceProperties()->gcnArchName, "gfx125", 6) != 0) {
     return RocmReduceTuning{};
   }
@@ -1207,6 +1211,10 @@ ReduceConfig setReduceConfig(const TensorIterator& iter){
 
   // Adjust block_width and block_height
 #ifdef USE_ROCM
+  if (tuning.short_inner > 0 && reduction_on_fastest_striding_dimension && !config.vectorize_input &&
+      iter.ndim() > 0 && dim0 <= tuning.short_inner) {
+    dim0 = 1;  // one thread per output: block.x = 1, all threads of a block on different outputs
+  }
   config.set_block_dimension<scalar_t>(
       dim0, dim1, config.output_vec_size == 4 ? tuning.outvec_threads : 0);
 #else
