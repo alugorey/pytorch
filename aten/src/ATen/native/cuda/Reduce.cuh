@@ -1411,12 +1411,14 @@ inline void gpu_reduce_kernel(TensorIterator& iter, const ops_t& ops, ident_t id
   if (outvec_threads > 0 && config.output_vec_size == 4) {
     // Try 512- then 256-thread blocks. Take one only when its warps split the input and the launch
     // keeps at least as many threads; 512 also needs no CTA split or at least 8 CTAs per output
-    // (with 2-4 CTAs, 256-thread blocks measured faster on gfx1250).
+    // (with 2-4 CTAs, 256-thread blocks measured faster on gfx1250), and is skipped when the default
+    // config already splits each output over >= 256 CTAs (256 measured faster or equal there).
     auto total_threads = [](const ReduceConfig& c) {
       return int64_t(c.grid().x) * c.ctas_per_output * c.num_threads;
     };
     for (int threads : {512, 256}) {
-      if (threads > outvec_threads || threads <= config.num_threads) {
+      if (threads > outvec_threads || threads <= config.num_threads ||
+          (threads == 512 && config.ctas_per_output >= 256)) {
         continue;
       }
       tuning.outvec_threads = threads;
