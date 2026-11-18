@@ -1101,7 +1101,8 @@ inline int reduce_knob(const char* name, int dflt) {
   return v.has_value() ? std::stoi(*v) : dflt;
 }
 
-// gfx125x launch-config tuning for gpu_reduce_kernel (EXPERIMENT knobs, each 0 = off = stock config):
+// gfx125x launch-config tuning for gpu_reduce_kernel. On by default on gfx125x (values measured on
+// gfx1250); each env var overrides its value and 0 restores the stock config:
 //   PYTORCH_ROCM_REDUCE_CTA_BUDGET: scale the 64-CTA floor down so that the floor alone never asks
 //     for more than this many threads in total (the floor is meant for reductions with few outputs).
 //   PYTORCH_ROCM_REDUCE_OUTVEC_THREADS: max threads per block for output-vectorized (vec 4) reductions.
@@ -1115,9 +1116,9 @@ struct RocmReduceTuning {
 
 inline RocmReduceTuning rocm_reduce_tuning() {
   static const RocmReduceTuning knobs{
-      reduce_knob("PYTORCH_ROCM_REDUCE_CTA_BUDGET", 0),
-      reduce_knob("PYTORCH_ROCM_REDUCE_OUTVEC_THREADS", 0),
-      reduce_knob("PYTORCH_ROCM_REDUCE_SHORT_INNER", 0)};
+      reduce_knob("PYTORCH_ROCM_REDUCE_CTA_BUDGET", 98304),
+      reduce_knob("PYTORCH_ROCM_REDUCE_OUTVEC_THREADS", 512),
+      reduce_knob("PYTORCH_ROCM_REDUCE_SHORT_INNER", 4)};
   if (std::strncmp(at::cuda::getCurrentDeviceProperties()->gcnArchName, "gfx125", 6) != 0) {
     return RocmReduceTuning{};
   }

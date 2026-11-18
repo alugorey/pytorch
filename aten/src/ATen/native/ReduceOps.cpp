@@ -1325,13 +1325,14 @@ static std::optional<DimVector> input_matched_reduction_strides(
 // rules out vectorized loads; on gfx1250 the kernel then reads at ~1/3 of the bandwidth that a
 // contiguous row reduction reaches. Summing the trailing block first (contiguous rows, vectorized)
 // into an accumulation-type temporary, then the remaining dims, is much faster. The summation order
-// differs from the one-pass kernel. EXPERIMENT knob PYTORCH_ROCM_SUM_SPLIT_INNER = minimum trailing
-// block length (0 = off). Returns the trailing dims, or nullopt when the rewrite does not apply.
+// differs from the one-pass kernel. On by default on gfx125x; PYTORCH_ROCM_SUM_SPLIT_INNER = minimum
+// trailing block length (default 4096, 0 = off). Only a win together with the gfx125x CTA budget in
+// Reduce.cuh. Returns the trailing dims, or nullopt when the rewrite does not apply.
 static std::optional<DimVector> inner_first_reduction_dims(
     const Tensor& self, const Tensor& result, OptionalIntArrayRef opt_dim) {
   static const int64_t min_inner = [] {
     auto v = c10::utils::get_env("PYTORCH_ROCM_SUM_SPLIT_INNER");
-    return v.has_value() ? std::stoll(*v) : int64_t(0);
+    return v.has_value() ? std::stoll(*v) : int64_t(4096);
   }();
   if (min_inner <= 0 || !self.is_cuda() || self.dim() < 2 || !self.is_contiguous() ||
       !at::isFloatingType(self.scalar_type()) || !at::isFloatingType(result.scalar_type())) {
