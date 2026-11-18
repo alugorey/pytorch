@@ -15,6 +15,8 @@
 #include <ATen/native/TensorDimApply.h>
 #include <ATen/core/grad_mode.h>
 #include <ATen/TensorSubclassLikeUtils.h>
+#include <ATen/detail/CUDAHooksInterface.h>
+#include <c10/util/env.h>
 
 #ifndef AT_PER_OPERATOR_HEADERS
 #include <ATen/Functions.h>
@@ -1316,6 +1318,52 @@ static std::optional<DimVector> input_matched_reduction_strides(
 }
 #endif
 
+#if defined(USE_ROCM)
+// [Sum the contiguous inner block first]
+// A contiguous input reduced over its trailing dims and over at least one dim before a kept dim
+// (e.g. sum over (0, 1, 3, 4) of [N, A, C, H, W]) leaves TensorIterator with two reduce dims, which
+// rules out vectorized loads; on gfx1250 the kernel then reads at ~1/3 of the bandwidth that a
+// contiguous row reduction reaches. Summing the trailing block first (contiguous rows, vectorized)
+// into an accumulation-type temporary, then the remaining dims, is much faster. The summation order
+// differs from the one-pass kernel. EXPERIMENT knob PYTORCH_ROCM_SUM_SPLIT_INNER = minimum trailing
+// block length (0 = off). Returns the trailing dims, or nullopt when the rewrite does not apply.
+static std::optional<DimVector> inner_first_reduction_dims(
+    const Tensor& self, const Tensor& result, OptionalIntArrayRef opt_dim) {
+  static const int64_t min_inner = [] {
+    auto v = c10::utils::get_env("PYTORCH_ROCM_SUM_SPLIT_INNER");
+    return v.has_value() ? std::stoll(*v) : int64_t(0);
+  }();
+  if (min_inner <= 0 || !self.is_cuda() || self.dim() < 2 || !self.is_contiguous() ||
+      !at::isFloatingType(self.scalar_type()) || !at::isFloatingType(result.scalar_type())) {
+    return std::nullopt;
+  }
+  const int64_t ndim = self.dim();
+  auto mask = make_dim_mask(opt_dim, ndim);
+  int64_t first = ndim;
+  int64_t inner = 1;
+  while (first > 0 && mask[first - 1]) {
+    --first;
+    inner *= self.size(first);
+  }
+  // the dim before the trailing block must be a kept dim of size > 1, with a reduced dim before it
+  if (inner < min_inner || first < 2 || self.size(first - 1) == 1) {
+    return std::nullopt;
+  }
+  bool reduces_outer = false;
+  for (const auto d : c10::irange(first - 1)) {
+    reduces_outer |= mask[d] && self.size(d) > 1;
+  }
+  if (!reduces_outer || !at::detail::getCUDAHooks().isGPUArch({"gfx125"}, self.device().index())) {
+    return std::nullopt;
+  }
+  DimVector dims;
+  for (int64_t d = first; d < ndim; d++) {
+    dims.push_back(d);
+  }
+  return dims;
+}
+#endif
+
 static inline bool should_use_acc_buffer(at::TensorIterator& iter) {
   const auto ndim = iter.ndim();
   if (!iter.device().is_cpu() || iter.noutputs() != 1) {
@@ -1352,6 +1400,13 @@ TORCH_IMPL_FUNC(sum_out)
       result.copy_(tmp);
       return;
     }
+  }
+  // See [Sum the contiguous inner block first]
+  if (auto inner_dims = inner_first_reduction_dims(self, result, opt_dim)) {
+    auto tmp = at::sum(self, *inner_dims, /*keepdim=*/true, self.scalar_type() == kDouble ? kDouble : kFloat);
+    auto tmp_iter = meta::make_reduction_from_out_ty(tmp, result, opt_dim, keepdim, result.scalar_type());
+    sum_stub(tmp_iter.device_type(), tmp_iter);
+    return;
   }
 #endif
   auto iter = meta::make_reduction_from_out_ty(self, result, opt_dim, keepdim, result.scalar_type());
