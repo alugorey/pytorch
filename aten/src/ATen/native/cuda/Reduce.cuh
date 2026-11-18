@@ -11,6 +11,7 @@
 #include <c10/macros/Macros.h>
 #include <c10/util/complex.h>
 #include <c10/util/env.h>
+#include <cstring>
 #include <string>
 #include <c10/cuda/CUDACachingAllocator.h>
 #include <array>
@@ -1086,10 +1087,30 @@ inline int reduce_knob(const char* name, int dflt) {
   auto v = c10::utils::get_env(name);
   return v.has_value() ? std::stoi(*v) : dflt;
 }
+
+// gfx125x launch-config tuning for gpu_reduce_kernel (EXPERIMENT knobs, each 0 = off = stock config):
+//   PYTORCH_ROCM_REDUCE_CTA_BUDGET: scale the 64-CTA floor down so that the floor alone never asks
+//     for more than this many threads in total (the floor is meant for reductions with few outputs).
+struct RocmReduceTuning {
+  int cta_budget = 0;
+};
+
+inline RocmReduceTuning rocm_reduce_tuning() {
+  static const RocmReduceTuning knobs{
+      reduce_knob("PYTORCH_ROCM_REDUCE_CTA_BUDGET", 0)};
+  if (std::strncmp(at::cuda::getCurrentDeviceProperties()->gcnArchName, "gfx125", 6) != 0) {
+    return RocmReduceTuning{};
+  }
+  return knobs;
+}
 #endif
 
 template<typename arg_t, typename scalar_t, int vt0, int input_vec_size=vt0>
+#ifdef USE_ROCM
+ReduceConfig setReduceConfig(const TensorIterator& iter, const RocmReduceTuning& tuning = RocmReduceTuning{}){
+#else
 ReduceConfig setReduceConfig(const TensorIterator& iter){
+#endif
   // Start by assuming that each thread handles a single output and all
   // the inputs for that output.
   int64_t num_outputs = iter.num_output_elements();
@@ -1232,7 +1253,11 @@ ReduceConfig setReduceConfig(const TensorIterator& iter){
     if (config.ctas_per_output > 1) {
 #ifdef USE_ROCM
       // Set min ctas value as 64. Having more reductions (i.e less values_per_thread) seems to improve perf.
-      config.ctas_per_output = std::max(config.ctas_per_output, min_ctas_per_output);
+      int ctas_floor = min_ctas_per_output;
+      if (tuning.cta_budget > 0) {
+        ctas_floor = std::clamp(tuning.cta_budget / (grid * config.num_threads), 1, min_ctas_per_output);
+      }
+      config.ctas_per_output = std::max(config.ctas_per_output, ctas_floor);
 #endif
       config.input_mult[2] = config.split_input(config.ctas_per_output);
     }
@@ -1309,7 +1334,11 @@ inline void gpu_reduce_kernel(TensorIterator& iter, const ops_t& ops, ident_t id
   }
   char* acc_data = acc_buf_ptr->get_acc_slice(out_data);
 
+#ifdef USE_ROCM
+  ReduceConfig config = setReduceConfig<arg_t, scalar_t, vt0, input_vec_size>(iter, rocm_reduce_tuning());
+#else
   ReduceConfig config = setReduceConfig<arg_t, scalar_t, vt0, input_vec_size>(iter);
+#endif
   at::DataPtr buffer;
   at::DataPtr semaphores;
   if (config.should_global_reduce()) {
