@@ -63,7 +63,7 @@ endif()
 
 execute_process(
   COMMAND ${CK_FMHA_GENERATE} ${CK_FMHA_TARGETS}
-  --api bwd --optdim=32,64,128,256 --receipt 4 --filter "*psdv*@*psd*@*_pd1dv1*_ntrload*" --list_blobs ${CMAKE_CURRENT_LIST_DIR}/bwd_blob_list.txt
+  --api bwd --optdim=32,64,128,256 --receipt 4 --filter "*psdv*@*psd*@*_pd1dv1*_ntl*" --list_blobs ${CMAKE_CURRENT_LIST_DIR}/bwd_blob_list.txt
   RESULT_VARIABLE ret
 )
 
@@ -96,7 +96,7 @@ if(ret AND NOT ret EQUAL 0)
     message( FATAL_ERROR "CK Tile FMHA FAILED to generate FWD_APPENDKV kernels.")
 endif()
 
-execute_process(COMMAND ${CK_FMHA_GENERATE} ${CK_FMHA_TARGETS} --api bwd --optdim=32,64,128,256 --receipt 4 --filter "*psdv*@*psd*@*_pd1dv1*_ntrload*" --output_dir ${CMAKE_CURRENT_LIST_DIR}
+execute_process(COMMAND ${CK_FMHA_GENERATE} ${CK_FMHA_TARGETS} --api bwd --optdim=32,64,128,256 --receipt 4 --filter "*psdv*@*psd*@*_pd1dv1*_ntl*" --output_dir ${CMAKE_CURRENT_LIST_DIR}
   RESULT_VARIABLE ret
 )
 
