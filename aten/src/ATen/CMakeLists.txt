@@ -55,7 +55,8 @@ set_bool(AT_CUDNN_ENABLED CAFFE2_USE_CUDNN)
 set_bool(AT_CUSPARSELT_ENABLED CAFFE2_USE_CUSPARSELT)
 set_bool(AT_HIPSPARSELT_ENABLED CAFFE2_USE_HIPSPARSELT)
 
-# The architectures CK SDPA kernels are built for: the candidates that
+# The architectures CK SDPA kernels are built for: the
+# TORCH_CK_SDPA_ARCH_CANDIDATES (top-level CMakeLists.txt) that
 # PYTORCH_ROCM_ARCH also asks for. The CK codegen target families, the ck_sdpa
 # target's HIP_ARCHITECTURES and the runtime check in Context.cpp are all
 # derived from this one list.
@@ -66,11 +67,7 @@ set_bool(AT_HIPSPARSELT_ENABLED CAFFE2_USE_HIPSPARSELT)
 # compile cost to existing builds.
 set(AT_ROCM_CK_SDPA_ARCHS "")
 if(USE_ROCM AND USE_ROCM_CK_SDPA AND USE_FLASH_ATTENTION)
-  set(_ck_sdpa_candidate_archs gfx942 gfx950)
-  if(USE_ROCM_CK_SDPA_GFX12)
-    list(APPEND _ck_sdpa_candidate_archs gfx1200 gfx1201 gfx1250 gfx1250-strict)
-  endif()
-  foreach(ARCH IN LISTS _ck_sdpa_candidate_archs)
+  foreach(ARCH IN LISTS TORCH_CK_SDPA_ARCH_CANDIDATES)
     if("${ARCH}" IN_LIST PYTORCH_ROCM_ARCH)
       list(APPEND AT_ROCM_CK_SDPA_ARCHS ${ARCH})
     endif()
