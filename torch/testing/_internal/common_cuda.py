@@ -258,9 +258,9 @@ def evaluate_platform_sdpa_supports_hdim512():
     return True
 
 def evaluate_platform_supports_ck_gemms():
-    # Matches at::Context::ckGemmSupported(). gfx1250 and gfx1250-strict are omitted.
+    # Matches the default TORCH_CK_GEMM_ARCH_LIST checked by at::Context::ckGemmSupported().
     if TEST_WITH_ROCM:
-        return evaluate_gfx_arch_within(["gfx90a", "gfx942", "gfx950"])
+        return evaluate_gfx_arch_within(["gfx90a", "gfx942", "gfx950", "gfx1250", "gfx1250-strict"])
     return False
 
 def evaluate_platform_supports_efficient_attention():
