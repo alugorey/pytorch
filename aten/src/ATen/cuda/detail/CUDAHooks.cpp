@@ -550,6 +550,17 @@ bool CUDAHooks::isGPUArch(const std::vector<std::string>& archs, DeviceIndex dev
   return false;
 }
 
+bool CUDAHooks::isGfx1250A0AsB0Device(DeviceIndex device_index) const {
+#if ROCM_VERSION >= 71400
+  const hipDeviceProp_t* prop = device_index == -1
+      ? at::cuda::getCurrentDeviceProperties()
+      : at::cuda::getDeviceProperties(device_index);
+  return isGfx1250A0ExposedAsB0(prop->gcnArchName, prop->asicRevision);
+#else
+  return false;
+#endif
+}
+
 const std::vector<std::string>& CUDAHooks::getHipblasltPreferredArchs() const {
   static const std::vector<std::string> archs = {
     "gfx90a", "gfx942",

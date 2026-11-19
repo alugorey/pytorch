@@ -6,8 +6,20 @@
 
 #include <ATen/detail/AcceleratorHooksInterface.h>
 
+#include <string_view>
+
 // NB: Class must live in `at` due to limitations of Registry.h.
 namespace at {
+
+#ifdef USE_ROCM
+// gfx1250 A0 silicon reports gcnArchName gfx1250-strict when the process starts
+// with HSA_DISABLE_GFX12_STRICT=0 and gfx1250 (the B0 target) otherwise;
+// asicRevision is 0 on A0 in both modes. A gfx1250 code object is B0 code, so
+// libraries that only ship gfx1250 kernels must not run them on such a device.
+inline bool isGfx1250A0ExposedAsB0(std::string_view gcn_arch_name, int asic_revision) {
+  return gcn_arch_name.substr(0, gcn_arch_name.find(':')) == "gfx1250" && asic_revision == 0;
+}
+#endif
 
 // Forward-declares at::cuda::NVRTC
 namespace cuda {
@@ -225,6 +237,10 @@ struct TORCH_API CUDAHooksInterface : AcceleratorHooksInterface {
 
 #ifdef USE_ROCM
   virtual bool isGPUArch(const std::vector<std::string>& /*archs*/, DeviceIndex = -1 /*device_index*/) const {
+    TORCH_CHECK(false, "Cannot check GPU arch without ATen_cuda library. ", CUDA_HELP);
+  }
+
+  virtual bool isGfx1250A0AsB0Device(DeviceIndex = -1 /*device_index*/) const {
     TORCH_CHECK(false, "Cannot check GPU arch without ATen_cuda library. ", CUDA_HELP);
   }
 

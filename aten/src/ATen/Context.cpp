@@ -649,6 +649,21 @@ std::vector<std::string> parseArchList(std::string_view archs) {
   }
   return result;
 }
+
+// CK ships gfx1250 kernels as B0 code. gfx1250 A0 silicon also reports
+// gfx1250 unless started with HSA_DISABLE_GFX12_STRICT=0, so refuse CK there.
+bool refuseCKOnGfx1250A0(DeviceIndex index) {
+  if (!detail::getCUDAHooks().isGfx1250A0AsB0Device(index)) {
+    return false;
+  }
+  TORCH_WARN_ONCE(
+      "Device ", static_cast<int>(index), " is gfx1250 A0 silicon reporting the "
+      "gfx1250 (B0) target. Composable Kernel (CK) kernels for gfx1250 are B0 "
+      "code, so CK is disabled on it. Set HSA_DISABLE_GFX12_STRICT=0 before "
+      "starting the process to expose it as gfx1250-strict and use the "
+      "gfx1250-strict CK kernels.");
+  return true;
+}
 } // namespace
 #endif
 
@@ -663,6 +678,9 @@ bool Context::ckSDPASupported() {
     return false;
   }
   for (auto index : c10::irange(detail::getCUDAHooks().deviceCount())) {
+    if (refuseCKOnGfx1250A0(index)) {
+      return false;
+    }
     if (!detail::getCUDAHooks().isGPUArch(supported_archs, index)) {
       TORCH_WARN_ONCE(
           "Attempting to use CK SDPA on an unsupported architecture! Cannot set "
