@@ -60,14 +60,15 @@ set_bool(AT_HIPSPARSELT_ENABLED CAFFE2_USE_HIPSPARSELT)
 # target's HIP_ARCHITECTURES and the runtime check in Context.cpp are all
 # derived from this one list.
 #
-# gfx1200/gfx1201 (RDNA4, WMMA) is opt-in through USE_ROCM_CK_SDPA_GFX12 (OFF by
-# default): those arches are already in the ROCm wheel arch list, so building CK
-# SDPA for them would add code generation and compile cost to existing builds.
+# gfx1200/gfx1201 (RDNA4) and gfx1250/gfx1250-strict are opt-in through
+# USE_ROCM_CK_SDPA_GFX12 (OFF by default): those arches are already in the ROCm
+# wheel arch list, so building CK SDPA for them would add code generation and
+# compile cost to existing builds.
 set(AT_ROCM_CK_SDPA_ARCHS "")
 if(USE_ROCM AND USE_ROCM_CK_SDPA AND USE_FLASH_ATTENTION)
   set(_ck_sdpa_candidate_archs gfx942 gfx950)
   if(USE_ROCM_CK_SDPA_GFX12)
-    list(APPEND _ck_sdpa_candidate_archs gfx1200 gfx1201)
+    list(APPEND _ck_sdpa_candidate_archs gfx1200 gfx1201 gfx1250 gfx1250-strict)
   endif()
   foreach(ARCH IN LISTS _ck_sdpa_candidate_archs)
     if("${ARCH}" IN_LIST PYTORCH_ROCM_ARCH)
@@ -234,7 +235,7 @@ if(USE_FLASH_ATTENTION)
     # is built for. Auto-disable when it is empty; otherwise the ck_sdpa target
     # ends up with an empty HIP_ARCHITECTURES and CMake errors out.
     if(USE_ROCM_CK_SDPA AND NOT AT_ROCM_CK_SDPA_ARCHS)
-      message(STATUS "USE_ROCM_CK_SDPA disabled: PYTORCH_ROCM_ARCH (${PYTORCH_ROCM_ARCH}) has no arch CK SDPA is built for (gfx942/gfx950; gfx1200/gfx1201 with USE_ROCM_CK_SDPA_GFX12)")
+      message(STATUS "USE_ROCM_CK_SDPA disabled: PYTORCH_ROCM_ARCH (${PYTORCH_ROCM_ARCH}) has no arch CK SDPA is built for (gfx942/gfx950; gfx1200/gfx1201/gfx1250/gfx1250-strict with USE_ROCM_CK_SDPA_GFX12)")
       caffe2_update_option(USE_ROCM_CK_SDPA OFF)
     endif()
   endif()
@@ -333,6 +334,12 @@ if(USE_FLASH_ATTENTION)
       HIP_ARCHITECTURES "${AT_ROCM_CK_SDPA_ARCHS}")
     target_compile_definitions(ck_sdpa PUBLIC ${CK_SDPA_EXTRA_HIPCC_OPTIONS})
     target_compile_definitions(ck_sdpa PRIVATE AITER_EMBEDDED_HSA_HEADER="aiter_embedded_hsa.h")
+    # CK's unified ck_tile MMA framework does not support gfx125 yet. CK's own
+    # build turns it off for any gfx125 target, in the host and device passes
+    # alike, since host code instantiates the same templates.
+    if(AT_ROCM_CK_SDPA_ARCHS MATCHES "gfx125")
+      target_compile_definitions(ck_sdpa PUBLIC USE_NEW_UNIFIED_FRAMEWORK=0)
+    endif()
     target_include_directories(ck_sdpa PUBLIC
                                ${CMAKE_CURRENT_SOURCE_DIR}/../../../third_party/composable_kernel/include
                                ${CMAKE_CURRENT_SOURCE_DIR}/../../../third_party/composable_kernel/library/include
