@@ -401,6 +401,12 @@ cmake_dependent_option(USE_ROCM_CK_SDPA "Use ROCm Composable Kernel for SDPA" ON
 # Off by default because enabling gfx12 adds CK SDPA code generation and compile
 # cost to ROCm builds that already target gfx1200/gfx1201/gfx1250/gfx1250-strict.
 cmake_dependent_option(USE_ROCM_CK_SDPA_GFX12 "Also build ROCm Composable Kernel SDPA for gfx12 (gfx1200/gfx1201, gfx1250/gfx1250-strict)" OFF "USE_ROCM_CK_SDPA" OFF)
+# GPU archs CK SDPA is built for when PYTORCH_ROCM_ARCH asks for them. Read by
+# the AOTriton gate below and by aten/src/ATen/CMakeLists.txt.
+set(TORCH_CK_SDPA_ARCH_CANDIDATES gfx942 gfx950)
+if(USE_ROCM_CK_SDPA_GFX12)
+  list(APPEND TORCH_CK_SDPA_ARCH_CANDIDATES gfx1200 gfx1201 gfx1250 gfx1250-strict)
+endif()
 option(CAFFE2_STATIC_LINK_CUDA "Statically link CUDA libraries" OFF)
 cmake_dependent_option(USE_CUDNN "Use cuDNN" ON "USE_CUDA" OFF)
 cmake_dependent_option(USE_STATIC_CUDNN "Use cuDNN static libraries" OFF
@@ -1199,19 +1205,30 @@ cmake_dependent_option(
 # USE_FLASH_ATTENTION -> USE_ROCM -> Dependencies.cmake -> aotriton.cmake
 #
 # AOTriton publishes a gfx1250 image and no gfx1250-strict image. Flash and
-# mem-eff attention on ROCm compile against aotriton headers and link
-# __caffe2_aotriton, so a strict-only arch list has to turn those options off
-# before the include below. Leave mixed lists alone: gfx1250 still has an image.
-# Remove this once AOTriton publishes gfx1250-strict kernels.
+# mem-eff attention on ROCm stay on when an arch in PYTORCH_ROCM_ARCH has an
+# AOTriton image or is a CK SDPA arch. They still compile against the aotriton
+# headers and link the runtime; an arch without an image is rejected by
+# AOTriton's check_gpu() at runtime, so only the CK backend serves it.
 if(USE_ROCM AND (USE_FLASH_ATTENTION OR USE_MEM_EFF_ATTENTION))
   set(_aotriton_supported_arches ${PYTORCH_ROCM_ARCH})
   list(REMOVE_ITEM _aotriton_supported_arches "gfx1250-strict")
-  if(_aotriton_supported_arches STREQUAL "")
-    message(STATUS "AOTriton disabled: PYTORCH_ROCM_ARCH (${PYTORCH_ROCM_ARCH}) has no arch with an AOTriton image")
+  set(_ck_sdpa_arches "")
+  if(USE_ROCM_CK_SDPA)
+    foreach(_arch IN LISTS TORCH_CK_SDPA_ARCH_CANDIDATES)
+      if("${_arch}" IN_LIST PYTORCH_ROCM_ARCH)
+        list(APPEND _ck_sdpa_arches ${_arch})
+      endif()
+    endforeach()
+  endif()
+  if(_aotriton_supported_arches STREQUAL "" AND _ck_sdpa_arches STREQUAL "")
+    message(STATUS "Flash/mem-eff attention disabled: PYTORCH_ROCM_ARCH (${PYTORCH_ROCM_ARCH}) has no arch with an AOTriton image or CK SDPA")
     caffe2_update_option(USE_FLASH_ATTENTION OFF)
     caffe2_update_option(USE_MEM_EFF_ATTENTION OFF)
+  elseif(_aotriton_supported_arches STREQUAL "")
+    message(STATUS "No AOTriton image for PYTORCH_ROCM_ARCH (${PYTORCH_ROCM_ARCH}); flash/mem-eff attention kept for CK SDPA (${_ck_sdpa_arches})")
   endif()
   unset(_aotriton_supported_arches)
+  unset(_ck_sdpa_arches)
 endif()
 
 if(USE_ROCM)
