@@ -14,11 +14,17 @@ __launch_bounds__(Kernel::kBlockSize, MinBlockPerCu)
 #endif
     __global__ void kentry_pt(Args... args)
 {
-#if (defined(__gfx90a__) || defined(__gfx942__) || defined(__gfx950__) || \
-     defined(__gfx1200__) || defined(__gfx1201__))
-    Kernel{}(args...);
-#else
-    CUDA_KERNEL_ASSERT(false && "Fatal! Attempting to call a CK SDPA kernel on unsupported hardware");
+    // Device pass only: the host pass would otherwise instantiate the kernel
+    // body, which CK only makes valid for the device target.
+#if defined(__HIP_DEVICE_COMPILE__)
+    if (__builtin_amdgcn_processor_is("gfx90a") || __builtin_amdgcn_processor_is("gfx942") ||
+        __builtin_amdgcn_processor_is("gfx950") || __builtin_amdgcn_processor_is("gfx1200") ||
+        __builtin_amdgcn_processor_is("gfx1201") || __builtin_amdgcn_processor_is("gfx1250") ||
+        __builtin_amdgcn_processor_is("gfx1250-strict")) {
+        Kernel{}(args...);
+    } else {
+        CUDA_KERNEL_ASSERT(false && "Fatal! Attempting to call a CK SDPA kernel on unsupported hardware");
+    }
 #endif
 }
 
@@ -28,11 +34,17 @@ __launch_bounds__(Kernel::kBlockSize, MinBlockPerCu)
 #endif
     __global__ void kentry_pt(Args... args)
 {
-#if (defined(__gfx90a__) || defined(__gfx942__) || defined(__gfx950__) || \
-     defined(__gfx1200__) || defined(__gfx1201__))
-    Kernel{}(args...);
-#else
-    CUDA_KERNEL_ASSERT(false && "Fatal! Attempting to call a CK SDPA kernel on unsupported hardware");
+    // Device pass only: the host pass would otherwise instantiate the kernel
+    // body, which CK only makes valid for the device target.
+#if defined(__HIP_DEVICE_COMPILE__)
+    if (__builtin_amdgcn_processor_is("gfx90a") || __builtin_amdgcn_processor_is("gfx942") ||
+        __builtin_amdgcn_processor_is("gfx950") || __builtin_amdgcn_processor_is("gfx1200") ||
+        __builtin_amdgcn_processor_is("gfx1201") || __builtin_amdgcn_processor_is("gfx1250") ||
+        __builtin_amdgcn_processor_is("gfx1250-strict")) {
+        Kernel{}(args...);
+    } else {
+        CUDA_KERNEL_ASSERT(false && "Fatal! Attempting to call a CK SDPA kernel on unsupported hardware");
+    }
 #endif
 }
 
