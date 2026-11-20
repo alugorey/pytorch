@@ -1163,6 +1163,26 @@ inline RocmReduceTuning rocm_reduce_tuning() {
   }
   return knobs;
 }
+
+// gfx950: a launch that fills at least half of every CU's thread slots in one round, with each thread
+// streaming 16+ vectors of 4-byte data into a 4-byte accumulator (f32/int32 sum, mean, nansum, ...),
+// already keeps the L2 -> data-fabric read queue at its credit limit with one load per thread in
+// flight. The unrolled loop's four loads per thread then only add queueing (measured 2.5-5% slower,
+// e.g. 4096x4096 f32 row sums), so such launches keep the single-load loop. 16-bit and bool inputs
+// and wider accumulators (Welford, argmax) still gain from the unroll at the same launch on gfx950,
+// and gfx942/gfx1250 gain on these f32 launches too.
+// PYTORCH_ROCM_REDUCE_UNROLL_SAT: -1 (default) gfx950 only, 0 never, 1 every arch.
+inline bool unroll_saturates_fabric(const ReduceConfig& config, int input_vec_size) {
+  static const int mode = reduce_knob("PYTORCH_ROCM_REDUCE_UNROLL_SAT", -1);
+  const auto* prop = at::cuda::getCurrentDeviceProperties();
+  if (mode == 0 || (mode < 0 && std::strncmp(prop->gcnArchName, "gfx950", 6) != 0)) {
+    return false;
+  }
+  const dim3 grid = config.grid();
+  const int64_t threads_per_cu = int64_t(grid.x) * grid.y * config.num_threads / prop->multiProcessorCount;
+  return config.values_per_thread() >= 16 * input_vec_size &&
+      2 * threads_per_cu >= prop->maxThreadsPerMultiProcessor && threads_per_cu < prop->maxThreadsPerMultiProcessor;
+}
 #endif
 
 template<typename arg_t, typename scalar_t, int vt0, int input_vec_size=vt0>
@@ -1493,8 +1513,10 @@ inline void gpu_reduce_kernel(TensorIterator& iter, const ops_t& ops, ident_t id
   // Also skip it when each thread has too few vectors for the unrolled loop to run at least twice:
   // small reductions would only pay for the bigger kernel.
   constexpr int kUnrollMinValuesPerThread = 2 * 4 * input_vec_size;
+  constexpr bool four_byte_stream = sizeof(scalar_t) == 4 && sizeof(arg_t) == 4;
   if (config.vectorize_input && !(unroll_may_regress && config.num_outputs == 1) &&
-      config.values_per_thread() >= kUnrollMinValuesPerThread) {
+      config.values_per_thread() >= kUnrollMinValuesPerThread &&
+      !(four_byte_stream && unroll_saturates_fabric(config, input_vec_size))) {
     make_and_launch(std::true_type{});
     return;
   }
