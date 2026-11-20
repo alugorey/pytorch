@@ -26,7 +26,7 @@ from torch.testing._internal.common_utils import (
     skipIfTorchDynamo,
     IS_WINDOWS)
 from torch.testing._internal.common_device_type import (
-    OpDTypes, onlyCPU, onlyNativeDeviceTypes, expectedFailureMeta, instantiate_device_type_tests, dtypes, dtypesIfCUDA,
+    OpDTypes, onlyCPU, onlyCUDA, onlyNativeDeviceTypes, expectedFailureMeta, instantiate_device_type_tests, dtypes, dtypesIfCUDA,
     dtypesIfCPU, dtypesIfMPS, dtypesIfXPU, onlyAccelerator, largeMPSBufferTest, largeTensorTest, ops,
     precisionOverride)
 from torch.testing._internal.common_methods_invocations import (
@@ -662,6 +662,39 @@ class TestReductions(TestCase):
         ])
         if not IS_WINDOWS:
             compare_logcumsumexp(a4_input, a4_expected)
+
+    @onlyCUDA
+    @largeTensorTest("3GB")
+    def test_sum_global_reduce_dirty_staging(self, device):
+        # These sums split every output over many blocks, which stage their partials in a buffer
+        # from the caching allocator. Each call first frees a block filled with 7.0, so a read of a
+        # stale staging line returns a wrong sum (ROCm's global reduce raced this way). A kernel on
+        # a side stream skews when the sum's blocks finish, which makes the race much more likely.
+        torch.manual_seed(0)
+        side = torch.cuda.Stream(device)
+        noise = torch.empty(64 << 20, device=device)
+        cases = [((3, 57_000_000), torch.float32, 1, 2000),
+                 ((5, 30_000_000), torch.float32, 1, 2000),
+                 ((16384, 4096), torch.float32, 0, 200),
+                 ((3, 8_000_000), torch.chalf, 1, 200)]
+        for shape, dtype, dim, iters in cases:
+            rtol = 1e-2 if dtype == torch.chalf else 1e-4
+            x = (torch.rand(shape, device=device) * (2.0 / shape[dim])).to(dtype)
+            expected = x.to(torch.complex128 if dtype.is_complex else torch.float64).sum(dim)
+            for with_noise in (False, True):
+                bad = 0
+                for i in range(iters):
+                    torch.full((100_000 + 4096 * (i % 7),), 7.0, device=device)
+                    if with_noise:
+                        side.wait_stream(torch.cuda.current_stream(device))
+                        with torch.cuda.stream(side):
+                            noise.mul_(1.0)
+                    actual = x.sum(dim)
+                    bad += ((actual - expected).abs().max() > rtol * expected.abs().max()).item()
+                self.assertEqual(bad, 0, msg=f"{bad} of {iters} sums of {dtype} {shape} over dim {dim} "
+                                             f"({with_noise=}) were wrong")
+            del x
+        torch.cuda.current_stream(device).wait_stream(side)
 
     @skipIfMPS
     def test_sum_parallel(self, device):

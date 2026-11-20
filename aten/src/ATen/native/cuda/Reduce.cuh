@@ -36,6 +36,20 @@ static inline int last_pow2(int n) {
   return std::max(1, n - (n >> 1));
 }
 
+#ifdef USE_ROCM
+// [Staging line padding]
+// On ROCm, global_reduce skips the __threadfence()s of the CUDA path ([CMTSTRS]): CTAs publish
+// their partials with committed stores, and the last CTA of each output block reads them with
+// plain loads. If the staging runs of two output blocks share a cache line, one output's last
+// CTA can cache that line before the other output's CTAs have written their part of it, and the
+// other output's last CTA may then read the stale line. So each output block's run starts on a
+// 256-byte boundary: its number of CTA slots is rounded up to a multiple of this, which makes every
+// line belong to one output block, whose writes all complete before its last CTA reads them.
+C10_HOST_DEVICE constexpr int64_t staging_line_elements(int64_t element_bytes) {
+  return (element_bytes & -element_bytes) >= 256 ? 1 : 256 / (element_bytes & -element_bytes);
+}
+#endif
+
 // returns reduced fraction numerator & denominator
 C10_HOST_DEVICE static void reduce_fraction(size_t &numerator, size_t &denominator) {
   // get GCD of num and denom using Euclid's algorithm.
@@ -197,6 +211,13 @@ struct ReduceConfig {
     if (!should_block_x_reduce()) {
       size *= block().x * output_vec_size;
     }
+#ifdef USE_ROCM
+    // [Staging line padding]
+    const int64_t bytes = int64_t(element_size_bytes) * output_vec_size;
+    const int64_t multiple = staging_line_elements(bytes);
+    const int64_t row = should_block_x_reduce() ? bytes : bytes * block().x;
+    size = std::max(size, int64_t(grid().x) * div_up(ctas_per_output, multiple) * multiple * row);
+#endif
     return size;
   }
 
@@ -782,6 +803,21 @@ struct ReduceOp {
   }
 
   template <int output_vec_size>
+  C10_DEVICE int staging_offset(int cta2) const {
+#ifdef USE_ROCM
+    // [Staging line padding]
+    constexpr int multiple = staging_line_elements(sizeof(std::array<arg_t, output_vec_size>));
+    int offset = cta2 + blockIdx.x * ((gridDim.y + multiple - 1) & ~(multiple - 1));
+    if (!config.should_block_x_reduce()) {
+      offset = threadIdx.x + offset * blockDim.x;
+    }
+    return offset;
+#else
+    return config.staging_memory_offset(cta2);
+#endif
+  }
+
+  template <int output_vec_size>
   C10_DEVICE std::array<arg_t, output_vec_size> global_reduce(std::array<arg_t, output_vec_size> value, std::array<arg_t, output_vec_size> *acc, char* shared_memory) const {
     using arg_vec_t = std::array<arg_t, output_vec_size>;
     using out_ptr_vec_t = std::array<out_scalar_t*, output_vec_size>;
@@ -800,7 +836,7 @@ struct ReduceOp {
 
     bool should_store = config.should_store(output_idx);
     if (should_store) {
-      index_t offset = config.staging_memory_offset(blockIdx.y);
+      index_t offset = staging_offset<output_vec_size>(blockIdx.y);
 #ifndef USE_ROCM
       reduce_buffer[offset] = value;
 #else // [CMTSTRS]
@@ -827,7 +863,7 @@ struct ReduceOp {
         index_t input_offset = threadIdx.x + threadIdx.y * blockDim.x;
         index_t step = blockDim.x * blockDim.y;
         for (; input_offset < config.ctas_per_output; input_offset += step) {
-          index_t idx = config.staging_memory_offset(input_offset);
+          index_t idx = staging_offset<output_vec_size>(input_offset);
           arg_vec_t next = reduce_buffer[idx];
           #pragma unroll
           for (int i = 0; i < output_vec_size; i++) {
@@ -843,7 +879,7 @@ struct ReduceOp {
          arg_vec_t next[PRFCH];
          #pragma unroll
          for (int u = 0; (u < PRFCH) && (input_offset + u*step < config.ctas_per_output); u++) {
-          index_t idx = config.staging_memory_offset(input_offset + u*step);
+          index_t idx = staging_offset<output_vec_size>(input_offset + u*step);
           next[u] = reduce_buffer[idx];
          }
          for (int u = 0; (u < PRFCH) && (input_offset + u*step < config.ctas_per_output); u++) {
@@ -863,7 +899,7 @@ struct ReduceOp {
         index_t step = blockDim.y;
 #endif
         for (; input_offset < config.ctas_per_output; input_offset += step) {
-          index_t idx = config.staging_memory_offset(input_offset);
+          index_t idx = staging_offset<output_vec_size>(input_offset);
           arg_vec_t next = reduce_buffer[idx];
           #pragma unroll
           for (int i = 0; i < output_vec_size; i++) {

@@ -618,6 +618,22 @@ struct ReduceJitOp {
   #endif
 
   template <int output_vec_size>
+  C10_DEVICE int staging_offset(int cta2) const {
+  #ifdef USE_ROCM
+    // [Staging line padding] in Reduce.cuh; the host sizes the staging buffer for this layout.
+    constexpr int low_bit = sizeof(Array<arg_t, output_vec_size>) & -sizeof(Array<arg_t, output_vec_size>);
+    constexpr int multiple = low_bit >= 256 ? 1 : 256 / low_bit;
+    int offset = cta2 + blockIdx.x * ((gridDim.y + multiple - 1) & ~(multiple - 1));
+    if (!config.should_block_x_reduce()) {
+      offset = threadIdx.x + offset * blockDim.x;
+    }
+    return offset;
+  #else
+    return config.staging_memory_offset(cta2);
+  #endif
+  }
+
+  template <int output_vec_size>
   C10_DEVICE Array<arg_t, output_vec_size> global_reduce(Array<arg_t, output_vec_size> value, Array<arg_t, output_vec_size> *acc, char* shared_memory) const {
     using arg_vec_t = Array<arg_t, output_vec_size>;
     using out_ptr_vec_t = Array<out_scalar_t*, output_vec_size>;
@@ -636,7 +652,7 @@ struct ReduceJitOp {
 
     bool should_store = config.should_store(output_idx);
     if (should_store) {
-      uint32_t offset = config.staging_memory_offset(blockIdx.y);
+      uint32_t offset = staging_offset<output_vec_size>(blockIdx.y);
   #ifndef USE_ROCM
       reduce_buffer[offset] = value;
   #else // [CMTSTRS]
@@ -661,7 +677,7 @@ struct ReduceJitOp {
         uint32_t input_offset = threadIdx.x + threadIdx.y * blockDim.x;
         uint32_t step = blockDim.x * blockDim.y;
         for (; input_offset < config.ctas_per_output; input_offset += step) {
-          uint32_t idx = config.staging_memory_offset(input_offset);
+          uint32_t idx = staging_offset<output_vec_size>(input_offset);
           arg_vec_t next = reduce_buffer[idx];
           #pragma unroll
           for (int i = 0; i < output_vec_size; i++) {
@@ -672,7 +688,7 @@ struct ReduceJitOp {
         uint32_t input_offset = threadIdx.y;
         uint32_t step = blockDim.y;
         for (; input_offset < config.ctas_per_output; input_offset += step) {
-          uint32_t idx = config.staging_memory_offset(input_offset);
+          uint32_t idx = staging_offset<output_vec_size>(input_offset);
           arg_vec_t next = reduce_buffer[idx];
           #pragma unroll
           for (int i = 0; i < output_vec_size; i++) {
