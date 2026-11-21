@@ -696,6 +696,43 @@ class TestReductions(TestCase):
             del x
         torch.cuda.current_stream(device).wait_stream(side)
 
+    def _check_reduction_float64_cpu(self, op, x, *args, atol=0, rtol=0, **kwargs):
+        # Callers use small multiples of 1/8 as inputs, so float32 accumulation is exact and sums
+        # match the float64 CPU result rounded to the output dtype bit for bit (atol=rtol=0).
+        actual = op(x, *args, **kwargs)
+        ref = x.cpu().to(torch.complex128 if x.is_complex() else torch.float64)
+        self.assertEqual(actual.cpu(), op(ref, *args, **kwargs).to(actual.dtype), atol=atol, rtol=rtol)
+
+    @onlyCUDA
+    @dtypes(torch.float32, torch.bfloat16, torch.float16, torch.float64, torch.int32, torch.int64, torch.complex64)
+    def test_reduction_long_contiguous_rows(self, device, dtype):
+        # Long contiguous rows take the vectorized-input reduction. On ROCm this runs an unrolled
+        # kernel, except for full reductions of 64-bit integers and complex numbers, and except on
+        # gfx950 for 4-byte launches that saturate its read fabric (e.g. the 4096 x 4096 float32 sum).
+        def make(*shape):
+            x = torch.randint(0, 4, shape, device=device)
+            return x.to(dtype) if dtype in (torch.int32, torch.int64) else (x / 8).to(dtype)
+
+        for shape in [(4096, 4096), (64, 65536), (3, 262147), (512, 1000)]:
+            x = make(*shape)
+            self._check_reduction_float64_cpu(torch.sum, x, -1)
+            self._check_reduction_float64_cpu(torch.sum, x[:, 1:], -1)
+            if not dtype.is_complex:
+                self._check_reduction_float64_cpu(torch.amax, x, -1)
+            if dtype.is_floating_point:
+                self._check_reduction_float64_cpu(torch.mean, x, -1, atol=None, rtol=None)
+        x = make(1 << 22)
+        full_dtype = torch.float32 if dtype in (torch.bfloat16, torch.float16) else None
+        self._check_reduction_float64_cpu(torch.sum, x, dtype=full_dtype)
+        self._check_reduction_float64_cpu(torch.sum, x[1:], dtype=full_dtype)
+        if dtype.is_floating_point:
+            x = torch.rand(256, 8192, device=device, dtype=dtype)
+            rtol = 1e-4 if dtype in (torch.float32, torch.float64) else 1.6e-2
+            self._check_reduction_float64_cpu(torch.var, x, -1, atol=1e-5, rtol=rtol)
+        if dtype == torch.float32:
+            x = torch.randperm(256 * 4096, device=device).view(256, 4096)
+            self.assertEqual(x.to(dtype).argmax(-1), x.argmax(-1))
+
     @skipIfMPS
     def test_sum_parallel(self, device):
         # To use parallel branches we'll need to compare on tensors
