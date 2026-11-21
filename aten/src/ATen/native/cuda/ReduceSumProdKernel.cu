@@ -7,6 +7,8 @@
 #include <ATen/native/ReduceOps.h>
 #include <ATen/jit_macros.h>
 #include <ATen/OpMathType.h>
+#include <ATen/cuda/CUDAContext.h>
+#include <cstring>
 
 namespace at::native {
 
@@ -18,9 +20,27 @@ struct sum_functor {
     };
     constexpr bool is_16_bits = sizeof(scalar_t) == 2;
     if constexpr (is_16_bits) {
+#ifdef USE_ROCM
+      // 16-bit outer (column) reductions load 4 elements = 8 bytes per load. On gfx125x, keeping 8
+      // loads in flight per thread instead of 4 speeds up long column sums; it slows short
+      // reductions (2-4 elements per output) and, on gfx942, the largest column sums, so it is
+      // limited to gfx125x and to reductions with at least 64 inputs per output.
+      const bool gfx125x = std::strncmp(at::cuda::getCurrentDeviceProperties()->gcnArchName, "gfx125", 6) == 0;
+      const int64_t num_outputs = iter.num_output_elements();
+      if (gfx125x && num_outputs > 0 && iter.numel() / num_outputs >= 64) {
+        gpu_reduce_kernel<scalar_t, out_t, /*vt0=*/8, /*input_vec_size=*/8>(
+          iter, func_wrapper<out_t>(sum_combine)
+        );
+      } else {
+        gpu_reduce_kernel<scalar_t, out_t, /*vt0=*/4, /*input_vec_size=*/8>(
+          iter, func_wrapper<out_t>(sum_combine)
+        );
+      }
+#else
       gpu_reduce_kernel<scalar_t, out_t, /*vt0=*/4, /*input_vec_size=*/8>(
         iter, func_wrapper<out_t>(sum_combine)
       );
+#endif
     } else {
       gpu_reduce_kernel<scalar_t, out_t>(
         iter, func_wrapper<out_t>(sum_combine)

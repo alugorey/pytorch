@@ -753,6 +753,17 @@ class TestReductions(TestCase):
         torch.sum(cl, 0, out=out)
         self.assertEqual(out.cpu(), cl.cpu().double().sum(0).to(dtype), atol=0, rtol=0)
 
+    @onlyCUDA
+    @dtypes(torch.bfloat16, torch.float16)
+    def test_sum_16bit_columns(self, device, dtype):
+        # ROCm gfx125x keeps 8 loads in flight per thread for 16-bit sums with at least 64 inputs per
+        # output (here 4096, 64 and 1024 x 8 rows) and 4 for shorter ones (63 and 3 rows).
+        for shape, dim in [((4096, 2048), 0), ((64, 4096), 0), ((63, 4096), 0), ((3, 4096), 0),
+                           ((8, 1024, 1024), (0, 1))]:
+            x = (torch.randint(0, 4, shape, device=device) / 8).to(dtype)
+            self._check_reduction_float64_cpu(torch.sum, x, dim)
+            self._check_reduction_float64_cpu(torch.sum, x[:, 1:], dim)
+
     @skipIfMPS
     def test_sum_parallel(self, device):
         # To use parallel branches we'll need to compare on tensors
