@@ -785,6 +785,24 @@ class TestReductions(TestCase):
         rtol = 1e-4 if dtype == torch.float32 else 1.6e-2
         self._check_reduction_float64_cpu(torch.var, x, 0, atol=1e-5, rtol=rtol)
 
+    @onlyCUDA
+    @dtypes(torch.float32, torch.float64)
+    def test_sum_trailing_block_and_outer_dims(self, device, dtype):
+        # A contiguous input summed over its trailing dims and over a dim before a kept dim. ROCm
+        # gfx125x sums the trailing block (>= 4096 elements) first, then the remaining dims.
+        x = (torch.randint(0, 4, (4, 3, 8, 64, 64), device=device) / 8).to(dtype)
+        for dim in [(0, 1, 3, 4), (0, 3, 4), (1, 3, 4), (-1, 0, -2), (0, 2, 3, 4), (0, 3)]:
+            for keepdim in (False, True):
+                self._check_reduction_float64_cpu(torch.sum, x, dim, keepdim=keepdim)
+        y = (torch.randint(0, 4, (16, 3, 128, 128), device=device) / 8).to(dtype)
+        self._check_reduction_float64_cpu(torch.sum, y, (0, 2, 3))
+        self._check_reduction_float64_cpu(torch.sum, y, (0, 2, 3), dtype=torch.float32)
+        self._check_reduction_float64_cpu(torch.sum, y[:, :, :, :64], (0, 2, 3))
+        self._check_reduction_float64_cpu(torch.sum, y.new_empty(16, 0, 64, 64), (0, 2, 3))
+        out = torch.empty(3, device=device, dtype=dtype)
+        torch.sum(y, (0, 2, 3), out=out)
+        self.assertEqual(out.cpu(), y.cpu().double().sum((0, 2, 3)).to(dtype), atol=0, rtol=0)
+
     @skipIfMPS
     def test_sum_parallel(self, device):
         # To use parallel branches we'll need to compare on tensors

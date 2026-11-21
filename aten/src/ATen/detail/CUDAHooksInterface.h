@@ -223,11 +223,12 @@ struct TORCH_API CUDAHooksInterface : AcceleratorHooksInterface {
     return 0;
   }
 
-#ifdef USE_ROCM
-  virtual bool isGPUArch(const std::vector<std::string>& /*archs*/, DeviceIndex = -1 /*device_index*/) const {
+  // Only ROCm builds implement this; callers outside USE_ROCM code check hasROCM() first.
+  virtual bool isGPUArch(const std::vector<std::string>& /*archs*/, DeviceIndex /*device_index*/ = -1) const {
     TORCH_CHECK(false, "Cannot check GPU arch without ATen_cuda library. ", CUDA_HELP);
   }
 
+#ifdef USE_ROCM
   virtual const std::vector<std::string>& getHipblasltPreferredArchs() const {
     static const std::vector<std::string> empty;
     TORCH_CHECK(false, "Cannot get hipBLASLt preferred archs without ATen_cuda library. ", CUDA_HELP);
