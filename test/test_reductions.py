@@ -733,6 +733,26 @@ class TestReductions(TestCase):
             x = torch.randperm(256 * 4096, device=device).view(256, 4096)
             self.assertEqual(x.to(dtype).argmax(-1), x.argmax(-1))
 
+    @onlyCUDA
+    @dtypes(torch.float32, torch.bfloat16, torch.float16)
+    def test_sum_mean_keep_input_fastest_dim(self, device, dtype):
+        # The input's fastest dim is kept but is not the output's fastest dim. ROCm then reduces into
+        # a temporary laid out like the input and copies it into the result.
+        def make(*shape):
+            return (torch.randint(0, 4, shape, device=device) / 8).to(dtype)
+
+        x = make(16, 256, 512).transpose(1, 2)
+        cl = make(16, 64, 32, 32).contiguous(memory_format=torch.channels_last)
+        for t, dim in [(x, 0), (x, (0, 2)), (cl, 0), (cl, 2), (cl, (0, 2)), (cl, (3, 0))]:
+            for keepdim in (False, True):
+                self._check_reduction_float64_cpu(torch.sum, t, dim, keepdim=keepdim)
+                self._check_reduction_float64_cpu(torch.mean, t, dim, keepdim=keepdim, atol=None, rtol=None)
+        self._check_reduction_float64_cpu(torch.sum, cl, 0, dtype=torch.float32)
+        self._check_reduction_float64_cpu(torch.mean, cl, (0, 2), dtype=torch.float32, atol=None, rtol=None)
+        out = torch.empty(64, 32, 32, device=device, dtype=dtype)
+        torch.sum(cl, 0, out=out)
+        self.assertEqual(out.cpu(), cl.cpu().double().sum(0).to(dtype), atol=0, rtol=0)
+
     @skipIfMPS
     def test_sum_parallel(self, device):
         # To use parallel branches we'll need to compare on tensors
