@@ -1398,9 +1398,15 @@ TORCH_IMPL_FUNC(sum_out)
   }
   // See [Sum the contiguous inner block first]
   if (auto inner_dims = inner_first_reduction_dims(self, result, opt_dim)) {
-    auto tmp = at::sum(self, *inner_dims, /*keepdim=*/true, self.scalar_type() == kDouble ? kDouble : kFloat);
-    auto tmp_iter = meta::make_reduction_from_out_ty(tmp, result, opt_dim, keepdim, result.scalar_type());
-    sum_stub(tmp_iter.device_type(), tmp_iter);
+    // Both passes accumulate in the one-pass kernel's type, so a 16-bit result is rounded once.
+    const auto acc_type = result.scalar_type() == kDouble ? kDouble : kFloat;
+    auto tmp = at::sum(self, *inner_dims, /*keepdim=*/true, acc_type);
+    if (result.scalar_type() == acc_type) {
+      auto tmp_iter = meta::make_reduction_from_out_ty(tmp, result, opt_dim, keepdim, acc_type);
+      sum_stub(tmp_iter.device_type(), tmp_iter);
+    } else {
+      result.copy_(at::sum(tmp, opt_dim, keepdim));
+    }
     return;
   }
   auto iter = meta::make_reduction_from_out_ty(self, result, opt_dim, keepdim, result.scalar_type());

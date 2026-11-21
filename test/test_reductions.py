@@ -786,7 +786,7 @@ class TestReductions(TestCase):
         self._check_reduction_float64_cpu(torch.var, x, 0, atol=1e-5, rtol=rtol)
 
     @onlyCUDA
-    @dtypes(torch.float32, torch.float64)
+    @dtypes(torch.float32, torch.bfloat16, torch.float16, torch.float64)
     def test_sum_trailing_block_and_outer_dims(self, device, dtype):
         # A contiguous input summed over its trailing dims and over a dim before a kept dim. ROCm
         # gfx125x sums the trailing block (>= 4096 elements) first, then the remaining dims.
@@ -802,6 +802,9 @@ class TestReductions(TestCase):
         out = torch.empty(3, device=device, dtype=dtype)
         torch.sum(y, (0, 2, 3), out=out)
         self.assertEqual(out.cpu(), y.cpu().double().sum((0, 2, 3)).to(dtype), atol=0, rtol=0)
+        if dtype == torch.float32:
+            z = torch.rand(16, 3, 128, 128, device=device)
+            self.assertEqual(z.sum((0, 2, 3), dtype=torch.float64), z.double().sum((0, 2, 3)), atol=0, rtol=1e-12)
 
     @skipIfMPS
     def test_sum_parallel(self, device):
