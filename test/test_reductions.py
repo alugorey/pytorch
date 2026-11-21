@@ -764,6 +764,27 @@ class TestReductions(TestCase):
             self._check_reduction_float64_cpu(torch.sum, x, dim)
             self._check_reduction_float64_cpu(torch.sum, x[:, 1:], dim)
 
+    @onlyCUDA
+    @dtypes(torch.float32, torch.bfloat16, torch.float16)
+    def test_reduction_columns_and_short_rows(self, device, dtype):
+        # ROCm gfx125x launch tuning: output-vectorized column reductions may use 256- or 512-thread
+        # blocks, contiguous inner reductions of 2-4 elements use one thread per output, and the
+        # 64-block floor of split reductions is capped by a thread budget.
+        def make(*shape):
+            return (torch.randint(0, 4, shape, device=device) / 8).to(dtype)
+
+        cases = [((2048, 4096), 0), ((128, 4096), 0), ((16384, 1024), 0), ((4, 2048, 4096), (0, 1)),
+                 ((200000, 2), -1), ((200000, 3), -1), ((100000, 4), -1), ((5000, 64, 3), -1),
+                 ((20000, 6, 3), -1), ((8, 512, 4096), 1), ((4, 300000), -1)]
+        for shape, dim in cases:
+            x = make(*shape)
+            self._check_reduction_float64_cpu(torch.sum, x, dim)
+            self._check_reduction_float64_cpu(torch.amax, x, dim)
+            self._check_reduction_float64_cpu(torch.mean, x, dim, atol=None, rtol=None)
+        x = torch.rand(4096, 4096, device=device, dtype=dtype)
+        rtol = 1e-4 if dtype == torch.float32 else 1.6e-2
+        self._check_reduction_float64_cpu(torch.var, x, 0, atol=1e-5, rtol=rtol)
+
     @skipIfMPS
     def test_sum_parallel(self, device):
         # To use parallel branches we'll need to compare on tensors
