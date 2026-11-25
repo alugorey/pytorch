@@ -817,6 +817,38 @@ struct ReduceOp {
 #endif
   }
 
+#ifdef USE_ROCM
+  // [Last-block single-wave combine]
+  // On ROCm the last block of a block-x global reduction combines the staged values with the first
+  // wavefront only: plain loads plus warp shuffles, no shared memory and no barrier. The cross-wavefront
+  // shared-memory combine (block_y_reduce + block_x_reduce) occasionally lost one wavefront's values on
+  // MI350X (gfx950) while kernels on other streams shared the compute units.
+  C10_DEVICE arg_t single_wave_combine(const std::array<arg_t, 1>* reduce_buffer) const {
+    constexpr int unroll = std::clamp<int>(32 / sizeof(arg_t), 1, 4);
+    arg_t value = ident;
+    for (int base = threadIdx.x + threadIdx.y * blockDim.x; base < config.ctas_per_output;
+         base += unroll * C10_WARP_SIZE) {
+      arg_t next[unroll];
+      #pragma unroll
+      for (int u = 0; u < unroll; u++) {
+        if (base + u * C10_WARP_SIZE < config.ctas_per_output) {
+          next[u] = reduce_buffer[staging_offset<1>(base + u * C10_WARP_SIZE)][0];
+        }
+      }
+      #pragma unroll
+      for (int u = 0; u < unroll; u++) {
+        if (base + u * C10_WARP_SIZE < config.ctas_per_output) {
+          value = ops.combine(value, next[u]);
+        }
+      }
+    }
+    for (int offset = 1; offset < std::min<int>(blockDim.x * blockDim.y, C10_WARP_SIZE); offset <<= 1) {
+      value = ops.combine(value, ops.warp_shfl_down(value, offset));
+    }
+    return value;
+  }
+#endif
+
   template <int output_vec_size>
   C10_DEVICE std::array<arg_t, output_vec_size> global_reduce(std::array<arg_t, output_vec_size> value, std::array<arg_t, output_vec_size> *acc, char* shared_memory) const {
     using arg_vec_t = std::array<arg_t, output_vec_size>;
@@ -859,7 +891,21 @@ struct ReduceOp {
       for (auto &v : value) {
         v = ident;
       }
-      if (config.should_block_x_reduce()) {
+#ifdef USE_ROCM
+      // [Last-block single-wave combine]; block-x configs always have output_vec_size == 1.
+      const bool single_wave = output_vec_size == 1 && config.should_block_x_reduce();
+#else
+      constexpr bool single_wave = false;
+#endif
+      if (single_wave) {
+#ifdef USE_ROCM
+        if constexpr (output_vec_size == 1) {
+          if (threadIdx.x + threadIdx.y * blockDim.x < C10_WARP_SIZE) {
+            value[0] = single_wave_combine(reduce_buffer);
+          }
+        }
+#endif
+      } else if (config.should_block_x_reduce()) {
         index_t input_offset = threadIdx.x + threadIdx.y * blockDim.x;
         index_t step = blockDim.x * blockDim.y;
         for (; input_offset < config.ctas_per_output; input_offset += step) {
@@ -908,9 +954,11 @@ struct ReduceOp {
         }
 #endif
       }
-      value = block_y_reduce<output_vec_size>(value, shared_memory);
-      if (config.should_block_x_reduce()) {
-        value = block_x_reduce<output_vec_size>(value, shared_memory);
+      if (!single_wave) {
+        value = block_y_reduce<output_vec_size>(value, shared_memory);
+        if (config.should_block_x_reduce()) {
+          value = block_x_reduce<output_vec_size>(value, shared_memory);
+        }
       }
       if (should_store) {
         if (accumulate) {

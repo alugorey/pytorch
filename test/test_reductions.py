@@ -696,6 +696,29 @@ class TestReductions(TestCase):
             del x
         torch.cuda.current_stream(device).wait_stream(side)
 
+    @onlyCUDA
+    @largeTensorTest("2GB")
+    def test_sum_global_reduce_concurrent_kernels(self, device):
+        # The last block of each output combines the partials of all blocks of that output. On ROCm
+        # (MI350X) that combine, done through shared memory across wavefronts, sometimes dropped one
+        # wavefront's values in float64 sums while other kernels shared the compute units. Softmax
+        # kernels on a side stream provide that load.
+        torch.manual_seed(0)
+        side = torch.cuda.Stream(device)
+        noise = torch.rand(8192, 4096, device=device)
+        x = torch.rand(3, 20_000_000, device=device, dtype=torch.float64)
+        expected = x.cpu().sum(1).to(device)
+        iters = 2000
+        bad = torch.zeros((), dtype=torch.long, device=device)
+        for _ in range(iters):
+            side.wait_stream(torch.cuda.current_stream(device))
+            with torch.cuda.stream(side):
+                for _ in range(4):
+                    noise.softmax(1)
+            bad += ((x.sum(1) - expected).abs().max() > 1e-6).long()
+        torch.cuda.current_stream(device).wait_stream(side)
+        self.assertEqual(bad.item(), 0, msg=f"{bad.item()} of {iters} float64 row sums were wrong")
+
     @skipIfMPS
     def test_sum_parallel(self, device):
         # To use parallel branches we'll need to compare on tensors
